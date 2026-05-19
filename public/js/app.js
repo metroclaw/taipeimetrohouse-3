@@ -1,6 +1,6 @@
 // Firebase Configuration
 var firebaseConfig = {
-    apiKey: "AIzaSy...HIZA",
+    apiKey: "AIzaSyBwE9SqrqKC49KnfmbDBZ92fbO1NOZHIZA",
     authDomain: "taipeimetrohouse-2.firebaseapp.com",
     databaseURL: "https://taipeimetrohouse-2-default-rtdb.firebaseio.com",
     projectId: "taipeimetrohouse-2",
