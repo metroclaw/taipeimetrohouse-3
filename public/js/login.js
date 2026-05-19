@@ -1,6 +1,6 @@
 // Firebase Configuration for taipeimetrohouse-2
 const firebaseConfig = {
-  apiKey: "AIzaSyDgk5qz4mNA09g-3azau9mgWjd8996uvJU",
+  apiKey: "AIzaSyBwE9SqrqKC49KnfmbDBZ92fbO1NOZHIZA",
   authDomain: "taipeimetrohouse-2.firebaseapp.com",
   projectId: "taipeimetrohouse-2",
   storageBucket: "taipeimetrohouse-2.firebasestorage.app",
@@ -11,18 +11,13 @@ const firebaseConfig = {
 
 // Initialize Firebase (compat mode)
 firebase.initializeApp(firebaseConfig);
-// Analytics disabled due to permission issues
-// try { firebase.analytics(); } catch (e) { console.log("Analytics:", e.message); }
 
 // Google Sign In
-var googleSignInTask = false;
-
 function handleGoogleSignIn() {
     if (!firebase.auth().currentUser) {
-        console.log("Start login");
+        console.log("Start login - redirecting to Google...");
         var provider = new firebase.auth.GoogleAuthProvider();
         firebase.auth().languageCode = 'zh-TW';
-        // Use redirect for better compatibility
         firebase.auth().signInWithRedirect(provider);
     } else {
         firebase.auth().signOut();
@@ -30,84 +25,58 @@ function handleGoogleSignIn() {
 }
 
 function saveUserInformation(user) {
-    // Save to Firestore (v9 compat)
-    firebase.firestore().collection('users').doc(getUserUid()).set({
-        id: getUserUid(),
+    console.log("Saving user info for:", user.displayName);
+    // Save to Firestore
+    firebase.firestore().collection('users').doc(user.uid).set({
+        id: user.uid,
         name: user.displayName,
         email: user.email,
         profilePicUrl: user.photoURL || 'img/profile_placeholder.png',
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         position: "訪客"
-    }).then(function () {
+    }, { merge: true }).then(function () {
+        console.log("User info saved, redirecting to dashboard...");
         window.location.href = './dashboard.html';
     }).catch(function (error) {
-        // Fallback to Realtime Database
-        try {
-            firebase.database().ref('users/' + getUserUid()).set({
-                id: getUserUid(),
-                name: user.displayName,
-                email: user.email,
-                profilePicUrl: user.photoURL || 'img/profile_placeholder.png',
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                position: "訪客"
-            }).then(function () {
-                window.location.href = './dashboard.html';
-            }).catch(function (err) {
-                alert("登入失敗！");
-                console.error('Error writing user data', err);
-            });
-        } catch (e) {
-            alert("登入失敗！");
-            console.error('Error writing user data', e);
-        }
+        console.error("Error saving user:", error);
+        // Still redirect even if save fails
+        window.location.href = './dashboard.html';
     });
-}
-
-function getUserUid() {
-    return firebase.auth().currentUser.uid;
 }
 
 function initApp() {
-    document.getElementById('sign-in-google').addEventListener('click', handleGoogleSignIn, false);
-}
-
-// Preloader - handle redirect result
-var preloader = document.querySelector('#preloader');
-if (preloader) {
-    window.addEventListener('load', function () {
-        firebase.auth().getRedirectResult().then(function (result) {
-            if (result.credential) {
-                var token = result.credential.accessToken;
-            }
-            var user = result.user;
-            if (user) {
-                if (result.additionalUserInfo && result.additionalUserInfo.isNewUser == true) {
-                    console.log("new user");
-                    saveUserInformation(user);
-                } else {
-                    console.log("existing user, redirecting...");
-                    window.location.href = './dashboard.html';
-                }
-            } else {
-                preloader.remove();
-            }
-        }).catch(function (error) {
-            preloader.remove();
-            console.error("Auth error:", error);
-            if (error.code === 'auth/wrong-password') {
-                alert("密碼錯誤");
-            } else if (error.code === 'auth/network-request-failed') {
-                alert("網路不穩定");
-            } else if (error.code === 'auth/user-not-found') {
-                alert("找不到使用者");
-            } else if (error.code !== 'auth/operation-not-allowed') {
-                // Don't alert for operation-not-allowed (Google auth not enabled yet)
-                console.log("Auth error code:", error.code, error.message);
-            }
-        });
+    // Listen for auth state changes
+    firebase.auth().onAuthStateChanged(function(user) {
+        console.log("Auth state changed:", user ? user.displayName : "null");
+        if (user) {
+            // User is signed in
+            document.getElementById('preloader')?.remove();
+            saveUserInformation(user);
+        } else {
+            // User is signed out
+            document.getElementById('preloader')?.remove();
+        }
     });
+
+    // Handle redirect result (for signInWithRedirect)
+    firebase.auth().getRedirectResult().then(function(result) {
+        console.log("Redirect result:", result.user ? result.user.displayName : "no user");
+        if (result.user) {
+            // Sign in successful, onAuthStateChanged will handle the rest
+            console.log("Redirect login successful");
+        }
+    }).catch(function(error) {
+        console.error("Redirect error:", error.code, error.message);
+        document.getElementById('preloader')?.remove();
+    });
+
+    // Bind sign in button
+    var signInBtn = document.getElementById('sign-in-google');
+    if (signInBtn) {
+        signInBtn.addEventListener('click', handleGoogleSignIn, false);
+    }
 }
 
-window.onload = function () {
+window.onload = function() {
     initApp();
 };
