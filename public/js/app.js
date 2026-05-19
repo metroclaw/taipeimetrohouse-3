@@ -1,6 +1,6 @@
 // Firebase Configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyDgk5qz4mNA09g-3azau9mgWjd8996uvJU",
+  apiKey: "AIzaSyBwE9SqrqKC49KnfmbDBZ92fbO1NOZHIZA",
   authDomain: "taipeimetrohouse-2.firebaseapp.com",
   projectId: "taipeimetrohouse-2",
   storageBucket: "taipeimetrohouse-2.firebasestorage.app",
@@ -253,12 +253,10 @@ function calculateUtilityBill(billData, rooms, tenants) {
 }
 
 // ============================================================
-// 初始化
+// 初始化 - 直接執行，不等待 DOMContentLoaded
 // ============================================================
-// 等待 Firebase Auth 初始化完成後再檢查登入狀態
 firebase.auth().onAuthStateChanged(function(user) {
-    // 這個 callback 會在 Auth 初始化完成後觸發
-    // 此時 user 才是真正的登入狀態（不是 null）
+    console.log("App auth state:", user ? user.displayName : "null");
     if (!user) {
         // 未登入，導向登入頁
         if (!window.location.pathname.includes('login.html')) {

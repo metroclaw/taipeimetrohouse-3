@@ -1,6 +1,6 @@
 // Firebase Configuration for taipeimetrohouse-2
-const firebaseConfig = {
-    apiKey: "AIzaSyDgk5qz4mNA09g-3azau9mgWjd8996uvJU",
+var firebaseConfig = {
+    apiKey: "AIzaSyBwE9SqrqKC49KnfmbDBZ92fbO1NOZHIZA",
     authDomain: "taipeimetrohouse-2.firebaseapp.com",
     projectId: "taipeimetrohouse-2",
     storageBucket: "taipeimetrohouse-2.firebasestorage.app",
@@ -9,7 +9,7 @@ const firebaseConfig = {
     measurementId: "G-EZDH90LHWB"
 };
 
-// Initialize Firebase (compat mode)
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 
 // Google Sign In
@@ -26,57 +26,74 @@ function handleGoogleSignIn() {
 
 function saveUserInformation(user) {
     console.log("Saving user info for:", user.displayName);
-    // Save to Firestore
-    firebase.firestore().collection('users').doc(user.uid).set({
-        id: user.uid,
-        name: user.displayName,
-        email: user.email,
-        profilePicUrl: user.photoURL || 'img/profile_placeholder.png',
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        position: "訪客"
-    }, { merge: true }).then(function () {
-        console.log("User info saved, redirecting to dashboard...");
-        window.location.href = './dashboard.html';
-    }).catch(function (error) {
-        console.error("Error saving user:", error);
-        // Still redirect even if save fails
-        window.location.href = './dashboard.html';
-    });
+    try {
+        firebase.firestore().collection('users').doc(user.uid).set({
+            id: user.uid,
+            name: user.displayName,
+            email: user.email,
+            profilePicUrl: user.photoURL || 'img/profile_placeholder.png',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            position: "訪客"
+        }, { merge: true }).then(function () {
+            console.log("User info saved");
+        }).catch(function (error) {
+            console.error("Error saving user:", error);
+        });
+    } catch (e) {
+        console.error("Firestore not available:", e);
+    }
 }
 
-function initApp() {
-    // Listen for auth state changes
-    firebase.auth().onAuthStateChanged(function (user) {
-        console.log("Auth state changed:", user ? user.displayName : "null");
-        if (user) {
-            // User is signed in
-            document.getElementById('preloader')?.remove();
-            saveUserInformation(user);
-        } else {
-            // User is signed out
-            document.getElementById('preloader')?.remove();
-        }
-    });
+function initLoginPage() {
+    console.log("initLoginPage called");
 
-    // Handle redirect result (for signInWithRedirect)
+    // Handle redirect result
     firebase.auth().getRedirectResult().then(function (result) {
         console.log("Redirect result:", result.user ? result.user.displayName : "no user");
         if (result.user) {
-            // Sign in successful, onAuthStateChanged will handle the rest
-            console.log("Redirect login successful");
+            console.log("Redirect login successful, saving user...");
+            saveUserInformation(result.user);
+            setTimeout(function () {
+                window.location.href = './dashboard.html';
+            }, 500);
         }
     }).catch(function (error) {
         console.error("Redirect error:", error.code, error.message);
-        document.getElementById('preloader')?.remove();
+    });
+
+    // Listen for auth state changes
+    firebase.auth().onAuthStateChanged(function (user) {
+        console.log("Login page auth state:", user ? user.displayName : "null");
+        if (user) {
+            saveUserInformation(user);
+            window.location.href = './dashboard.html';
+        }
     });
 
     // Bind sign in button
     var signInBtn = document.getElementById('sign-in-google');
     if (signInBtn) {
         signInBtn.addEventListener('click', handleGoogleSignIn, false);
+    } else {
+        console.log("Sign in button not found");
     }
 }
 
-window.onload = function () {
-    initApp();
-};
+// Initialize when DOM and Firebase are ready
+function tryInit() {
+    try {
+        if (firebase.auth && firebase.auth()) {
+            initLoginPage();
+        } else {
+            setTimeout(tryInit, 100);
+        }
+    } catch (e) {
+        setTimeout(tryInit, 100);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryInit);
+} else {
+    tryInit();
+}
