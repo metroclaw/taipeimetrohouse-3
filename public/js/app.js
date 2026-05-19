@@ -1,18 +1,17 @@
 // Firebase Configuration
-var firebaseConfig = {
-    apiKey: "AIzaSyBwE9SqrqKC49KnfmbDBZ92fbO1NOZHIZA",
-    authDomain: "taipeimetrohouse-2.firebaseapp.com",
-    databaseURL: "https://taipeimetrohouse-2-default-rtdb.firebaseio.com",
-    projectId: "taipeimetrohouse-2",
-    storageBucket: "taipeimetrohouse-2.firebasestorage.app",
-    messagingSenderId: "90653753409",
-    appId: "1:90653753409:web:b675e99516d61f920d46c0",
-    measurementId: "G-EZDH90LHWB"
+const firebaseConfig = {
+  apiKey: "AIzaSyDgk5qz4mNA09g-3azau9mgWjd8996uvJU",
+  authDomain: "taipeimetrohouse-2.firebaseapp.com",
+  projectId: "taipeimetrohouse-2",
+  storageBucket: "taipeimetrohouse-2.firebasestorage.app",
+  messagingSenderId: "90653753409",
+  appId: "1:90653753409:web:b675e99516d61f920d46c0",
+  measurementId: "G-EZDH90LHWB"
 };
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-firebase.analytics();
+// Analytics disabled due to permission issues
 
 // ============================================================
 // 共用工具函數
