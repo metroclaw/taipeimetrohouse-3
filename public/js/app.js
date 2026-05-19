@@ -1,14 +1,13 @@
 // Firebase Configuration
-// ⚠️ 請替換為你自己的 Firebase 專案設定
 var firebaseConfig = {
-    apiKey: "AIzaSyBwE9SqrqKC49KnfmbDBZ92fbO1NOZHIZA",
-    authDomain: "taipeimetrohouse-b099c.firebaseapp.com",
-    databaseURL: "https://taipeimetrohouse-b099c-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "taipeimetrohouse-b099c",
-    storageBucket: "taipeimetrohouse-b099c.firebasestorage.app",
-    messagingSenderId: "423662422141",
-    appId: "1:423662422141:web:19ad20e691b9fe234c4914",
-    measurementId: "G-58G6L93M7M"
+    apiKey: "AIzaSy...HIZA",
+    authDomain: "taipeimetrohouse-2.firebaseapp.com",
+    databaseURL: "https://taipeimetrohouse-2-default-rtdb.firebaseio.com",
+    projectId: "taipeimetrohouse-2",
+    storageBucket: "taipeimetrohouse-2.firebasestorage.app",
+    messagingSenderId: "90653753409",
+    appId: "1:90653753409:web:b675e99516d61f920d46c0",
+    measurementId: "G-EZDH90LHWB"
 };
 
 // Initialize Firebase
