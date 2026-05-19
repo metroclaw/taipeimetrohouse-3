@@ -1,6 +1,6 @@
 // Firebase Configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBwE9SqrqKC49KnfmbDBZ92fbO1NOZHIZA",
+  apiKey: "AIzaSyDgk5qz4mNA09g-3azau9mgWjd8996uvJU",
   authDomain: "taipeimetrohouse-2.firebaseapp.com",
   projectId: "taipeimetrohouse-2",
   storageBucket: "taipeimetrohouse-2.firebasestorage.app",
