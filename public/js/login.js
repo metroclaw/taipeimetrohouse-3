@@ -1,13 +1,13 @@
 // Your web app's Firebase configuration
 var firebaseConfig = {
-    apiKey: "AIzaSyBbo7Hhxo1T9oWqMSHDC-oXV1Y9RhzYt3M",
-    authDomain: "taipeimetrohouse.web.app",
-    databaseURL: "https://taipeimetrohouse-default-rtdb.firebaseio.com",
-    projectId: "taipeimetrohouse",
-    storageBucket: "taipeimetrohouse.appspot.com",
-    messagingSenderId: "850324469942",
-    appId: "1:850324469942:web:fcc6c2df57dc682d508e17",
-    measurementId: "G-NBE4QRRLYG"
+    apiKey: "AIzaSyBwE9SqrqKC49KnfmbDBZ92fbO1NOZHIZA",
+    authDomain: "taipeimetrohouse-2.firebaseapp.com",
+    databaseURL: "https://taipeimetrohouse-2-default-rtdb.firebaseio.com",
+    projectId: "taipeimetrohouse-2",
+    storageBucket: "taipeimetrohouse-2.firebasestorage.app",
+    messagingSenderId: "90653753409",
+    appId: "1:90653753409:web:b675e99516d61f920d46c0",
+    measurementId: "G-EZDH90LHWB"
 };
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
