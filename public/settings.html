@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RentalHub — 設定</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#2563EB',secondary:'#10B981',bg:'#F8FAFC'}}}}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="js/app.js"></script>
+<style>.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}</style>
+</head>
+<body class="bg-bg min-h-screen">
+<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+  <div class="flex items-center gap-4"><button class="lg:hidden text-gray-600" onclick="document.getElementById('sidebar').classList.toggle('hidden')"><i class="fas fa-bars text-xl"></i></button><div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">R</span></div><span class="font-bold text-lg text-gray-900">RentalHub</span></div></div>
+  <div class="flex items-center gap-3"><button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i><span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span></button><div class="flex items-center gap-2 cursor-pointer" onclick="handleSignOut()"><div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div><span class="text-sm text-gray-700 hidden sm:inline">登出</span></div></div>
+</nav>
+<div class="flex">
+  <aside id="sidebar" class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40 overflow-y-auto">
+    <nav class="space-y-1 text-sm">
+      <a href="dashboard.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-home w-5"></i>主控台</a>
+      <a href="projects.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-building w-5"></i>建案管理</a>
+      <a href="tenants.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-users w-5"></i>房客管理</a>
+      <a href="contracts.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-file-contract w-5"></i>合約管理</a>
+      <a href="rent.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-money-bill w-5"></i>租金管理</a>
+      <a href="billing.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-calculator w-5"></i>費用計算</a>
+      <a href="maintenance.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-tools w-5"></i>修繕派工</a>
+      <a href="evidence.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-camera w-5"></i>證據保存</a>
+      <a href="settings.html" class="sidebar-item active flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-cog w-5"></i>設定</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-4 lg:p-6">
+    <h1 class="text-2xl font-bold text-gray-900 mb-6">設定</h1>
+    <div class="max-w-2xl space-y-6">
+      <!-- 使用者資訊 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h2 class="font-semibold text-gray-900 mb-4">👤 使用者資訊</h2>
+        <div class="flex items-center gap-4">
+          <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center"><i class="fas fa-user text-primary text-2xl"></i></div>
+          <div><p class="font-medium text-gray-900" id="settings-user-name">載入中...</p><p class="text-sm text-gray-500" id="settings-user-email">...</p></div>
+        </div>
+      </div>
+      <!-- 通知設定 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h2 class="font-semibold text-gray-900 mb-4">🔔 通知設定</h2>
+        <div class="space-y-3">
+          <label class="flex items-center justify-between"><span class="text-sm text-gray-700">租金逾期提醒</span><input type="checkbox" checked class="w-5 h-5 text-primary rounded"></label>
+          <label class="flex items-center justify-between"><span class="text-sm text-gray-700">合約到期提醒</span><input type="checkbox" checked class="w-5 h-5 text-primary rounded"></label>
+          <label class="flex items-center justify-between"><span class="text-sm text-gray-700">修繕完成通知</span><input type="checkbox" checked class="w-5 h-5 text-primary rounded"></label>
+          <label class="flex items-center justify-between"><span class="text-sm text-gray-700">清潔排程提醒</span><input type="checkbox" checked class="w-5 h-5 text-primary rounded"></label>
+        </div>
+      </div>
+      <!-- 費用設定 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h2 class="font-semibold text-gray-900 mb-4">💰 預設費用設定</h2>
+        <div class="grid grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">預設電費單價 (NT$/kWh)</label><input type="number" value="5.5" step="0.1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">預設水費單價 (NT$/度)</label><input type="number" value="12" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">預設瓦斯單價 (NT$/度)</label><input type="number" value="25" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">第四台費用 (NT$/月)</label><input type="number" value="550" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">WiFi 費用 (NT$/月)</label><input type="number" value="600" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+        </div>
+        <button onclick="showToast('設定已儲存', 'success')" class="mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">儲存設定</button>
+      </div>
+      <!-- 資料管理 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h2 class="font-semibold text-gray-900 mb-4">📦 資料管理</h2>
+        <div class="space-y-3">
+          <button onclick="showToast('匯出功能（待實作）', 'info')" class="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm text-gray-700"><i class="fas fa-download text-primary"></i>匯出所有資料 (CSV)</button>
+          <button onclick="showToast('匯入功能（待實作）', 'info')" class="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm text-gray-700"><i class="fas fa-upload text-primary"></i>匯入資料</button>
+          <button onclick="if(confirm('確定要清除所有資料？此動作無法復原！')) showToast('清除功能（待實作）', 'info')" class="w-full flex items-center gap-3 px-4 py-3 bg-red-50 hover:bg-red-100 rounded-lg text-sm text-red-600"><i class="fas fa-trash"></i>清除所有資料</button>
+        </div>
+      </div>
+      <!-- 關於 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <h2 class="font-semibold text-gray-900 mb-4">ℹ️ 關於</h2>
+        <div class="text-sm text-gray-600 space-y-1">
+          <p><strong>RentalHub 個人房東租賃管理系統</strong></p>
+          <p>版本：v1.0.0</p>
+          <p>技術：Next.js + Firebase（Firestore + Auth + Storage）</p>
+          <p class="text-xs text-gray-400 mt-2">© 2026 RentalHub. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const user = getCurrentUser();
+    if (user) {
+        document.getElementById('settings-user-name').textContent = user.displayName || '使用者';
+        document.getElementById('settings-user-email').textContent = user.email || '';
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RentalHub — 建案管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#2563EB',secondary:'#10B981',bg:'#F8FAFC'}}}}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="js/app.js"></script>
+<style>
+.sidebar-item.active { background: #2563EB15; color: #2563EB; font-weight: 600; }
+.status-occupied { background: #10B98115; color: #10B981; }
+.status-vacant { background: #F59E0B15; color: #D97706; }
+.status-repair { background: #EF444415; color: #DC2626; }
+.status-cleaning { background: #3B82F615; color: #2563EB; }
+</style>
+</head>
+<body class="bg-bg min-h-screen">
+<!-- 頂部導航 -->
+<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+  <div class="flex items-center gap-4">
+    <button class="lg:hidden text-gray-600" onclick="document.getElementById('sidebar').classList.toggle('hidden')"><i class="fas fa-bars text-xl"></i></button>
+    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">R</span></div><span class="font-bold text-lg text-gray-900">RentalHub</span></div>
+  </div>
+  <div class="flex items-center gap-3">
+    <button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i><span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">5</span></button>
+    <div class="flex items-center gap-2 cursor-pointer" onclick="handleSignOut()"><div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div><span class="text-sm text-gray-700 hidden sm:inline">登出</span></div>
+  </div>
+</nav>
+
+<div class="flex">
+  <!-- 側邊欄 -->
+  <aside id="sidebar" class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40 overflow-y-auto">
+    <nav class="space-y-1 text-sm">
+      <a href="dashboard.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-home w-5"></i>主控台</a>
+      <a href="projects.html" class="sidebar-item active flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-building w-5"></i>建案管理</a>
+      <a href="tenants.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-users w-5"></i>房客管理</a>
+      <a href="contracts.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-file-contract w-5"></i>合約管理</a>
+      <a href="rent.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-money-bill w-5"></i>租金管理</a>
+      <a href="billing.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-calculator w-5"></i>費用計算</a>
+      <a href="maintenance.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-tools w-5"></i>修繕派工</a>
+      <a href="evidence.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-camera w-5"></i>證據保存</a>
+      <a href="settings.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-cog w-5"></i>設定</a>
+    </nav>
+  </aside>
+
+  <!-- 主內容 -->
+  <main class="flex-1 p-4 lg:p-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h1 class="text-2xl font-bold text-gray-900">建案與客房管理</h1><p class="text-sm text-gray-500 mt-1">管理所有建案和客房狀態</p></div>
+      <button onclick="openProjectModal()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90"><i class="fas fa-plus"></i>新增建案</button>
+    </div>
+
+    <!-- 建案卡片 -->
+    <div id="projects-container" class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
+      <!-- 由 JS 動態產生 -->
+    </div>
+
+    <!-- 客房列表 -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+      <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+        <div><h2 class="font-semibold text-gray-900" id="rooms-title">客房列表</h2><p class="text-sm text-gray-500" id="rooms-subtitle">請選擇建案</p></div>
+        <button onclick="openRoomModal()" class="flex items-center gap-2 px-3 py-1.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90"><i class="fas fa-plus"></i>新增客房</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead><tr class="bg-gray-50 text-left"><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">房號</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">類型</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">坪數</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">樓層</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">房客</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">月租金</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
+          <tbody id="rooms-table-body" class="divide-y divide-gray-100">
+            <tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">請選擇建案以查看客房</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 建案 Modal -->
+<div id="project-modal" class="fixed inset-0 bg-black/30 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h3 class="font-semibold text-gray-900" id="project-modal-title">新增建案</h3><button onclick="closeProjectModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
+    <form id="project-form" class="p-4 space-y-4">
+      <input type="hidden" id="project-id">
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">建案名稱</label><input type="text" id="project-name" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">地址</label><input type="text" id="project-address" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">總樓層</label><input type="number" id="project-floors" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">建造年份</label><input type="number" id="project-year" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      </div>
+      <div class="flex gap-3 pt-2"><button type="button" onclick="closeProjectModal()" class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm">取消</button><button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">儲存</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- 客房 Modal -->
+<div id="room-modal" class="fixed inset-0 bg-black/30 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h3 class="font-semibold text-gray-900" id="room-modal-title">新增客房</h3><button onclick="closeRoomModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
+    <form id="room-form" class="p-4 space-y-4">
+      <input type="hidden" id="room-id">
+      <input type="hidden" id="room-project-id">
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">房號</label><input type="text" id="room-number" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">類型</label><select id="room-type" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"><option value="套房">套房</option><option value="雅房">雅房</option><option value="整層">整層</option></select></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">坪數</label><input type="number" id="room-area" step="0.1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">樓層</label><input type="number" id="room-floor" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">月租金 (NT$)</label><input type="number" id="room-rent" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">冷氣台數</label><input type="number" id="room-ac" value="1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">設備</label><div class="flex flex-wrap gap-2"><label class="flex items-center gap-1 text-sm"><input type="checkbox" value="冷氣" class="room-amenity">冷氣</label><label class="flex items-center gap-1 text-sm"><input type="checkbox" value="洗衣機" class="room-amenity">洗衣機</label><label class="flex items-center gap-1 text-sm"><input type="checkbox" value="冰箱" class="room-amenity">冰箱</label><label class="flex items-center gap-1 text-sm"><input type="checkbox" value="電視" class="room-amenity">電視</label><label class="flex items-center gap-1 text-sm"><input type="checkbox" value="網路" class="room-amenity">網路</label><label class="flex items-center gap-1 text-sm"><input type="checkbox" value="熱水器" class="room-amenity">熱水器</label></div></div>
+      <div class="flex gap-3 pt-2"><button type="button" onclick="closeRoomModal()" class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm">取消</button><button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">儲存</button></div>
+    </form>
+  </div>
+</div>
+
+<script>
+let selectedProjectId = null;
+let projectsData = [];
+let roomsData = [];
+
+// 載入建案
+async function loadProjects() {
+    const uid = getCurrentUserUid();
+    if (!uid) return;
+    try {
+        const snapshot = await db.collection('users').doc(uid).collection('projects').get();
+        projectsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (projectsData.length === 0) {
+            // 建立測試資料
+            await seedTestData();
+            return;
+        }
+        renderProjects();
+    } catch (e) {
+        console.error('Error loading projects:', e);
+        showToast('載入失敗', 'error');
+    }
+}
+
+// 測試資料
+async function seedTestData() {
+    const uid = getCurrentUserUid();
+    const projects = [
+        { name: '台北大安 XX 大樓', address: '台北市大安區信義路三段 XX 號', floors: 12, year: 2015 },
+        { name: '新北板橋 YY 社區', address: '新北市板橋區中山路一段 XX 號', floors: 8, year: 2018 },
+        { name: '台中西區 ZZ 華廈', address: '台中市西區公益路 XX 號', floors: 10, year: 2020 }
+    ];
+    const rooms = [
+        { projectId: 0, number: 'A1', type: '套房', area: 8, floor: 3, rent: 12000, acUnits: 1, tenant: '王小明', status: '已出租' },
+        { projectId: 0, number: 'A2', type: '套房', area: 6, floor: 5, rent: 10000, acUnits: 1, tenant: '李小華', status: '已出租' },
+        { projectId: 0, number: 'A3', type: '雅房', area: 4, floor: 2, rent: 6000, acUnits: 1, tenant: '張小美', status: '已出租' },
+        { projectId: 0, number: 'A4', type: '套房', area: 10, floor: 7, rent: 15000, acUnits: 1, tenant: '', status: '空置' },
+        { projectId: 0, number: 'A5', type: '整層', area: 25, floor: 10, rent: 25000, acUnits: 2, tenant: '陳小龍', status: '已出租' },
+        { projectId: 1, number: 'B1', type: '套房', area: 7, floor: 4, rent: 11000, acUnits: 1, tenant: '林小婷', status: '已出租' },
+        { projectId: 1, number: 'B2', type: '套房', area: 7, floor: 6, rent: 11000, acUnits: 1, tenant: '黃小強', status: '已出租' },
+        { projectId: 1, number: 'B3', type: '雅房', area: 5, floor: 3, rent: 7000, acUnits: 1, tenant: '', status: '空置' },
+        { projectId: 2, number: 'C1', type: '套房', area: 9, floor: 5, rent: 13000, acUnits: 1, tenant: '吳小琳', status: '已出租' },
+        { projectId: 2, number: 'C2', type: '套房', area: 8, floor: 6, rent: 12000, acUnits: 1, tenant: '鄭小偉', status: '已出租' },
+        { projectId: 2, number: 'C3', type: '雅房', area: 4, floor: 2, rent: 6500, acUnits: 1, tenant: '謝小琪', status: '已出租' },
+        { projectId: 2, number: 'C4', type: '雅房', area: 4, floor: 3, rent: 6500, acUnits: 1, tenant: '楊小豪', status: '已出租' },
+        { projectId: 2, number: 'C5', type: '套房', area: 12, floor: 8, rent: 16000, acUnits: 1, tenant: '', status: '空置' }
+    ];
+    
+    for (const p of projects) {
+        const ref = await db.collection('users').doc(uid).collection('projects').add(p);
+        const projectId = ref.id;
+        const projectRooms = rooms.filter(r => r.projectId === projects.indexOf(p));
+        for (const r of projectRooms) {
+            await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').add(r);
+        }
+    }
+    showToast('已建立測試資料', 'success');
+    loadProjects();
+}
+
+function renderProjects() {
+    const container = document.getElementById('projects-container');
+    container.innerHTML = projectsData.map(p => {
+        const occupied = p.occupied || 0;
+        const total = p.totalRooms || 0;
+        const rate = total > 0 ? Math.round(occupied / total * 100) : 0;
+        return `
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition" onclick="selectProject('${p.id}')">
+            <div class="h-24 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center"><i class="fas fa-building text-3xl text-primary/30"></i></div>
+            <div class="p-4">
+                <div class="flex items-center justify-between mb-2"><h3 class="font-semibold text-gray-900 text-sm">${p.name}</h3><span class="text-xs status-occupied px-2 py-1 rounded-full">${rate}% 出租</span></div>
+                <p class="text-xs text-gray-500 mb-3 truncate">${p.address}</p>
+                <div class="flex items-center gap-3 text-xs mb-2"><span class="flex items-center gap-1"><span class="w-2 h-2 bg-secondary rounded-full"></span>已租 ${occupied}</span><span class="flex items-center gap-1"><span class="w-2 h-2 bg-amber-400 rounded-full"></span>空置 ${total - occupied}</span><span class="text-gray-400">共 ${total} 間</span></div>
+                <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-secondary h-1.5 rounded-full" style="width:${rate}%"></div></div>
+                <div class="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between"><span class="text-xs text-gray-400">${p.floors}層 / ${p.year}年</span><span class="text-xs text-primary font-medium">查看詳情 →</span></div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function selectProject(projectId) {
+    selectedProjectId = projectId;
+    const project = projectsData.find(p => p.id === projectId);
+    document.getElementById('rooms-title').textContent = project ? project.name + ' — 客房列表' : '客房列表';
+    document.getElementById('rooms-subtitle').textContent = '共 ' + (project ? project.totalRooms || 0 : 0) + ' 間客房';
+    document.getElementById('room-project-id').value = projectId;
+    
+    const uid = getCurrentUserUid();
+    if (!uid) return;
+    try {
+        const snapshot = await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').get();
+        roomsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderRooms();
+    } catch (e) {
+        console.error('Error loading rooms:', e);
+    }
+}
+
+function renderRooms() {
+    const tbody = document.getElementById('rooms-table-body');
+    if (roomsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">尚未新增客房</td></tr>';
+        return;
+    }
+    tbody.innerHTML = roomsData.map(r => {
+        const statusClass = r.status === '已出租' ? 'status-occupied' : r.status === '空置' ? 'status-vacant' : r.status === '維修中' ? 'status-repair' : 'status-cleaning';
+        return `<tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 text-sm font-medium text-gray-900">${r.number}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${r.type}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${r.area} 坪</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${r.floor}F</td>
+            <td class="px-4 py-3"><span class="inline-flex items-center gap-1 text-xs ${statusClass} px-2 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full" style="background:currentColor"></span>${r.status}</span></td>
+            <td class="px-4 py-3 text-sm text-gray-600">${r.tenant || '—'}</td>
+            <td class="px-4 py-3 text-sm font-medium text-gray-900">${formatCurrency(r.rent)}</td>
+            <td class="px-4 py-3"><button class="text-sm text-primary hover:underline">查看</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function openProjectModal() { document.getElementById('project-modal').classList.remove('hidden'); document.getElementById('project-modal-title').textContent = '新增建案'; document.getElementById('project-form').reset(); document.getElementById('project-id').value = ''; }
+function closeProjectModal() { document.getElementById('project-modal').classList.add('hidden'); }
+function openRoomModal() { if (!selectedProjectId) { showToast('請先選擇建案', 'error'); return; } document.getElementById('room-modal').classList.remove('hidden'); document.getElementById('room-modal-title').textContent = '新增客房'; document.getElementById('room-form').reset(); document.getElementById('room-id').value = ''; document.getElementById('room-project-id').value = selectedProjectId; }
+function closeRoomModal() { document.getElementById('room-modal').classList.add('hidden'); }
+
+document.getElementById('project-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const uid = getCurrentUserUid();
+    if (!uid) return;
+    const data = { name: document.getElementById('project-name').value, address: document.getElementById('project-address').value, floors: parseInt(document.getElementById('project-floors').value) || 0, year: parseInt(document.getElementById('project-year').value) || 0 };
+    const id = document.getElementById('project-id').value;
+    try {
+        if (id) { await db.collection('users').doc(uid).collection('projects').doc(id).update(data); showToast('建案已更新'); } 
+        else { await db.collection('users').doc(uid).collection('projects').add(data); showToast('建案已新增'); }
+        closeProjectModal(); loadProjects();
+    } catch (e) { showToast('儲存失敗', 'error'); }
+});
+
+document.getElementById('room-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const uid = getCurrentUserUid();
+    if (!uid) return;
+    const amenities = Array.from(document.querySelectorAll('.room-amenity:checked')).map(cb => cb.value);
+    const data = { number: document.getElementById('room-number').value, type: document.getElementById('room-type').value, area: parseFloat(document.getElementById('room-area').value) || 0, floor: parseInt(document.getElementById('room-floor').value) || 0, rent: parseInt(document.getElementById('room-rent').value) || 0, acUnits: parseInt(document.getElementById('room-ac').value) || 1, amenities, status: '空置', tenant: '' };
+    const id = document.getElementById('room-id').value;
+    const projectId = document.getElementById('room-project-id').value;
+    try {
+        if (id) { await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').doc(id).update(data); showToast('客房已更新'); }
+        else { await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').add(data); showToast('客房已新增'); }
+        closeRoomModal(); selectProject(projectId);
+    } catch (e) { showToast('儲存失敗', 'error'); }
+});
+
+document.addEventListener('DOMContentLoaded', loadProjects);
+</script>
+</body>
+</html>

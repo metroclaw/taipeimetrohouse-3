@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RentalHub — 合約管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#2563EB',secondary:'#10B981',bg:'#F8FAFC'}}}}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="js/app.js"></script>
+<style>.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}</style>
+</head>
+<body class="bg-bg min-h-screen">
+<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+  <div class="flex items-center gap-4"><button class="lg:hidden text-gray-600" onclick="document.getElementById('sidebar').classList.toggle('hidden')"><i class="fas fa-bars text-xl"></i></button><div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">R</span></div><span class="font-bold text-lg text-gray-900">RentalHub</span></div></div>
+  <div class="flex items-center gap-3"><button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i><span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span></button><div class="flex items-center gap-2 cursor-pointer" onclick="handleSignOut()"><div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div><span class="text-sm text-gray-700 hidden sm:inline">登出</span></div></div>
+</nav>
+<div class="flex">
+  <aside id="sidebar" class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40 overflow-y-auto">
+    <nav class="space-y-1 text-sm">
+      <a href="dashboard.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-home w-5"></i>主控台</a>
+      <a href="projects.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-building w-5"></i>建案管理</a>
+      <a href="tenants.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-users w-5"></i>房客管理</a>
+      <a href="contracts.html" class="sidebar-item active flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-file-contract w-5"></i>合約管理</a>
+      <a href="rent.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-money-bill w-5"></i>租金管理</a>
+      <a href="billing.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-calculator w-5"></i>費用計算</a>
+      <a href="maintenance.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-tools w-5"></i>修繕派工</a>
+      <a href="evidence.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-camera w-5"></i>證據保存</a>
+      <a href="settings.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-cog w-5"></i>設定</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-4 lg:p-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h1 class="text-2xl font-bold text-gray-900">合約管理</h1><p class="text-sm text-gray-500 mt-1">管理所有租賃合約和到期提醒</p></div>
+      <button onclick="openContractModal()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90"><i class="fas fa-plus"></i>新增合約</button>
+    </div>
+    <!-- 即將到期提醒 -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+      <div class="flex items-center gap-2 mb-2"><i class="fas fa-exclamation-triangle text-amber-500"></i><span class="font-medium text-amber-700">合約即將到期提醒</span></div>
+      <div id="expiring-contracts" class="text-sm text-amber-600">載入中...</div>
+    </div>
+    <!-- 合約列表 -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead><tr class="bg-gray-50 text-left"><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">房客</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">客房</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">租期</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">租金</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">押金</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
+          <tbody id="contracts-table-body" class="divide-y divide-gray-100"><tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">載入中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<!-- 合約 Modal -->
+<div id="contract-modal" class="fixed inset-0 bg-black/30 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h3 class="font-semibold text-gray-900" id="contract-modal-title">新增合約</h3><button onclick="closeContractModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
+    <form id="contract-form" class="p-4 space-y-4">
+      <input type="hidden" id="contract-id">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">房客 *</label><select id="contract-tenant" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="">選擇房客</option></select></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">客房 *</label><select id="contract-room" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="">選擇客房</option></select></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">開始日期 *</label><input type="date" id="contract-start" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">結束日期 *</label><input type="date" id="contract-end" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">月租金 (NT$)</label><input type="number" id="contract-rent" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">押金 (NT$)</label><input type="number" id="contract-deposit" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">費用分攤方式</label><div class="grid grid-cols-2 gap-2 text-sm"><div><span class="text-gray-500">水費：</span><select id="contract-water-split" class="px-2 py-1 border border-gray-200 rounded text-sm"><option value="area">依坪數</option><option value="people">依人數</option></select></div><div><span class="text-gray-500">電費：</span><select id="contract-elec-split" class="px-2 py-1 border border-gray-200 rounded text-sm"><option value="ac">依台數</option><option value="people">依人數</option></select></div></div></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">備註</label><textarea id="contract-notes" rows="2" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></textarea></div>
+      <div class="flex gap-3 pt-2"><button type="button" onclick="closeContractModal()" class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm">取消</button><button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">儲存</button></div>
+    </form>
+  </div>
+</div>
+<script>
+let contractsData = [], tenantsData = [], roomsData = [];
+async function loadContracts() {
+    const uid = getCurrentUserUid(); if (!uid) return;
+    try {
+        const [cSnap, tSnap, rSnap] = await Promise.all([
+            db.collection('users').doc(uid).collection('contracts').get(),
+            db.collection('users').doc(uid).collection('tenants').get(),
+            db.collection('users').doc(uid).collection('rooms').get()
+        ]);
+        contractsData = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        tenantsData = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        roomsData = rSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (contractsData.length === 0) { await seedContractData(); return; }
+        renderContracts();
+    } catch (e) { console.error(e); }
+}
+async function seedContractData() {
+    const uid = getCurrentUserUid();
+    const contracts = [
+        { tenantId: '', tenantName: '王小明', room: 'A1', start: '2026-01-01', end: '2026-12-31', rent: 12000, deposit: 24000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
+        { tenantId: '', tenantName: '李小華', room: 'A2', start: '2026-01-01', end: '2026-11-30', rent: 10000, deposit: 20000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
+        { tenantId: '', tenantName: '張小美', room: 'A3', start: '2026-03-01', end: '2026-10-31', rent: 6000, deposit: 12000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
+        { tenantId: '', tenantName: '陳小龍', room: 'A5', start: '2025-07-01', end: '2026-06-30', rent: 25000, deposit: 50000, status: '即將到期', waterSplit: 'area', elecSplit: 'ac' },
+        { tenantId: '', tenantName: '林小婷', room: 'B1', start: '2026-02-01', end: '2027-01-31', rent: 11000, deposit: 22000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
+        { tenantId: '', tenantName: '黃小強', room: 'B2', start: '2025-10-01', end: '2026-09-30', rent: 11000, deposit: 22000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
+        { tenantId: '', tenantName: '吳小琳', room: 'C1', start: '2026-03-01', end: '2027-02-28', rent: 13000, deposit: 26000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
+        { tenantId: '', tenantName: '鄭小偉', room: 'C2', start: '2026-01-01', end: '2026-12-31', rent: 12000, deposit: 24000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
+        { tenantId: '', tenantName: '謝小琪', room: 'C3', start: '2026-03-01', end: '2026-08-31', rent: 6500, deposit: 13000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
+        { tenantId: '', tenantName: '楊小豪', room: 'C4', start: '2026-04-01', end: '2027-03-31', rent: 6500, deposit: 13000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' }
+    ];
+    for (const c of contracts) { await db.collection('users').doc(uid).collection('contracts').add(c); }
+    showToast('已建立測試合約資料', 'success');
+    loadContracts();
+}
+function renderContracts() {
+    const tbody = document.getElementById('contracts-table-body');
+    if (contractsData.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">尚無合約</td></tr>'; return; }
+    tbody.innerHTML = contractsData.map(c => {
+        const statusColor = c.status === '進行中' ? 'bg-secondary/10 text-secondary' : c.status === '即將到期' ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500';
+        return `<tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 text-sm font-medium text-gray-900">${c.tenantName}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${c.room}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${c.start} ~ ${c.end}</td>
+            <td class="px-4 py-3 text-sm font-medium text-gray-900">${formatCurrency(c.rent)}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${formatCurrency(c.deposit)}</td>
+            <td class="px-4 py-3"><span class="text-xs ${statusColor} px-2 py-1 rounded-full">${c.status}</span></td>
+            <td class="px-4 py-3"><button onclick="editContract('${c.id}')" class="text-sm text-primary hover:underline mr-2">編輯</button><button onclick="renewContract('${c.id}')" class="text-sm text-secondary hover:underline mr-2">續約</button></td>
+        </tr>`;
+    }).join('');
+    // 即將到期
+    const expiring = contractsData.filter(c => c.status === '即將到期');
+    document.getElementById('expiring-contracts').innerHTML = expiring.length > 0 ? expiring.map(c => `<div>• ${c.tenantName} — ${c.room}，${c.end} 到期（剩 ${Math.ceil((new Date(c.end) - new Date()) / 86400000)} 天）</div>`).join('') : '無即將到期的合約';
+}
+function openContractModal() {
+    document.getElementById('contract-modal').classList.remove('hidden');
+    document.getElementById('contract-modal-title').textContent = '新增合約';
+    document.getElementById('contract-form').reset();
+    document.getElementById('contract-id').value = '';
+    // 填充房客和客房選單
+    const tSel = document.getElementById('contract-tenant');
+    tSel.innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+    const rSel = document.getElementById('contract-room');
+    rSel.innerHTML = '<option value="">選擇客房</option>' + roomsData.map(r => `<option value="${r.id}">${r.number}</option>`).join('');
+}
+function closeContractModal() { document.getElementById('contract-modal').classList.add('hidden'); }
+function editContract(id) {
+    const c = contractsData.find(x => x.id === id); if (!c) return;
+    openContractModal();
+    document.getElementById('contract-modal-title').textContent = '編輯合約';
+    document.getElementById('contract-id').value = id;
+    document.getElementById('contract-tenant').value = c.tenantId || '';
+    document.getElementById('contract-room').value = c.roomId || '';
+    document.getElementById('contract-start').value = c.start || '';
+    document.getElementById('contract-end').value = c.end || '';
+    document.getElementById('contract-rent').value = c.rent || '';
+    document.getElementById('contract-deposit').value = c.deposit || '';
+    document.getElementById('contract-notes').value = c.notes || '';
+}
+function renewContract(id) {
+    const c = contractsData.find(x => x.id === id); if (!c) return;
+    if (!confirm(`確定要為 ${c.tenantName} 續約？將自動延長一年。`)) return;
+    const endDate = new Date(c.end);
+    const newEnd = new Date(endDate.setFullYear(endDate.getFullYear() + 1));
+    // 更新合約
+    const uid = getCurrentUserUid();
+    db.collection('users').doc(uid).collection('contracts').doc(id).update({ end: newEnd.toISOString().split('T')[0], status: '進行中' }).then(() => { showToast('已續約一年'); loadContracts(); });
+}
+document.getElementById('contract-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const uid = getCurrentUserUid(); if (!uid) return;
+    const tenantSelect = document.getElementById('contract-tenant');
+    const data = { tenantId: tenantSelect.value, tenantName: tenantSelect.options[tenantSelect.selectedIndex]?.text || '', room: document.getElementById('contract-room').value, start: document.getElementById('contract-start').value, end: document.getElementById('contract-end').value, rent: parseInt(document.getElementById('contract-rent').value) || 0, deposit: parseInt(document.getElementById('contract-deposit').value) || 0, waterSplit: document.getElementById('contract-water-split').value, elecSplit: document.getElementById('contract-elec-split').value, notes: document.getElementById('contract-notes').value, status: '進行中' };
+    const id = document.getElementById('contract-id').value;
+    try {
+        if (id) { await db.collection('users').doc(uid).collection('contracts').doc(id).update(data); showToast('合約已更新'); }
+        else { await db.collection('users').doc(uid).collection('contracts').add(data); showToast('合約已新增'); }
+        closeContractModal(); loadContracts();
+    } catch (e) { showToast('儲存失敗', 'error'); }
+});
+document.addEventListener('DOMContentLoaded', loadContracts);
+</script>
+</body>
+</html>

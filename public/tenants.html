@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RentalHub — 房客管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#2563EB',secondary:'#10B981',bg:'#F8FAFC'}}}}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="js/app.js"></script>
+<style>.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}</style>
+</head>
+<body class="bg-bg min-h-screen">
+<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+  <div class="flex items-center gap-4">
+    <button class="lg:hidden text-gray-600" onclick="document.getElementById('sidebar').classList.toggle('hidden')"><i class="fas fa-bars text-xl"></i></button>
+    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">R</span></div><span class="font-bold text-lg text-gray-900">RentalHub</span></div>
+  </div>
+  <div class="flex items-center gap-3">
+    <button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i><span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span></button>
+    <div class="flex items-center gap-2 cursor-pointer" onclick="handleSignOut()"><div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div><span class="text-sm text-gray-700 hidden sm:inline">登出</span></div>
+  </div>
+</nav>
+<div class="flex">
+  <aside id="sidebar" class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40 overflow-y-auto">
+    <nav class="space-y-1 text-sm">
+      <a href="dashboard.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-home w-5"></i>主控台</a>
+      <a href="projects.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-building w-5"></i>建案管理</a>
+      <a href="tenants.html" class="sidebar-item active flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-users w-5"></i>房客管理</a>
+      <a href="contracts.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-file-contract w-5"></i>合約管理</a>
+      <a href="rent.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-money-bill w-5"></i>租金管理</a>
+      <a href="billing.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-calculator w-5"></i>費用計算</a>
+      <a href="maintenance.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-tools w-5"></i>修繕派工</a>
+      <a href="evidence.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-camera w-5"></i>證據保存</a>
+      <a href="settings.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-cog w-5"></i>設定</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-4 lg:p-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h1 class="text-2xl font-bold text-gray-900">房客管理</h1><p class="text-sm text-gray-500 mt-1">管理所有房客資料和聯絡紀錄</p></div>
+      <button onclick="openTenantModal()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90"><i class="fas fa-plus"></i>新增房客</button>
+    </div>
+    <!-- 篩選 -->
+    <div class="flex gap-2 mb-4">
+      <button onclick="filterTenants('all')" class="filter-btn active px-3 py-1.5 bg-primary text-white rounded-lg text-sm" data-filter="all">全部</button>
+      <button onclick="filterTenants('active')" class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm" data-filter="active">租期中</button>
+      <button onclick="filterTenants('left')" class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm" data-filter="left">已退租</button>
+    </div>
+    <!-- 房客列表 -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead><tr class="bg-gray-50 text-left"><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">姓名</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">電話</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">Email</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">客房</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">合約到期</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">繳租狀態</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">評分</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
+          <tbody id="tenants-table-body" class="divide-y divide-gray-100"><tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">載入中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<!-- 房客 Modal -->
+<div id="tenant-modal" class="fixed inset-0 bg-black/30 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h3 class="font-semibold text-gray-900" id="tenant-modal-title">新增房客</h3><button onclick="closeTenantModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
+    <form id="tenant-form" class="p-4 space-y-4">
+      <input type="hidden" id="tenant-id">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">姓名 *</label><input type="text" id="tenant-name" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">電話 *</label><input type="tel" id="tenant-phone" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" id="tenant-email" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">LINE ID</label><input type="text" id="tenant-line" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">緊急聯絡人</label><input type="text" id="tenant-emergency-name" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">緊急聯絡電話</label><input type="tel" id="tenant-emergency-phone" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">職業</label><input type="text" id="tenant-job" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">同住人數</label><input type="number" id="tenant-roommates" value="1" min="1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">備註</label><textarea id="tenant-notes" rows="2" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></textarea></div>
+      <div class="flex gap-3 pt-2"><button type="button" onclick="closeTenantModal()" class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm">取消</button><button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">儲存</button></div>
+    </form>
+  </div>
+</div>
+<script>
+let tenantsData = [];
+async function loadTenants() {
+    const uid = getCurrentUserUid();
+    if (!uid) return;
+    try {
+        const snapshot = await db.collection('users').doc(uid).collection('tenants').get();
+        tenantsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (tenantsData.length === 0) { await seedTenantData(); return; }
+        renderTenants();
+    } catch (e) { console.error(e); showToast('載入失敗', 'error'); }
+}
+async function seedTenantData() {
+    const uid = getCurrentUserUid();
+    const tenants = [
+        { name: '王小明', phone: '0912-345-678', email: 'wang@email.com', line: 'wang_ming', room: 'A1', projectName: '台北大安 XX 大樓', contractEnd: '2026/12/31', status: '已繳', rating: 5, job: '軟體工程師', roommates: 1, emergencyName: '王媽媽', emergencyPhone: '0933-111-222', notes: '' },
+        { name: '李小華', phone: '0923-456-789', email: 'lee@email.com', line: 'lee_hua', room: 'A2', projectName: '台北大安 XX 大樓', contractEnd: '2026/11/30', status: '逾期', rating: 4, job: '行銷專員', roommates: 1, emergencyName: '李爸爸', emergencyPhone: '0934-222-333', notes: '偶爾延遲繳租' },
+        { name: '張小美', phone: '0934-567-890', email: 'chang@email.com', line: 'chang_mei', room: 'A3', projectName: '台北大安 XX 大樓', contractEnd: '2026/10/31', status: '已繳', rating: 5, job: '研究生', roommates: 1, emergencyName: '張媽媽', emergencyPhone: '0935-333-444', notes: '' },
+        { name: '陳小龍', phone: '0945-678-901', email: 'chen@email.com', line: 'chen_long', room: 'A5', projectName: '台北大安 XX 大樓', contractEnd: '2026/06/30', status: '已繳', rating: 5, job: '業務經理', roommates: 2, emergencyName: '陳太太', emergencyPhone: '0936-444-555', notes: '合約即將到期' },
+        { name: '林小婷', phone: '0956-789-012', email: 'lin@email.com', line: 'lin_ting', room: 'B1', projectName: '新北板橋 YY 社區', contractEnd: '2027/01/31', status: '已繳', rating: 4, job: '設計師', roommates: 1, emergencyName: '林媽媽', emergencyPhone: '0937-555-666', notes: '' },
+        { name: '黃小強', phone: '0967-890-123', email: 'huang@email.com', line: 'huang_qiang', room: 'B2', projectName: '新北板橋 YY 社區', contractEnd: '2026/09/30', status: '已繳', rating: 3, job: '業務', roommates: 1, emergencyName: '黃爸爸', emergencyPhone: '0938-666-777', notes: '' },
+        { name: '吳小琳', phone: '0978-901-234', email: 'wu@email.com', line: 'wu_lin', room: 'C1', projectName: '台中西區 ZZ 華廈', contractEnd: '2027/02/28', status: '已繳', rating: 5, job: '護理師', roommates: 1, emergencyName: '吳媽媽', emergencyPhone: '0939-777-888', notes: '' },
+        { name: '鄭小偉', phone: '0989-012-345', email: 'cheng@email.com', line: 'cheng_wei', room: 'C2', projectName: '台中西區 ZZ 華廈', contractEnd: '2026/12/31', status: '已繳', rating: 4, job: '工程師', roommates: 1, emergencyName: '鄭太太', emergencyPhone: '0940-888-999', notes: '' },
+        { name: '謝小琪', phone: '0990-123-456', email: 'hsieh@email.com', line: 'hsieh_chi', room: 'C3', projectName: '台中西區 ZZ 華廈', contractEnd: '2026/08/31', status: '逾期', rating: 3, job: '學生', roommates: 1, emergencyName: '謝媽媽', emergencyPhone: '0941-999-000', notes: '' },
+        { name: '楊小豪', phone: '0901-234-567', email: 'yang@email.com', line: 'yang_hao', room: 'C4', projectName: '台中西區 ZZ 華廈', contractEnd: '2027/03/31', status: '已繳', rating: 4, job: '廚師', roommates: 1, emergencyName: '楊爸爸', emergencyPhone: '0942-000-111', notes: '' }
+    ];
+    for (const t of tenants) { await db.collection('users').doc(uid).collection('tenants').add(t); }
+    showToast('已建立測試房客資料', 'success');
+    loadTenants();
+}
+function renderTenants(filter = 'all') {
+    const tbody = document.getElementById('tenants-table-body');
+    let filtered = tenantsData;
+    if (filter === 'active') filtered = tenantsData.filter(t => t.status !== '已退租');
+    if (filter === 'left') filtered = tenantsData.filter(t => t.status === '已退租');
+    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">無資料</td></tr>'; return; }
+    tbody.innerHTML = filtered.map(t => {
+        const statusColor = t.status === '已繳' ? 'bg-secondary/10 text-secondary' : t.status === '逾期' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500';
+        const stars = '★'.repeat(t.rating || 0) + '☆'.repeat(5 - (t.rating || 0));
+        return `<tr class="hover:bg-gray-50">
+            <td class="px-4 py-3 text-sm font-medium text-gray-900">${t.name}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${t.phone}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${t.email || '—'}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${t.room}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${t.contractEnd}</td>
+            <td class="px-4 py-3"><span class="text-xs ${statusColor} px-2 py-1 rounded-full">${t.status}</span></td>
+            <td class="px-4 py-3 text-sm text-amber-500">${stars}</td>
+            <td class="px-4 py-3"><button onclick="editTenant('${t.id}')" class="text-sm text-primary hover:underline mr-2">編輯</button><button onclick="deleteTenant('${t.id}')" class="text-sm text-red-500 hover:underline">刪除</button></td>
+        </tr>`;
+    }).join('');
+}
+function filterTenants(filter) {
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('bg-primary', btn.dataset.filter === filter);
+        btn.classList.toggle('text-white', btn.dataset.filter === filter);
+        btn.classList.toggle('bg-white', btn.dataset.filter !== filter);
+        btn.classList.toggle('text-gray-600', btn.dataset.filter !== filter);
+    });
+    renderTenants(filter);
+}
+function openTenantModal() { document.getElementById('tenant-modal').classList.remove('hidden'); document.getElementById('tenant-modal-title').textContent = '新增房客'; document.getElementById('tenant-form').reset(); document.getElementById('tenant-id').value = ''; }
+function closeTenantModal() { document.getElementById('tenant-modal').classList.add('hidden'); }
+function editTenant(id) {
+    const t = tenantsData.find(t => t.id === id);
+    if (!t) return;
+    openTenantModal();
+    document.getElementById('tenant-modal-title').textContent = '編輯房客';
+    document.getElementById('tenant-id').value = id;
+    document.getElementById('tenant-name').value = t.name || '';
+    document.getElementById('tenant-phone').value = t.phone || '';
+    document.getElementById('tenant-email').value = t.email || '';
+    document.getElementById('tenant-line').value = t.line || '';
+    document.getElementById('tenant-emergency-name').value = t.emergencyName || '';
+    document.getElementById('tenant-emergency-phone').value = t.emergencyPhone || '';
+    document.getElementById('tenant-job').value = t.job || '';
+    document.getElementById('tenant-roommates').value = t.roommates || 1;
+    document.getElementById('tenant-notes').value = t.notes || '';
+}
+async function deleteTenant(id) {
+    if (!confirm('確定要刪除此房客？')) return;
+    const uid = getCurrentUserUid();
+    try { await db.collection('users').doc(uid).collection('tenants').doc(id).delete(); showToast('已刪除'); loadTenants(); } catch (e) { showToast('刪除失敗', 'error'); }
+}
+document.getElementById('tenant-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const uid = getCurrentUserUid();
+    if (!uid) return;
+    const data = { name: document.getElementById('tenant-name').value, phone: document.getElementById('tenant-phone').value, email: document.getElementById('tenant-email').value, line: document.getElementById('tenant-line').value, emergencyName: document.getElementById('tenant-emergency-name').value, emergencyPhone: document.getElementById('tenant-emergency-phone').value, job: document.getElementById('tenant-job').value, roommates: parseInt(document.getElementById('tenant-roommates').value) || 1, notes: document.getElementById('tenant-notes').value };
+    const id = document.getElementById('tenant-id').value;
+    try {
+        if (id) { await db.collection('users').doc(uid).collection('tenants').doc(id).update(data); showToast('房客已更新'); }
+        else { await db.collection('users').doc(uid).collection('tenants').add(data); showToast('房客已新增'); }
+        closeTenantModal(); loadTenants();
+    } catch (e) { showToast('儲存失敗', 'error'); }
+});
+document.addEventListener('DOMContentLoaded', loadTenants);
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RentalHub — 證據保存</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#2563EB',secondary:'#10B981',bg:'#F8FAFC'}}}}</script>
+</head>
+<body class="bg-bg min-h-screen">
+<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+  <div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">R</span></div><span class="font-bold text-lg text-gray-900">RentalHub</span></div>
+  <div class="flex items-center gap-3"><div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"><span class="text-primary font-semibold text-sm">房</span></div></div>
+</nav>
+<div class="flex">
+  <aside class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40">
+    <nav class="space-y-1 text-sm">
+      <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">📊 主控台</a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">🏢 建案管理</a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">👥 房客管理</a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">📄 合約管理</a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">💰 租金管理</a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">🧮 費用計算</a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">🔧 修繕派工</a>
+      <a href="#" class="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg font-medium">📷 證據保存</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-4 lg:p-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h1 class="text-2xl font-bold text-gray-900">證據保存</h1><p class="text-sm text-gray-500 mt-1">屋況照片、溝通紀錄、收據、合約文件</p></div>
+      <button class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">📤 上傳檔案</button>
+    </div>
+
+    <!-- 篩選 -->
+    <div class="flex flex-wrap gap-2 mb-6">
+      <button class="px-3 py-1.5 bg-primary text-white rounded-lg text-sm font-medium">全部</button>
+      <button class="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm">🏠 屋況照片</button>
+      <button class="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm">💬 溝通紀錄</button>
+      <button class="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm">🧾 收據/發票</button>
+      <button class="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm">📄 合約文件</button>
+      <button class="px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm">🔧 修繕紀錄</button>
+    </div>
+
+    <!-- 檔案網格 -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <!-- 檔案卡片 1 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-md transition">
+        <div class="aspect-square bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center relative">
+          <span class="text-4xl">🏠</span>
+          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+          </div>
+        </div>
+        <div class="p-3">
+          <p class="text-sm font-medium text-gray-900 truncate">A1 入住前客廳</p>
+          <div class="flex items-center justify-between mt-1"><span class="text-xs text-gray-400">2026/05/01</span><span class="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">屋況</span></div>
+        </div>
+      </div>
+      <!-- 檔案卡片 2 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-md transition">
+        <div class="aspect-square bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center relative">
+          <span class="text-4xl">💬</span>
+          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+          </div>
+        </div>
+        <div class="p-3">
+          <p class="text-sm font-medium text-gray-900 truncate">A2 李小華 LINE 對話</p>
+          <div class="flex items-center justify-between mt-1"><span class="text-xs text-gray-400">2026/05/10</span><span class="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded">溝通</span></div>
+        </div>
+      </div>
+      <!-- 檔案卡片 3 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-md transition">
+        <div class="aspect-square bg-gradient-to-br from-amber-50 to-amber-100 flex items-center justify-center relative">
+          <span class="text-4xl">🧾</span>
+          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+          </div>
+        </div>
+        <div class="p-3">
+          <p class="text-sm font-medium text-gray-900 truncate">A1 冷氣修繕收據</p>
+          <div class="flex items-center justify-between mt-1"><span class="text-xs text-gray-400">2026/05/15</span><span class="text-xs bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded">收據</span></div>
+        </div>
+      </div>
+      <!-- 檔案卡片 4 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-md transition">
+        <div class="aspect-square bg-gradient-to-br from-purple-50 to-purple-100 flex items-center justify-center relative">
+          <span class="text-4xl">📄</span>
+          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+          </div>
+        </div>
+        <div class="p-3">
+          <p class="text-sm font-medium text-gray-900 truncate">A5 陳小龍合約</p>
+          <div class="flex items-center justify-between mt-1"><span class="text-xs text-gray-400">2026/04/01</span><span class="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">合約</span></div>
+        </div>
+      </div>
+      <!-- 檔案卡片 5 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-md transition">
+        <div class="aspect-square bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center relative">
+          <span class="text-4xl">🔧</span>
+          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+          </div>
+        </div>
+        <div class="p-3">
+          <p class="text-sm font-medium text-gray-900 truncate">B2 漏水修復前後</p>
+          <div class="flex items-center justify-between mt-1"><span class="text-xs text-gray-400">2026/05/12</span><span class="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">修繕</span></div>
+        </div>
+      </div>
+      <!-- 檔案卡片 6 -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-md transition">
+        <div class="aspect-square bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center relative">
+          <span class="text-4xl">🏠</span>
+          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+          </div>
+        </div>
+        <div class="p-3">
+          <p class="text-sm font-medium text-gray-900 truncate">C1 退租檢查</p>
+          <div class="flex items-center justify-between mt-1"><span class="text-xs text-gray-400">2026/05/18</span><span class="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">屋況</span></div>
+        </div>
+      </div>
+      <!-- 上傳卡片 -->
+      <div class="border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center aspect-square cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition">
+        <svg class="w-8 h-8 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span class="text-sm text-gray-400">上傳檔案</span>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

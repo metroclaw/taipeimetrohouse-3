@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RentalHub — 費用計算</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#2563EB',secondary:'#10B981',bg:'#F8FAFC'}}}}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="js/app.js"></script>
+<style>.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}</style>
+</head>
+<body class="bg-bg min-h-screen">
+<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+  <div class="flex items-center gap-4"><button class="lg:hidden text-gray-600" onclick="document.getElementById('sidebar').classList.toggle('hidden')"><i class="fas fa-bars text-xl"></i></button><div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">R</span></div><span class="font-bold text-lg text-gray-900">RentalHub</span></div></div>
+  <div class="flex items-center gap-3"><button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i><span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span></button><div class="flex items-center gap-2 cursor-pointer" onclick="handleSignOut()"><div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div><span class="text-sm text-gray-700 hidden sm:inline">登出</span></div></div>
+</nav>
+<div class="flex">
+  <aside id="sidebar" class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40 overflow-y-auto">
+    <nav class="space-y-1 text-sm">
+      <a href="dashboard.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-home w-5"></i>主控台</a>
+      <a href="projects.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-building w-5"></i>建案管理</a>
+      <a href="tenants.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-users w-5"></i>房客管理</a>
+      <a href="contracts.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-file-contract w-5"></i>合約管理</a>
+      <a href="rent.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-money-bill w-5"></i>租金管理</a>
+      <a href="billing.html" class="sidebar-item active flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fas fa-calculator w-5"></i>費用計算</a>
+      <a href="maintenance.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-tools w-5"></i>修繕派工</a>
+      <a href="evidence.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-camera w-5"></i>證據保存</a>
+      <a href="settings.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-cog w-5"></i>設定</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-4 lg:p-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h1 class="text-2xl font-bold text-gray-900">智慧費用計算</h1><p class="text-sm text-gray-500 mt-1">手動輸入度數，系統自動計算各房客應繳費用</p></div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-6">
+      <!-- 左側：度數輸入 -->
+      <div class="space-y-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h2 class="font-semibold text-gray-900 mb-4">📊 當月總度數輸入</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">本期電表 (kWh)</label><input type="number" id="elec-current" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="13800"></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">上期電表</label><input type="number" id="elec-prev" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50" placeholder="12500" readonly></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">本期水表 (度)</label><input type="number" id="water-current" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="3650"></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">上期水表</label><input type="number" id="water-prev" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50" placeholder="3200" readonly></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">本期瓦斯 (度)</label><input type="number" id="gas-current" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="920"></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">上期瓦斯</label><input type="number" id="gas-prev" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50" placeholder="850" readonly></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4 mt-4">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">第四台 (NT$)</label><input type="number" id="tv-fee" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="550"></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">WiFi (NT$)</label><input type="number" id="wifi-fee" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="600"></div>
+          </div>
+          <div class="grid grid-cols-3 gap-4 mt-4">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">電費單價</label><input type="number" id="elec-rate" step="0.1" value="5.5" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">水費單價</label><input type="number" id="water-rate" value="12" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">瓦斯單價</label><input type="number" id="gas-rate" value="25" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h2 class="font-semibold text-gray-900 mb-4">⚙️ 分攤設定</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">水費分攤</label><select id="water-split" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="area">依坪數</option><option value="people">依人數</option></select></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">電費分攤</label><select id="elec-split" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="ac">依台數</option><option value="people">依人數</option></select></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">瓦斯分攤</label><select id="gas-split" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="people">依人數</option></select></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-1">第四台/WiFi</label><span class="text-sm text-gray-500">均攤</span></div>
+          </div>
+          <button onclick="calculateBill()" class="w-full mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">🧮 計算費用</button>
+        </div>
+      </div>
+      <!-- 右側：計算結果 -->
+      <div class="space-y-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h2 class="font-semibold text-gray-900 mb-4">📋 計算結果</h2>
+          <div id="bill-results" class="text-sm text-gray-500 text-center py-8">請輸入度數後點擊「計算費用」</div>
+        </div>
+        <!-- 費用明細單預覽 -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          <h2 class="font-semibold text-gray-900 mb-4">📄 費用明細單</h2>
+          <div class="mb-3"><select id="bill-tenant-select" onchange="previewBill()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="">選擇房客預覽</option></select></div>
+          <div id="bill-preview" class="border border-gray-200 rounded-lg p-4 bg-gray-50 text-sm">
+            <p class="text-gray-400 text-center">選擇房客後預覽明細單</p>
+          </div>
+          <div class="flex gap-2 mt-3">
+            <button onclick="downloadPDF()" class="flex-1 px-3 py-2 bg-primary text-white rounded-lg text-sm"><i class="fas fa-download mr-1"></i>下載 PDF</button>
+            <button onclick="shareLINE()" class="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg text-sm"><i class="fab fa-line mr-1"></i>分享到 LINE</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+let billResults = [];
+function calculateBill() {
+    const elecCurrent = parseFloat(document.getElementById('elec-current').value) || 0;
+    const elecPrev = parseFloat(document.getElementById('elec-prev').value) || 0;
+    const waterCurrent = parseFloat(document.getElementById('water-current').value) || 0;
+    const waterPrev = parseFloat(document.getElementById('water-prev').value) || 0;
+    const gasCurrent = parseFloat(document.getElementById('gas-current').value) || 0;
+    const gasPrev = parseFloat(document.getElementById('gas-prev').value) || 0;
+    const tvFee = parseFloat(document.getElementById('tv-fee').value) || 0;
+    const wifiFee = parseFloat(document.getElementById('wifi-fee').value) || 0;
+    const elecRate = parseFloat(document.getElementById('elec-rate').value) || 5.5;
+    const waterRate = parseFloat(document.getElementById('water-rate').value) || 12;
+    const gasRate = parseFloat(document.getElementById('gas-rate').value) || 25;
+    const waterSplit = document.getElementById('water-split').value;
+    const elecSplit = document.getElementById('elec-split').value;
+    const gasSplit = document.getElementById('gas-split').value;
+    const elecUsage = elecCurrent - elecPrev;
+    const waterUsage = waterCurrent - waterPrev;
+    const gasUsage = gasCurrent - gasPrev;
+    const elecTotal = elecUsage * elecRate;
+    const waterTotal = waterUsage * waterRate;
+    const gasTotal = gasUsage * gasRate;
+    // 測試房客資料
+    const testRooms = [
+        { number: 'A1', tenant: '王小明', area: 8, ac: 1, people: 1 },
+        { number: 'A2', tenant: '李小華', area: 6, ac: 1, people: 1 },
+        { number: 'A3', tenant: '張小美', area: 4, ac: 1, people: 1 },
+        { number: 'A5', tenant: '陳小龍', area: 25, ac: 2, people: 2 },
+        { number: 'B1', tenant: '林小婷', area: 7, ac: 1, people: 1 },
+        { number: 'B2', tenant: '黃小強', area: 7, ac: 1, people: 1 },
+        { number: 'C1', tenant: '吳小琳', area: 9, ac: 1, people: 1 },
+        { number: 'C2', tenant: '鄭小偉', area: 8, ac: 1, people: 1 },
+        { number: 'C3', tenant: '謝小琪', area: 4, ac: 1, people: 1 },
+        { number: 'C4', tenant: '楊小豪', area: 4, ac: 1, people: 1 }
+    ];
+    const totalArea = testRooms.reduce((s, r) => s + r.area, 0);
+    const totalAC = testRooms.reduce((s, r) => s + r.ac, 0);
+    const totalPeople = testRooms.reduce((s, r) => s + r.people, 0);
+    billResults = testRooms.map(r => {
+        let elec = 0, water = 0, gas = 0;
+        if (waterSplit === 'area') water = waterTotal * (r.area / totalArea);
+        else water = waterTotal * (r.people / totalPeople);
+        if (elecSplit === 'ac') elec = elecTotal * (r.ac / totalAC);
+        else elec = elecTotal * (r.people / totalPeople);
+        if (gasSplit === 'people') gas = gasTotal * (r.people / totalPeople);
+        const tv = tvFee / totalPeople;
+        const wifi = wifiFee / totalPeople;
+        const subtotal = Math.round(elec + water + gas + tv + wifi);
+        return { room: r.number, tenant: r.tenant, area: r.area, elec: Math.round(elec), water: Math.round(water), gas: Math.round(gas), tv: Math.round(tv), wifi: Math.round(wifi), subtotal, rent: 0, total: subtotal };
+    });
+    // 顯示結果
+    const container = document.getElementById('bill-results');
+    container.innerHTML = `<div class="space-y-2">
+        <div class="flex justify-between text-xs text-gray-500"><span>總用電：${elecUsage} kWh (${formatCurrency(elecTotal)})</span><span>總用水：${waterUsage} 度 (${formatCurrency(waterTotal)})</span><span>總瓦斯：${gasUsage} 度 (${formatCurrency(gasTotal)})</span></div>
+        <table class="w-full text-sm"><thead><tr class="text-gray-500 text-xs"><th class="text-left py-1">房號</th><th class="text-left">房客</th><th class="text-right">水費</th><th class="text-right">電費</th><th class="text-right">瓦斯</th><th class="text-right">第四台</th><th class="text-right">WiFi</th><th class="text-right">小計</th></tr></thead><tbody class="divide-y divide-gray-100">
+        ${billResults.map(b => `<tr><td class="py-1">${b.room}</td><td>${b.tenant}</td><td class="text-right">${formatCurrency(b.water)}</td><td class="text-right">${formatCurrency(b.elec)}</td><td class="text-right">${formatCurrency(b.gas)}</td><td class="text-right">${formatCurrency(b.tv)}</td><td class="text-right">${formatCurrency(b.wifi)}</td><td class="text-right font-medium">${formatCurrency(b.subtotal)}</td></tr>`).join('')}
+        </tbody></table>
+    </div>`;
+    // 更新房客選單
+    const sel = document.getElementById('bill-tenant-select');
+    sel.innerHTML = '<option value="">選擇房客預覽</option>' + billResults.map((b, i) => `<option value="${i}">${b.tenant} (${b.room})</option>`).join('');
+    showToast('計算完成', 'success');
+}
+function previewBill() {
+    const idx = document.getElementById('bill-tenant-select').value;
+    if (idx === '') { document.getElementById('bill-preview').innerHTML = '<p class="text-gray-400 text-center">選擇房客後預覽明細單</p>'; return; }
+    const b = billResults[parseInt(idx)];
+    if (!b) return;
+    document.getElementById('bill-preview').innerHTML = `
+        <div class="text-center mb-3"><h3 class="font-bold text-gray-900">大都會物業 — 費用明細單</h3><p class="text-xs text-gray-500">2026年5月</p></div>
+        <div class="border-t border-b border-gray-200 py-2 space-y-1">
+            <div class="flex justify-between"><span>房號</span><span class="font-medium">${b.room}</span></div>
+            <div class="flex justify-between"><span>房客</span><span class="font-medium">${b.tenant}</span></div>
+            <div class="flex justify-between"><span>坪數</span><span>${b.area} 坪</span></div>
+        </div>
+        <div class="py-2 space-y-1">
+            <div class="flex justify-between"><span>水費</span><span>${formatCurrency(b.water)}</span></div>
+            <div class="flex justify-between"><span>電費</span><span>${formatCurrency(b.elec)}</span></div>
+            <div class="flex justify-between"><span>瓦斯費</span><span>${formatCurrency(b.gas)}</span></div>
+            <div class="flex justify-between"><span>第四台</span><span>${formatCurrency(b.tv)}</span></div>
+            <div class="flex justify-between"><span>WiFi</span><span>${formatCurrency(b.wifi)}</span></div>
+        </div>
+        <div class="border-t border-gray-200 pt-2 flex justify-between font-bold"><span>費用小計</span><span>${formatCurrency(b.subtotal)}</span></div>
+    `;
+}
+function downloadPDF() { showToast('PDF 下載功能（待實作）', 'info'); }
+function shareLINE() { showToast('LINE 分享功能（待實作）', 'info'); }
+document.addEventListener('DOMContentLoaded', () => {
+    // 自動填入上期度數
+    document.getElementById('elec-prev').value = '12500';
+    document.getElementById('water-prev').value = '3200';
+    document.getElementById('gas-prev').value = '850';
+});
+</script>
+</body>
+</html>
