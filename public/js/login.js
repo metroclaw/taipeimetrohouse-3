@@ -1,12 +1,12 @@
 // Firebase Configuration for taipeimetrohouse-2
 const firebaseConfig = {
-  apiKey: "AIzaSyBwE9SqrqKC49KnfmbDBZ92fbO1NOZHIZA",
-  authDomain: "taipeimetrohouse-2.firebaseapp.com",
-  projectId: "taipeimetrohouse-2",
-  storageBucket: "taipeimetrohouse-2.firebasestorage.app",
-  messagingSenderId: "90653753409",
-  appId: "1:90653753409:web:b675e99516d61f920d46c0",
-  measurementId: "G-EZDH90LHWB"
+    apiKey: "AIzaSyDgk5qz4mNA09g-3azau9mgWjd8996uvJU",
+    authDomain: "taipeimetrohouse-2.firebaseapp.com",
+    projectId: "taipeimetrohouse-2",
+    storageBucket: "taipeimetrohouse-2.firebasestorage.app",
+    messagingSenderId: "90653753409",
+    appId: "1:90653753409:web:b675e99516d61f920d46c0",
+    measurementId: "G-EZDH90LHWB"
 };
 
 // Initialize Firebase (compat mode)
@@ -46,7 +46,7 @@ function saveUserInformation(user) {
 
 function initApp() {
     // Listen for auth state changes
-    firebase.auth().onAuthStateChanged(function(user) {
+    firebase.auth().onAuthStateChanged(function (user) {
         console.log("Auth state changed:", user ? user.displayName : "null");
         if (user) {
             // User is signed in
@@ -59,13 +59,13 @@ function initApp() {
     });
 
     // Handle redirect result (for signInWithRedirect)
-    firebase.auth().getRedirectResult().then(function(result) {
+    firebase.auth().getRedirectResult().then(function (result) {
         console.log("Redirect result:", result.user ? result.user.displayName : "no user");
         if (result.user) {
             // Sign in successful, onAuthStateChanged will handle the rest
             console.log("Redirect login successful");
         }
-    }).catch(function(error) {
+    }).catch(function (error) {
         console.error("Redirect error:", error.code, error.message);
         document.getElementById('preloader')?.remove();
     });
@@ -77,6 +77,6 @@ function initApp() {
     }
 }
 
-window.onload = function() {
+window.onload = function () {
     initApp();
 };
