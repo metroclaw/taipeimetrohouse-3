@@ -277,19 +277,49 @@ function calculateUtilityBill(billData, rooms, tenants) {
 // ============================================================
 
 // 統一的 Auth 狀態監聽
-// 只在確認未登入時才導向 login，不會在初始化階段就跳轉
-firebase.auth().onAuthStateChanged(function(user) {
-    console.log("[Auth] state changed:", user ? user.displayName : "null");
+// 使用 Promise 等待 Auth 初始化完成，避免在初始化階段就跳轉
+function _waitForAuthInit() {
+    return new Promise(function(resolve) {
+        // 如果 currentUser 已經存在，直接返回
+        if (firebase.auth().currentUser) {
+            resolve(firebase.auth().currentUser);
+            return;
+        }
+        // 否則等待 onAuthStateChanged 觸發
+        var unsubscribe = firebase.auth().onAuthStateChanged(function(user) {
+            unsubscribe();
+            resolve(user);
+        });
+    });
+}
+
+// 頁面載入時等待 Auth 初始化，然後做跳轉判斷
+_waitForAuthInit().then(function(user) {
+    console.log("[Auth] Init complete:", user ? user.displayName : "null");
     
     if (user) {
-        // 已登入，更新使用者資訊
         updateUserInfo(user);
     } else {
-        // 未登入，只有在非 login 頁面時才導向 login
         var path = window.location.pathname;
         var isLoginPage = path.includes('login.html') || path === '/' || path.endsWith('/');
         if (!isLoginPage) {
             console.log("[Auth] Not logged in, redirecting to login...");
+            window.location.href = 'login.html';
+        }
+    }
+});
+
+// 持續監聽 Auth 狀態變化（登入/登出）
+firebase.auth().onAuthStateChanged(function(user) {
+    console.log("[Auth] state changed:", user ? user.displayName : "null");
+    
+    if (user) {
+        updateUserInfo(user);
+    } else {
+        var path = window.location.pathname;
+        var isLoginPage = path.includes('login.html') || path === '/' || path.endsWith('/');
+        if (!isLoginPage) {
+            console.log("[Auth] Logged out, redirecting to login...");
             window.location.href = 'login.html';
         }
     }
