@@ -143,21 +143,47 @@
             var user = result.user;
             console.log("Login successful:", user.displayName);
 
-            // 儲存使用者資訊到 Firestore
+            // 儲存使用者資訊到 Firestore（不等待完成）
             firebase.firestore().collection('users').doc(user.uid).set({
                 id: user.uid,
                 name: user.displayName,
                 email: user.email,
                 photoURL: user.photoURL || '',
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true }).then(function() {
-                // 不立即跳轉！讓 onAuthStateChanged 處理跳轉
-                // 這樣可以確保 Auth 狀態同步完成後才跳轉
-                console.log("User saved, waiting for auth state sync...");
-            }).catch(function(error) {
+            }, { merge: true }).catch(function(error) {
                 console.error("Save user error:", error);
-                // 即使儲存失敗也讓 onAuthStateChanged 處理跳轉
             });
+
+            // 等待 currentUser 同步完成，然後跳轉
+            // signInWithPopup 成功後，currentUser 應該已經是可用的
+            var redirectToDashboard = function() {
+                if (firebase.auth().currentUser) {
+                    console.log("Auth synced, redirecting to dashboard...");
+                    window.location.replace('dashboard.html');
+                } else {
+                    // 如果 currentUser 還沒同步，等待一下
+                    console.log("Waiting for auth sync...");
+                    setTimeout(redirectToDashboard, 100);
+                }
+            };
+            
+            // 最多等待 3 秒
+            var attempts = 0;
+            var maxAttempts = 30;
+            var waitForSync = function() {
+                if (firebase.auth().currentUser) {
+                    console.log("Auth synced after " + attempts + " attempts, redirecting...");
+                    window.location.replace('dashboard.html');
+                } else if (attempts < maxAttempts) {
+                    attempts++;
+                    setTimeout(waitForSync, 100);
+                } else {
+                    // 超時，強制跳轉
+                    console.log("Auth sync timeout, forcing redirect...");
+                    window.location.replace('dashboard.html');
+                }
+            };
+            waitForSync();
 
         }).catch(function(error) {
             console.error("Login error:", error.code, error.message);
