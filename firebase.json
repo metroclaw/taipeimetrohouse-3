@@ -8,6 +8,50 @@
     ],
     "rewrites": [
       {
+        "source": "/",
+        "destination": "/index.html"
+      },
+      {
+        "source": "/login.html",
+        "destination": "/login.html"
+      },
+      {
+        "source": "/dashboard.html",
+        "destination": "/dashboard.html"
+      },
+      {
+        "source": "/projects.html",
+        "destination": "/projects.html"
+      },
+      {
+        "source": "/tenants.html",
+        "destination": "/tenants.html"
+      },
+      {
+        "source": "/contracts.html",
+        "destination": "/contracts.html"
+      },
+      {
+        "source": "/rent.html",
+        "destination": "/rent.html"
+      },
+      {
+        "source": "/billing.html",
+        "destination": "/billing.html"
+      },
+      {
+        "source": "/maintenance.html",
+        "destination": "/maintenance.html"
+      },
+      {
+        "source": "/evidence.html",
+        "destination": "/evidence.html"
+      },
+      {
+        "source": "/settings.html",
+        "destination": "/settings.html"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
