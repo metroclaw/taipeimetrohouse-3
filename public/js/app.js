@@ -293,6 +293,8 @@ function clearSession() {
 (function() {
     var session = getSession();
     var path = window.location.pathname;
+    console.log("[Auth] IIFE check - session:", session, "path:", path);
+    
     var isLoginPage = path.includes('login.html') || path === '/' || path === '' || path.endsWith('/');
     
     if (session && isLoginPage) {
@@ -308,6 +310,8 @@ function clearSession() {
         window.location.replace('login.html');
         return;
     }
+    
+    console.log("[Auth] No redirect needed");
 })();
 
 // 持續監聽 Firebase Auth 狀態變化（處理登出、token 過期等）
