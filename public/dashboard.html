@@ -104,7 +104,7 @@
                 <!-- Notifications -->
                 <button class="relative text-gray-500 hover:text-primary p-2 rounded-lg hover:bg-gray-100 transition-colors">
                     <i class="fas fa-bell text-lg"></i>
-                    <span id="notification-badge" class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">3</span>
+                    <span id="notification-badge" class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center hidden">0</span>
                 </button>
 
                 <!-- User Avatar -->
@@ -249,8 +249,8 @@
                     </div>
                     <div class="mt-3 flex items-center text-sm">
                         <i class="fas fa-arrow-up text-secondary mr-1"></i>
-                        <span class="text-secondary font-medium">+5.2%</span>
-                        <span class="text-gray-400 ml-1">較上月</span>
+                        <span class="text-secondary font-medium" id="stat-income-note">計算中</span>
+                        <span class="text-gray-400 ml-1">本月已繳</span>
                     </div>
                 </div>
             </div>
@@ -406,18 +406,17 @@
                 { id: 'p2', name: '大都會美寓 B 棟', address: '台北市中正區衡陽路', totalRooms: 4, rentedRooms: 3 },
                 { id: 'p3', name: '站前之星', address: '台北市中正區忠孝西路一段', totalRooms: 3, rentedRooms: 2 },
             ],
-            rooms: [],
             tenants: [
-                { id: 't1', name: '王小明', roomId: 'r1' },
-                { id: 't2', name: '陳美玲', roomId: 'r2' },
-                { id: 't3', name: '林大偉', roomId: 'r3' },
-                { id: 't4', name: '張雅琪', roomId: 'r4' },
-                { id: 't5', name: '黃建志', roomId: 'r5' },
-                { id: 't6', name: '吳思涵', roomId: 'r6' },
-                { id: 't7', name: '李宗豪', roomId: 'r7' },
-                { id: 't8', name: '周佳蓉', roomId: 'r8' },
-                { id: 't9', name: '鄭宇翔', roomId: 'r9' },
-                { id: 't10', name: '趙珮琪', roomId: 'r10' },
+                { id: 't1', name: '王小明', roomNumber: 'A101' },
+                { id: 't2', name: '陳美玲', roomNumber: 'A102' },
+                { id: 't3', name: '林大偉', roomNumber: 'A201' },
+                { id: 't4', name: '張雅琪', roomNumber: 'A202' },
+                { id: 't5', name: '黃建志', roomNumber: 'A301' },
+                { id: 't6', name: '吳思涵', roomNumber: 'B101' },
+                { id: 't7', name: '李宗豪', roomNumber: 'B102' },
+                { id: 't8', name: '周佳蓉', roomNumber: 'B201' },
+                { id: 't9', name: '鄭宇翔', roomNumber: 'C101' },
+                { id: 't10', name: '趙珮琪', roomNumber: 'C102' },
             ],
             contracts: [
                 { id: 'c1', tenantName: '王小明', roomNumber: 'A101', endDate: '2025-06-15', status: 'active' },
@@ -425,17 +424,38 @@
                 { id: 'c3', tenantName: '林大偉', roomNumber: 'A201', endDate: '2025-11-30', status: 'active' },
             ],
             rentRecords: [
-                { id: 'r1', tenantName: '王小明', roomNumber: 'A101', amount: 12000, month: '2025-05', paid: false, dueDate: '2025-05-05' },
-                { id: 'r2', tenantName: '陳美玲', roomNumber: 'A102', amount: 13500, month: '2025-05', paid: false, dueDate: '2025-05-05' },
-                { id: 'r3', tenantName: '林大偉', roomNumber: 'A201', amount: 11000, month: '2025-05', paid: true, dueDate: '2025-05-05' },
+                { id: 'r1', tenantName: '王小明', roomNumber: 'A101', amount: 12000, year: 2025, month: 5, status: '逾期', dueDate: '2025-05-05', createdAt: Date.now() - 86400000 },
+                { id: 'r2', tenantName: '陳美玲', roomNumber: 'A102', amount: 13500, year: 2025, month: 5, status: '未繳', dueDate: '2025-05-05', createdAt: Date.now() - 172800000 },
+                { id: 'r3', tenantName: '林大偉', roomNumber: 'A201', amount: 11000, year: 2025, month: 5, status: '已繳', dueDate: '2025-05-05', createdAt: Date.now() - 259200000 },
+                { id: 'r4', tenantName: '張雅琪', roomNumber: 'A202', amount: 12500, year: 2025, month: 5, status: '已繳', dueDate: '2025-05-05', createdAt: Date.now() - 345600000 },
+                { id: 'r5', tenantName: '黃建志', roomNumber: 'A301', amount: 10000, year: 2025, month: 4, status: '已繳', dueDate: '2025-04-05', createdAt: Date.now() - 2592000000 },
             ],
             maintenanceTasks: [
-                { id: 'm1', title: 'A101 冷氣不冷', roomNumber: 'A101', status: 'pending', priority: 'high', createdAt: Date.now() - 86400000 },
-                { id: 'm2', title: 'B202 水龍頭漏水', roomNumber: 'B202', status: 'pending', priority: 'medium', createdAt: Date.now() - 172800000 },
-                { id: 'm3', title: 'A301 燈具更換', roomNumber: 'A301', status: 'in_progress', priority: 'low', createdAt: Date.now() - 259200000 },
+                { id: 'm1', title: 'A101 冷氣不冷', roomNumber: 'A101', status: '待處理', priority: 'high', createdAt: Date.now() - 86400000 },
+                { id: 'm2', title: 'B202 水龍頭漏水', roomNumber: 'B202', status: '待處理', priority: 'medium', createdAt: Date.now() - 172800000 },
+                { id: 'm3', title: 'A301 燈具更換', roomNumber: 'A301', status: '處理中', priority: 'low', createdAt: Date.now() - 259200000 },
             ],
             monthlyIncome: 145000,
         };
+
+        // ============================================================
+        // Helper: Relative Time String
+        // ============================================================
+        function getRelativeTime(timestamp) {
+            if (!timestamp) return '未知時間';
+            const now = Date.now();
+            const diff = now - timestamp;
+            if (diff < 0) return '剛剛';
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            if (days > 30) return `${Math.floor(days / 30)} 個月前`;
+            if (days > 0) return `${days} 天前`;
+            if (hours > 0) return `${hours} 小時前`;
+            if (minutes > 0) return `${minutes} 分鐘前`;
+            return '剛剛';
+        }
 
         // ============================================================
         // Data Loading
@@ -477,21 +497,50 @@
         // ============================================================
         function renderDashboard(projects, tenants, contracts, rentRecords, maintenanceTasks) {
             // --- Stat Cards ---
-            const totalRooms = projects.reduce((sum, p) => sum + (p.totalRooms || 0), 0);
-            const rentedRooms = projects.reduce((sum, p) => sum + (p.rentedRooms || 0), 0);
+            // Calculate room stats from projects (support both pre-computed fields and raw data)
+            let totalRooms = 0;
+            let rentedRooms = 0;
+
+            projects.forEach(p => {
+                if (p.totalRooms !== undefined) {
+                    totalRooms += p.totalRooms;
+                    rentedRooms += (p.rentedRooms || 0);
+                }
+            });
+
+            // If no pre-computed room data, estimate from tenants count
+            if (totalRooms === 0 && tenants.length > 0) {
+                rentedRooms = tenants.length;
+                totalRooms = Math.max(tenants.length, projects.length * 3);
+            }
+
             const vacantRooms = totalRooms - rentedRooms;
             const occupancyRate = totalRooms > 0 ? Math.round((rentedRooms / totalRooms) * 100) : 0;
 
-            // Calculate monthly income
+            // Calculate monthly income from rentRecords
             const now = new Date();
-            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
             let monthlyIncome = 0;
-            rentRecords.forEach(r => {
-                if (r.month === currentMonth && r.paid) monthlyIncome += (r.amount || 0);
-            });
-            // If no paid records, use demo income
-            if (monthlyIncome === 0) monthlyIncome = DEMO_DATA.monthlyIncome;
+            let paidCount = 0;
 
+            rentRecords.forEach(r => {
+                // Support both old format (month string + paid boolean) and new format (year/month + status string)
+                const isCurrentMonth = (r.year === currentYear && r.month === currentMonth) ||
+                    (r.month && r.month === `${currentYear}-${String(currentMonth).padStart(2, '0')}`);
+                const isPaid = r.status === '已繳' || r.paid === true;
+                if (isCurrentMonth && isPaid) {
+                    monthlyIncome += (r.amount || 0);
+                    paidCount++;
+                }
+            });
+
+            // If no paid records found, use demo income as fallback
+            if (monthlyIncome === 0) {
+                monthlyIncome = DEMO_DATA.monthlyIncome;
+            }
+
+            // Update stat cards
             document.getElementById('stat-total-rooms').textContent = totalRooms;
             document.getElementById('stat-total-projects').textContent = projects.length;
             document.getElementById('stat-rented').textContent = rentedRooms;
@@ -499,6 +548,7 @@
             document.getElementById('stat-vacant').textContent = vacantRooms;
             document.getElementById('stat-vacant-rooms').textContent = vacantRooms + ' 間';
             document.getElementById('stat-income').textContent = formatCurrency(monthlyIncome);
+            document.getElementById('stat-income-note').textContent = paidCount > 0 ? `${paidCount} 筆已繳` : '本月已繳';
 
             // --- Project Overview ---
             const projectList = document.getElementById('project-overview-list');
@@ -539,8 +589,8 @@
             const todoList = document.getElementById('todo-list');
             const todos = [];
 
-            // Overdue rent
-            const overdueRents = rentRecords.filter(r => !r.paid);
+            // 1. Overdue rent: status === '逾期'
+            const overdueRents = rentRecords.filter(r => r.status === '逾期');
             overdueRents.forEach(r => {
                 todos.push({
                     type: 'overdue',
@@ -549,13 +599,31 @@
                     title: '逾期租金',
                     desc: `${r.tenantName || '房客'}・${r.roomNumber || ''}・${formatCurrency(r.amount || 0)}`,
                     link: 'rent.html',
+                    time: r.dueDate ? `到期日: ${r.dueDate}` : '',
+                    sortTime: r.createdAt || 0,
                 });
             });
 
-            // Pending maintenance
-            const pendingTasks = maintenanceTasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
+            // 2. Unpaid rent: status === '未繳'
+            const unpaidRents = rentRecords.filter(r => r.status === '未繳');
+            unpaidRents.forEach(r => {
+                todos.push({
+                    type: 'unpaid',
+                    icon: 'fa-clock',
+                    color: 'amber',
+                    title: '未繳租金',
+                    desc: `${r.tenantName || '房客'}・${r.roomNumber || ''}・${formatCurrency(r.amount || 0)}`,
+                    link: 'rent.html',
+                    time: r.dueDate ? `到期日: ${r.dueDate}` : '',
+                    sortTime: r.createdAt || 0,
+                });
+            });
+
+            // 3. Pending maintenance: status === '待處理' or '處理中'
+            const pendingTasks = maintenanceTasks.filter(t => t.status === '待處理' || t.status === '處理中');
             pendingTasks.forEach(t => {
                 const priorityColors = { high: 'red', medium: 'amber', low: 'blue' };
+                const priorityLabels = { high: '高優先', medium: '中優先', low: '低優先' };
                 const color = priorityColors[t.priority] || 'blue';
                 todos.push({
                     type: 'maintenance',
@@ -564,27 +632,46 @@
                     title: '待修繕',
                     desc: `${t.roomNumber || ''}・${t.title || '修繕任務'}`,
                     link: 'maintenance.html',
+                    time: priorityLabels[t.priority] || '',
+                    sortTime: t.createdAt || 0,
                 });
             });
 
-            // Expiring contracts (within 60 days)
+            // 4. Expiring contracts (within 30 days)
             const nowDate = new Date();
-            const sixtyDaysLater = new Date(nowDate.getTime() + 60 * 86400000);
+            const thirtyDaysLater = new Date(nowDate.getTime() + 30 * 86400000);
             contracts.forEach(c => {
                 if (!c.endDate) return;
                 const end = new Date(c.endDate);
-                if (end >= nowDate && end <= sixtyDaysLater) {
+                if (end >= nowDate && end <= thirtyDaysLater) {
                     const daysLeft = Math.ceil((end - nowDate) / 86400000);
                     todos.push({
                         type: 'contract',
                         icon: 'fa-file-contract',
                         color: 'amber',
                         title: '合約即將到期',
-                        desc: `${c.tenantName || '房客'}・${c.roomNumber || ''}・剩 ${daysLeft} 天`,
+                        desc: `${c.tenantName || '房客'}・${c.roomNumber || ''}`,
                         link: 'contracts.html',
+                        time: `剩 ${daysLeft} 天`,
+                        sortTime: (end.getTime() - nowDate.getTime()),
                     });
                 }
             });
+
+            // Sort todos: red first, then amber, then blue
+            const colorOrder = { red: 0, amber: 1, blue: 2 };
+            todos.sort((a, b) => (colorOrder[a.color] ?? 2) - (colorOrder[b.color] ?? 2));
+
+            // Update notification badge
+            const badge = document.getElementById('notification-badge');
+            if (badge) {
+                if (todos.length > 0) {
+                    badge.textContent = todos.length;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            }
 
             document.getElementById('todo-count').textContent = todos.length;
 
@@ -610,9 +697,10 @@
                             <div class="w-8 h-8 ${c.bg} rounded-lg flex items-center justify-center shrink-0 mt-0.5">
                                 <i class="fas ${t.icon} ${c.text} text-sm"></i>
                             </div>
-                            <div class="min-w-0">
+                            <div class="min-w-0 flex-1">
                                 <p class="text-xs font-semibold ${c.text}">${t.title}</p>
                                 <p class="text-sm text-gray-600 truncate">${t.desc}</p>
+                                ${t.time ? `<p class="text-xs text-gray-400 mt-0.5">${t.time}</p>` : ''}
                             </div>
                             <i class="fas fa-chevron-right text-gray-300 text-xs mt-2 shrink-0"></i>
                         </a>
@@ -620,16 +708,62 @@
                 }).join('');
             }
 
-            // --- Recent Activity ---
+            // --- Recent Activity (Dynamic) ---
             const activityList = document.getElementById('activity-list');
-            const activities = [
-                { icon: 'fa-user-plus', color: 'blue', title: '新房客入住', desc: '趙珮琪 已入住 A301，合約期間 2025/05/01 - 2026/04/30', time: '2 小時前' },
-                { icon: 'fa-money-bill-wave', color: 'emerald', title: '租金已收款', desc: '林大偉 ・ A201 ・ NT$ 11,000 已入帳', time: '5 小時前' },
-                { icon: 'fa-tools', color: 'amber', title: '修繕任務更新', desc: 'A101 冷氣不冷 已指派師傅，預計今日處理', time: '1 天前' },
-                { icon: 'fa-file-contract', color: 'indigo', title: '合約即將到期提醒', desc: '王小明 的合約將於 45 天後到期（2025/06/15）', time: '1 天前' },
-                { icon: 'fa-file-invoice-dollar', color: 'purple', title: '費用計算完成', desc: '2025年4月 電費分攤計算已完成，共 10 筆紀錄', time: '3 天前' },
-                { icon: 'fa-camera', color: 'teal', title: '證據檔案上傳', desc: 'A201 入住前照片 5 張已上傳至雲端', time: '5 天前' },
-            ];
+            const activities = [];
+
+            // Add rent records
+            rentRecords.forEach(r => {
+                const statusConfig = {
+                    '已繳': { icon: 'fa-money-bill-wave', color: 'emerald', title: '租金已收款' },
+                    '未繳': { icon: 'fa-clock', color: 'amber', title: '租金待繳納' },
+                    '逾期': { icon: 'fa-exclamation-circle', color: 'red', title: '租金已逾期' },
+                };
+                const cfg = statusConfig[r.status] || { icon: 'fa-money-bill-wave', color: 'blue', title: '租金紀錄' };
+                const monthLabel = r.year && r.month ? `${r.year}/${String(r.month).padStart(2, '0')}` : (r.month || '');
+                activities.push({
+                    icon: cfg.icon,
+                    color: cfg.color,
+                    title: cfg.title,
+                    desc: `${r.tenantName || '房客'}・${r.roomNumber || ''}・${formatCurrency(r.amount || 0)} (${monthLabel})`,
+                    time: getRelativeTime(r.createdAt),
+                    sortTime: r.createdAt || 0,
+                });
+            });
+
+            // Add maintenance tasks
+            maintenanceTasks.forEach(t => {
+                const statusConfig = {
+                    '待處理': { icon: 'fa-tools', color: 'amber', title: '新增修繕任務' },
+                    '處理中': { icon: 'fa-wrench', color: 'blue', title: '修繕處理中' },
+                    '已完成': { icon: 'fa-check-circle', color: 'emerald', title: '修繕已完成' },
+                };
+                const cfg = statusConfig[t.status] || { icon: 'fa-tools', color: 'amber', title: '修繕任務更新' };
+                activities.push({
+                    icon: cfg.icon,
+                    color: cfg.color,
+                    title: cfg.title,
+                    desc: `${t.roomNumber || ''}・${t.title || '修繕任務'}`,
+                    time: getRelativeTime(t.createdAt),
+                    sortTime: t.createdAt || 0,
+                });
+            });
+
+            // Add contracts
+            contracts.forEach(c => {
+                activities.push({
+                    icon: 'fa-file-contract',
+                    color: 'indigo',
+                    title: '合約建立',
+                    desc: `${c.tenantName || '房客'}・${c.roomNumber || ''}・到期日 ${c.endDate || '未設定'}`,
+                    time: getRelativeTime(c.createdAt),
+                    sortTime: c.createdAt || 0,
+                });
+            });
+
+            // Sort by time descending, take latest 10
+            activities.sort((a, b) => b.sortTime - a.sortTime);
+            const latestActivities = activities.slice(0, 10);
 
             const iconColorMap = {
                 blue: { bg: 'bg-blue-50', text: 'text-primary' },
@@ -638,23 +772,35 @@
                 indigo: { bg: 'bg-indigo-50', text: 'text-indigo-500' },
                 purple: { bg: 'bg-purple-50', text: 'text-purple-500' },
                 teal: { bg: 'bg-teal-50', text: 'text-teal-500' },
+                red: { bg: 'bg-red-50', text: 'text-red-500' },
             };
 
-            activityList.innerHTML = activities.map((a, i) => {
-                const c = iconColorMap[a.color] || iconColorMap.blue;
-                return `
-                    <div class="flex gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div class="w-10 h-10 ${c.bg} rounded-full flex items-center justify-center shrink-0">
-                            <i class="fas ${a.icon} ${c.text} text-sm"></i>
+            if (latestActivities.length === 0) {
+                activityList.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-inbox text-gray-300 text-lg"></i>
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-700">${a.title}</p>
-                            <p class="text-xs text-gray-400 mt-0.5 truncate">${a.desc}</p>
-                        </div>
-                        <span class="text-xs text-gray-300 whitespace-nowrap shrink-0">${a.time}</span>
+                        <p class="text-sm text-gray-400">目前沒有活動紀錄</p>
                     </div>
                 `;
-            }).join('');
+            } else {
+                activityList.innerHTML = latestActivities.map(a => {
+                    const c = iconColorMap[a.color] || iconColorMap.blue;
+                    return `
+                        <div class="flex gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                            <div class="w-10 h-10 ${c.bg} rounded-full flex items-center justify-center shrink-0">
+                                <i class="fas ${a.icon} ${c.text} text-sm"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-700">${a.title}</p>
+                                <p class="text-xs text-gray-400 mt-0.5 truncate">${a.desc}</p>
+                            </div>
+                            <span class="text-xs text-gray-300 whitespace-nowrap shrink-0">${a.time}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
         // ============================================================

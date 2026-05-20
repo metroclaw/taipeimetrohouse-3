@@ -12,15 +12,25 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script src="js/app.js"></script>
-<style>.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}</style>
+<style>
+.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}
+/* Print styles for PDF */
+@media print {
+  nav, aside, .no-print, button { display: none !important; }
+  body { background: white !important; }
+  main { padding: 0 !important; }
+  .print-area { display: block !important; }
+  .shadow-sm, .shadow { box-shadow: none !important; }
+}
+</style>
 </head>
 <body class="bg-bg min-h-screen">
-<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50 no-print">
   <div class="flex items-center gap-4"><button class="lg:hidden text-gray-600" onclick="document.getElementById('sidebar').classList.toggle('hidden')"><i class="fas fa-bars text-xl"></i></button><div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">R</span></div><span class="font-bold text-lg text-gray-900">RentalHub</span></div></div>
   <div class="flex items-center gap-3"><button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i><span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span></button><div class="flex items-center gap-2 cursor-pointer" onclick="handleSignOut()"><div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div><span class="text-sm text-gray-700 hidden sm:inline">登出</span></div></div>
 </nav>
 <div class="flex">
-  <aside id="sidebar" class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40 overflow-y-auto">
+  <aside id="sidebar" class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40 overflow-y-auto no-print">
     <nav class="space-y-1 text-sm">
       <a href="dashboard.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-home w-5"></i>主控台</a>
       <a href="projects.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-building w-5"></i>建案管理</a>
@@ -34,12 +44,22 @@
     </nav>
   </aside>
   <main class="flex-1 p-4 lg:p-6">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-6 no-print">
       <div><h1 class="text-2xl font-bold text-gray-900">智慧費用計算</h1><p class="text-sm text-gray-500 mt-1">手動輸入度數，系統自動計算各房客應繳費用</p></div>
     </div>
+
+    <!-- 歷史紀錄面板 -->
+    <div id="history-panel" class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-6 no-print">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold text-gray-900">📜 歷史計算紀錄</h2>
+        <button onclick="loadHistory()" class="text-xs text-primary hover:underline"><i class="fas fa-sync-alt mr-1"></i>重新載入</button>
+      </div>
+      <div id="history-list" class="text-sm text-gray-500">載入中...</div>
+    </div>
+
     <div class="grid lg:grid-cols-2 gap-6">
       <!-- 左側：度數輸入 -->
-      <div class="space-y-4">
+      <div class="space-y-4 no-print">
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
           <h2 class="font-semibold text-gray-900 mb-4">📊 當月總度數輸入</h2>
           <div class="grid grid-cols-2 gap-4">
@@ -68,7 +88,10 @@
             <div><label class="block text-sm font-medium text-gray-700 mb-1">瓦斯分攤</label><select id="gas-split" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="people">依人數</option></select></div>
             <div><label class="block text-sm font-medium text-gray-700 mb-1">第四台/WiFi</label><span class="text-sm text-gray-500">均攤</span></div>
           </div>
-          <button onclick="calculateBill()" class="w-full mt-4 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">🧮 計算費用</button>
+          <div class="grid grid-cols-2 gap-3 mt-4">
+            <button onclick="calculateBill()" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90">🧮 計算費用</button>
+            <button onclick="saveBill()" id="btn-save" class="px-4 py-2 bg-secondary text-white rounded-lg text-sm font-medium hover:bg-secondary/90 disabled:opacity-50 disabled:cursor-not-allowed" disabled><i class="fas fa-save mr-1"></i>儲存結果</button>
+          </div>
         </div>
       </div>
       <!-- 右側：計算結果 -->
@@ -84,17 +107,223 @@
           <div id="bill-preview" class="border border-gray-200 rounded-lg p-4 bg-gray-50 text-sm">
             <p class="text-gray-400 text-center">選擇房客後預覽明細單</p>
           </div>
-          <div class="flex gap-2 mt-3">
-            <button onclick="downloadPDF()" class="flex-1 px-3 py-2 bg-primary text-white rounded-lg text-sm"><i class="fas fa-download mr-1"></i>下載 PDF</button>
-            <button onclick="shareLINE()" class="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg text-sm"><i class="fab fa-line mr-1"></i>分享到 LINE</button>
+          <div class="flex gap-2 mt-3 no-print">
+            <button onclick="downloadPDF()" class="flex-1 px-3 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90"><i class="fas fa-download mr-1"></i>下載 PDF</button>
+            <button onclick="shareLINE()" class="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600"><i class="fab fa-line mr-1"></i>分享到 LINE</button>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- 列印專用區域（僅列印時顯示） -->
+    <div id="print-area" class="hidden print-area">
+      <div id="print-content"></div>
     </div>
   </main>
 </div>
 <script>
 let billResults = [];
+let allRooms = [];
+let allTenants = [];
+let currentBillId = null;
+let historyBills = [];
+
+// ============================================================
+// 初始化：載入 Firestore 資料
+// ============================================================
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // 載入歷史紀錄
+        await loadHistory();
+
+        // 載入所有建案的房間
+        await loadRoomsAndTenants();
+
+        // 自動填入上期度數（從最新一筆歷史紀錄）
+        fillPreviousReadings();
+
+    } catch (err) {
+        console.error('初始化失敗:', err);
+        showToast('資料載入失敗：' + err.message, 'error');
+    }
+});
+
+// ============================================================
+// 載入房間與房客資料
+// ============================================================
+async function loadRoomsAndTenants() {
+    try {
+        showLoading();
+
+        // 載入所有建案
+        const projects = await getProjects();
+        if (!projects || projects.length === 0) {
+            hideLoading();
+            showToast('尚無建案資料，請先建立建案與房間', 'info');
+            return;
+        }
+
+        // 從所有建案載入房間
+        allRooms = [];
+        for (const project of projects) {
+            try {
+                const rooms = await getRooms(project.id);
+                if (rooms && rooms.length > 0) {
+                    allRooms = allRooms.concat(rooms.map(r => ({
+                        ...r,
+                        projectId: project.id,
+                        projectAddress: project.address || project.name || ''
+                    })));
+                }
+            } catch (e) {
+                console.warn(`載入建案 ${project.id} 房間失敗:`, e);
+            }
+        }
+
+        // 載入所有房客
+        try {
+            allTenants = await getTenants();
+        } catch (e) {
+            console.warn('載入房客失敗:', e);
+            allTenants = [];
+        }
+
+        hideLoading();
+
+        if (allRooms.length === 0) {
+            showToast('尚無房間資料，請先在建案管理中建立房間', 'info');
+        } else {
+            showToast(`已載入 ${allRooms.length} 間房間、${allTenants.length} 位房客`, 'success');
+        }
+
+    } catch (err) {
+        hideLoading();
+        console.error('載入房間房客失敗:', err);
+        showToast('載入資料失敗：' + err.message, 'error');
+    }
+}
+
+// ============================================================
+// 從最新歷史紀錄填入上期度數
+// ============================================================
+function fillPreviousReadings() {
+    if (historyBills.length > 0) {
+        const latest = historyBills[0];
+        if (latest.elecCurrent) document.getElementById('elec-prev').value = latest.elecCurrent;
+        if (latest.waterCurrent) document.getElementById('water-prev').value = latest.waterCurrent;
+        if (latest.gasCurrent) document.getElementById('gas-prev').value = latest.gasCurrent;
+        // 也填入費率和費用
+        if (latest.elecRate) document.getElementById('elec-rate').value = latest.elecRate;
+        if (latest.waterRate) document.getElementById('water-rate').value = latest.waterRate;
+        if (latest.gasRate) document.getElementById('gas-rate').value = latest.gasRate;
+        if (latest.tvFee) document.getElementById('tv-fee').value = latest.tvFee;
+        if (latest.wifiFee) document.getElementById('wifi-fee').value = latest.wifiFee;
+        if (latest.waterSplit) document.getElementById('water-split').value = latest.waterSplit;
+        if (latest.elecSplit) document.getElementById('elec-split').value = latest.elecSplit;
+        if (latest.gasSplit) document.getElementById('gas-split').value = latest.gasSplit;
+    } else {
+        // 無歷史紀錄，使用預設值
+        document.getElementById('elec-prev').value = '12500';
+        document.getElementById('water-prev').value = '3200';
+        document.getElementById('gas-prev').value = '850';
+    }
+}
+
+// ============================================================
+// 載入歷史紀錄
+// ============================================================
+async function loadHistory() {
+    try {
+        const listEl = document.getElementById('history-list');
+        listEl.innerHTML = '<span class="text-gray-400"><i class="fas fa-spinner fa-spin mr-1"></i>載入中...</span>';
+
+        historyBills = await getUtilityBills();
+
+        if (!historyBills || historyBills.length === 0) {
+            listEl.innerHTML = '<span class="text-gray-400 text-center py-4 block">尚無歷史計算紀錄</span>';
+            return;
+        }
+
+        let html = '<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">';
+        historyBills.forEach(bill => {
+            const label = `${bill.year}年${bill.month}月`;
+            const totalRooms = bill.results ? bill.results.length : 0;
+            html += `
+                <button onclick="viewHistoryBill('${bill.id}')" class="text-left p-3 border border-gray-200 rounded-lg hover:border-primary hover:bg-primary/5 transition-colors">
+                    <div class="font-medium text-gray-900 text-sm">${label}</div>
+                    <div class="text-xs text-gray-500 mt-1">${totalRooms} 間房間</div>
+                    <div class="text-xs text-gray-400 mt-0.5">${formatDate(bill.createdAt)}</div>
+                </button>
+            `;
+        });
+        html += '</div>';
+        listEl.innerHTML = html;
+
+    } catch (err) {
+        console.error('載入歷史紀錄失敗:', err);
+        document.getElementById('history-list').innerHTML = '<span class="text-red-400">載入失敗，請稍後再試</span>';
+    }
+}
+
+// ============================================================
+// 查看歷史計算結果
+// ============================================================
+async function viewHistoryBill(billId) {
+    try {
+        showLoading();
+        const uid = getCurrentUserUid();
+        if (!uid) { hideLoading(); return; }
+
+        const doc = await db.collection('users').doc(uid).collection('utilityBills').doc(billId).get();
+        if (!doc.exists) {
+            hideLoading();
+            showToast('找不到此紀錄', 'error');
+            return;
+        }
+
+        const bill = doc.data();
+        bill.id = doc.id;
+        currentBillId = billId;
+
+        // 填入表單
+        document.getElementById('elec-current').value = bill.elecCurrent || '';
+        document.getElementById('elec-prev').value = bill.elecPrevious || '';
+        document.getElementById('water-current').value = bill.waterCurrent || '';
+        document.getElementById('water-prev').value = bill.waterPrevious || '';
+        document.getElementById('gas-current').value = bill.gasCurrent || '';
+        document.getElementById('gas-prev').value = bill.gasPrevious || '';
+        document.getElementById('tv-fee').value = bill.tvFee || '';
+        document.getElementById('wifi-fee').value = bill.wifiFee || '';
+        document.getElementById('elec-rate').value = bill.elecRate || 5.5;
+        document.getElementById('water-rate').value = bill.waterRate || 12;
+        document.getElementById('gas-rate').value = bill.gasRate || 25;
+        document.getElementById('water-split').value = bill.waterSplit || 'area';
+        document.getElementById('elec-split').value = bill.elecSplit || 'ac';
+        document.getElementById('gas-split').value = bill.gasSplit || 'people';
+
+        // 顯示計算結果
+        billResults = bill.results || [];
+        renderResults(bill, billResults);
+
+        // 更新房客選單
+        updateTenantSelect();
+
+        hideLoading();
+        showToast(`已載入 ${bill.year}年${bill.month}月 的計算結果`, 'success');
+
+        // 捲動到結果
+        document.getElementById('bill-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (err) {
+        hideLoading();
+        console.error('查看歷史紀錄失敗:', err);
+        showToast('載入失敗：' + err.message, 'error');
+    }
+}
+
+// ============================================================
+// 計算費用（使用 Firestore 資料）
+// ============================================================
 function calculateBill() {
     const elecCurrent = parseFloat(document.getElementById('elec-current').value) || 0;
     const elecPrev = parseFloat(document.getElementById('elec-prev').value) || 0;
@@ -110,83 +339,365 @@ function calculateBill() {
     const waterSplit = document.getElementById('water-split').value;
     const elecSplit = document.getElementById('elec-split').value;
     const gasSplit = document.getElementById('gas-split').value;
+
     const elecUsage = elecCurrent - elecPrev;
     const waterUsage = waterCurrent - waterPrev;
     const gasUsage = gasCurrent - gasPrev;
+
+    if (elecUsage < 0 || waterUsage < 0 || gasUsage < 0) {
+        showToast('本期度數不能小於上期度數', 'error');
+        return;
+    }
+
     const elecTotal = elecUsage * elecRate;
     const waterTotal = waterUsage * waterRate;
     const gasTotal = gasUsage * gasRate;
-    // 測試房客資料
-    const testRooms = [
-        { number: 'A1', tenant: '王小明', area: 8, ac: 1, people: 1 },
-        { number: 'A2', tenant: '李小華', area: 6, ac: 1, people: 1 },
-        { number: 'A3', tenant: '張小美', area: 4, ac: 1, people: 1 },
-        { number: 'A5', tenant: '陳小龍', area: 25, ac: 2, people: 2 },
-        { number: 'B1', tenant: '林小婷', area: 7, ac: 1, people: 1 },
-        { number: 'B2', tenant: '黃小強', area: 7, ac: 1, people: 1 },
-        { number: 'C1', tenant: '吳小琳', area: 9, ac: 1, people: 1 },
-        { number: 'C2', tenant: '鄭小偉', area: 8, ac: 1, people: 1 },
-        { number: 'C3', tenant: '謝小琪', area: 4, ac: 1, people: 1 },
-        { number: 'C4', tenant: '楊小豪', area: 4, ac: 1, people: 1 }
-    ];
-    const totalArea = testRooms.reduce((s, r) => s + r.area, 0);
-    const totalAC = testRooms.reduce((s, r) => s + r.ac, 0);
-    const totalPeople = testRooms.reduce((s, r) => s + r.people, 0);
-    billResults = testRooms.map(r => {
-        let elec = 0, water = 0, gas = 0;
-        if (waterSplit === 'area') water = waterTotal * (r.area / totalArea);
-        else water = waterTotal * (r.people / totalPeople);
-        if (elecSplit === 'ac') elec = elecTotal * (r.ac / totalAC);
-        else elec = elecTotal * (r.people / totalPeople);
-        if (gasSplit === 'people') gas = gasTotal * (r.people / totalPeople);
-        const tv = tvFee / totalPeople;
-        const wifi = wifiFee / totalPeople;
-        const subtotal = Math.round(elec + water + gas + tv + wifi);
-        return { room: r.number, tenant: r.tenant, area: r.area, elec: Math.round(elec), water: Math.round(water), gas: Math.round(gas), tv: Math.round(tv), wifi: Math.round(wifi), subtotal, rent: 0, total: subtotal };
-    });
-    // 顯示結果
-    const container = document.getElementById('bill-results');
-    container.innerHTML = `<div class="space-y-2">
-        <div class="flex justify-between text-xs text-gray-500"><span>總用電：${elecUsage} kWh (${formatCurrency(elecTotal)})</span><span>總用水：${waterUsage} 度 (${formatCurrency(waterTotal)})</span><span>總瓦斯：${gasUsage} 度 (${formatCurrency(gasTotal)})</span></div>
-        <table class="w-full text-sm"><thead><tr class="text-gray-500 text-xs"><th class="text-left py-1">房號</th><th class="text-left">房客</th><th class="text-right">水費</th><th class="text-right">電費</th><th class="text-right">瓦斯</th><th class="text-right">第四台</th><th class="text-right">WiFi</th><th class="text-right">小計</th></tr></thead><tbody class="divide-y divide-gray-100">
-        ${billResults.map(b => `<tr><td class="py-1">${b.room}</td><td>${b.tenant}</td><td class="text-right">${formatCurrency(b.water)}</td><td class="text-right">${formatCurrency(b.elec)}</td><td class="text-right">${formatCurrency(b.gas)}</td><td class="text-right">${formatCurrency(b.tv)}</td><td class="text-right">${formatCurrency(b.wifi)}</td><td class="text-right font-medium">${formatCurrency(b.subtotal)}</td></tr>`).join('')}
-        </tbody></table>
-    </div>`;
-    // 更新房客選單
-    const sel = document.getElementById('bill-tenant-select');
-    sel.innerHTML = '<option value="">選擇房客預覽</option>' + billResults.map((b, i) => `<option value="${i}">${b.tenant} (${b.room})</option>`).join('');
-    showToast('計算完成', 'success');
+
+    // 使用 Firestore 資料或 fallback 到 testRooms
+    let roomsData = allRooms;
+    let tenantsData = allTenants;
+
+    if (roomsData.length === 0) {
+        // Fallback：使用預設測試資料
+        roomsData = [
+            { id: 'r1', number: 'A1', area: 8, acUnits: 1, rent: 8500 },
+            { id: 'r2', number: 'A2', area: 6, acUnits: 1, rent: 7000 },
+            { id: 'r3', number: 'A3', area: 4, acUnits: 1, rent: 5500 },
+            { id: 'r4', number: 'A5', area: 25, acUnits: 2, rent: 15000 },
+            { id: 'r5', number: 'B1', area: 7, acUnits: 1, rent: 7500 },
+            { id: 'r6', number: 'B2', area: 7, acUnits: 1, rent: 7500 },
+            { id: 'r7', number: 'C1', area: 9, acUnits: 1, rent: 9000 },
+            { id: 'r8', number: 'C2', area: 8, acUnits: 1, rent: 8000 },
+            { id: 'r9', number: 'C3', area: 4, acUnits: 1, rent: 5500 },
+            { id: 'r10', number: 'C4', area: 4, acUnits: 1, rent: 5500 }
+        ];
+        tenantsData = [
+            { id: 't1', roomId: 'r1', name: '王小明', roommates: 1 },
+            { id: 't2', roomId: 'r2', name: '李小華', roommates: 1 },
+            { id: 't3', roomId: 'r3', name: '張小美', roommates: 1 },
+            { id: 't4', roomId: 'r4', name: '陳小龍', roommates: 2 },
+            { id: 't5', roomId: 'r5', name: '林小婷', roommates: 1 },
+            { id: 't6', roomId: 'r6', name: '黃小強', roommates: 1 },
+            { id: 't7', roomId: 'r7', name: '吳小琳', roommates: 1 },
+            { id: 't8', roomId: 'r8', name: '鄭小偉', roommates: 1 },
+            { id: 't9', roomId: 'r9', name: '謝小琪', roommates: 1 },
+            { id: 't10', roomId: 'r10', name: '楊小豪', roommates: 1 }
+        ];
+    }
+
+    // 使用 app.js 的 calculateUtilityBill 函數
+    const billData = {
+        elecCurrent, elecPrevious: elecPrev,
+        waterCurrent, waterPrevious: waterPrev,
+        gasCurrent, gasPrevious: gasPrev,
+        elecRate, waterRate, gasRate,
+        tvFee, wifiFee,
+        waterSplit, elecSplit, gasSplit
+    };
+
+    billResults = calculateUtilityBill(billData, roomsData, tenantsData);
+    currentBillId = null; // 新計算，非歷史紀錄
+
+    // 構建顯示用的 bill 物件
+    const bill = {
+        elecUsage, waterUsage, gasUsage,
+        elecTotal, waterTotal, gasTotal
+    };
+
+    renderResults(bill, billResults);
+    updateTenantSelect();
+
+    // 啟用儲存按鈕
+    document.getElementById('btn-save').disabled = false;
+
+    showToast(`計算完成，共 ${billResults.length} 間房間`, 'success');
 }
+
+// ============================================================
+// 渲染計算結果表格
+// ============================================================
+function renderResults(bill, results) {
+    const container = document.getElementById('bill-results');
+    if (!results || results.length === 0) {
+        container.innerHTML = '<p class="text-gray-400 text-center py-4">無計算結果</p>';
+        return;
+    }
+
+    container.innerHTML = `<div class="space-y-2">
+        <div class="flex justify-between text-xs text-gray-500 flex-wrap gap-1">
+            <span>總用電：${bill.elecUsage || 0} kWh (${formatCurrency(bill.elecTotal || 0)})</span>
+            <span>總用水：${bill.waterUsage || 0} 度 (${formatCurrency(bill.waterTotal || 0)})</span>
+            <span>總瓦斯：${bill.gasUsage || 0} 度 (${formatCurrency(bill.gasTotal || 0)})</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-gray-500 text-xs">
+                        <th class="text-left py-1">房號</th>
+                        <th class="text-left">房客</th>
+                        <th class="text-right">水費</th>
+                        <th class="text-right">電費</th>
+                        <th class="text-right">瓦斯</th>
+                        <th class="text-right">第四台</th>
+                        <th class="text-right">WiFi</th>
+                        <th class="text-right">小計</th>
+                        <th class="text-right">租金</th>
+                        <th class="text-right">總計</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                ${results.map(b => `<tr>
+                    <td class="py-1 font-medium">${b.roomNumber}</td>
+                    <td>${b.tenantName}</td>
+                    <td class="text-right">${formatCurrency(b.waterFee)}</td>
+                    <td class="text-right">${formatCurrency(b.elecFee)}</td>
+                    <td class="text-right">${formatCurrency(b.gasFee)}</td>
+                    <td class="text-right">${formatCurrency(b.tvFee)}</td>
+                    <td class="text-right">${formatCurrency(b.wifiFee)}</td>
+                    <td class="text-right font-medium">${formatCurrency(b.subtotal)}</td>
+                    <td class="text-right text-gray-500">${formatCurrency(b.rent)}</td>
+                    <td class="text-right font-bold text-primary">${formatCurrency(b.total)}</td>
+                </tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+    </div>`;
+}
+
+// ============================================================
+// 更新房客選單
+// ============================================================
+function updateTenantSelect() {
+    const sel = document.getElementById('bill-tenant-select');
+    sel.innerHTML = '<option value="">選擇房客預覽</option>' +
+        billResults.map((b, i) => `<option value="${i}">${b.tenantName} (${b.roomNumber})</option>`).join('');
+}
+
+// ============================================================
+// 預覽費用明細單
+// ============================================================
 function previewBill() {
     const idx = document.getElementById('bill-tenant-select').value;
-    if (idx === '') { document.getElementById('bill-preview').innerHTML = '<p class="text-gray-400 text-center">選擇房客後預覽明細單</p>'; return; }
+    if (idx === '') {
+        document.getElementById('bill-preview').innerHTML = '<p class="text-gray-400 text-center">選擇房客後預覽明細單</p>';
+        return;
+    }
     const b = billResults[parseInt(idx)];
     if (!b) return;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
     document.getElementById('bill-preview').innerHTML = `
-        <div class="text-center mb-3"><h3 class="font-bold text-gray-900">大都會物業 — 費用明細單</h3><p class="text-xs text-gray-500">2026年5月</p></div>
+        <div class="text-center mb-3">
+            <h3 class="font-bold text-gray-900 text-base">大都會物業 — 費用明細單</h3>
+            <p class="text-xs text-gray-500">${year}年${month}月</p>
+        </div>
         <div class="border-t border-b border-gray-200 py-2 space-y-1">
-            <div class="flex justify-between"><span>房號</span><span class="font-medium">${b.room}</span></div>
-            <div class="flex justify-between"><span>房客</span><span class="font-medium">${b.tenant}</span></div>
-            <div class="flex justify-between"><span>坪數</span><span>${b.area} 坪</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">房號</span><span class="font-medium">${b.roomNumber}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">房客</span><span class="font-medium">${b.tenantName}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">坪數</span><span>${b.area} 坪</span></div>
         </div>
         <div class="py-2 space-y-1">
-            <div class="flex justify-between"><span>水費</span><span>${formatCurrency(b.water)}</span></div>
-            <div class="flex justify-between"><span>電費</span><span>${formatCurrency(b.elec)}</span></div>
-            <div class="flex justify-between"><span>瓦斯費</span><span>${formatCurrency(b.gas)}</span></div>
-            <div class="flex justify-between"><span>第四台</span><span>${formatCurrency(b.tv)}</span></div>
-            <div class="flex justify-between"><span>WiFi</span><span>${formatCurrency(b.wifi)}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">水費</span><span>${formatCurrency(b.waterFee)}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">電費</span><span>${formatCurrency(b.elecFee)}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">瓦斯費</span><span>${formatCurrency(b.gasFee)}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">第四台</span><span>${formatCurrency(b.tvFee)}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">WiFi</span><span>${formatCurrency(b.wifiFee)}</span></div>
         </div>
-        <div class="border-t border-gray-200 pt-2 flex justify-between font-bold"><span>費用小計</span><span>${formatCurrency(b.subtotal)}</span></div>
+        <div class="border-t border-gray-200 pt-2 space-y-1">
+            <div class="flex justify-between"><span class="text-gray-500">費用小計</span><span class="font-medium">${formatCurrency(b.subtotal)}</span></div>
+            <div class="flex justify-between"><span class="text-gray-500">租金</span><span>${formatCurrency(b.rent)}</span></div>
+            <div class="flex justify-between font-bold text-base border-t border-gray-200 pt-1 mt-1"><span>應繳總額</span><span class="text-primary">${formatCurrency(b.total)}</span></div>
+        </div>
     `;
 }
-function downloadPDF() { showToast('PDF 下載功能（待實作）', 'info'); }
-function shareLINE() { showToast('LINE 分享功能（待實作）', 'info'); }
-document.addEventListener('DOMContentLoaded', () => {
-    // 自動填入上期度數
-    document.getElementById('elec-prev').value = '12500';
-    document.getElementById('water-prev').value = '3200';
-    document.getElementById('gas-prev').value = '850';
-});
+
+// ============================================================
+// 儲存計算結果到 Firestore
+// ============================================================
+async function saveBill() {
+    if (!billResults || billResults.length === 0) {
+        showToast('請先計算費用', 'error');
+        return;
+    }
+
+    try {
+        showLoading();
+
+        const uid = getCurrentUserUid();
+        if (!uid) {
+            hideLoading();
+            showToast('使用者未登入', 'error');
+            return;
+        }
+
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1;
+
+        const billData = {
+            year,
+            month,
+            elecCurrent: parseFloat(document.getElementById('elec-current').value) || 0,
+            elecPrevious: parseFloat(document.getElementById('elec-prev').value) || 0,
+            waterCurrent: parseFloat(document.getElementById('water-current').value) || 0,
+            waterPrevious: parseFloat(document.getElementById('water-prev').value) || 0,
+            gasCurrent: parseFloat(document.getElementById('gas-current').value) || 0,
+            gasPrevious: parseFloat(document.getElementById('gas-prev').value) || 0,
+            elecRate: parseFloat(document.getElementById('elec-rate').value) || 5.5,
+            waterRate: parseFloat(document.getElementById('water-rate').value) || 12,
+            gasRate: parseFloat(document.getElementById('gas-rate').value) || 25,
+            tvFee: parseFloat(document.getElementById('tv-fee').value) || 0,
+            wifiFee: parseFloat(document.getElementById('wifi-fee').value) || 0,
+            waterSplit: document.getElementById('water-split').value,
+            elecSplit: document.getElementById('elec-split').value,
+            gasSplit: document.getElementById('gas-split').value,
+            results: billResults,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        if (currentBillId) {
+            // 更新現有紀錄
+            await db.collection('users').doc(uid).collection('utilityBills').doc(currentBillId).update(billData);
+            showToast('計算結果已更新', 'success');
+        } else {
+            // 新增紀錄
+            const docRef = await db.collection('users').doc(uid).collection('utilityBills').add(billData);
+            currentBillId = docRef.id;
+            showToast('計算結果已儲存', 'success');
+        }
+
+        hideLoading();
+
+        // 重新載入歷史紀錄
+        await loadHistory();
+
+    } catch (err) {
+        hideLoading();
+        console.error('儲存失敗:', err);
+        showToast('儲存失敗：' + err.message, 'error');
+    }
+}
+
+// ============================================================
+// 下載 PDF（使用 window.print()）
+// ============================================================
+function downloadPDF() {
+    const idx = document.getElementById('bill-tenant-select').value;
+    if (idx === '') {
+        showToast('請先選擇一位房客', 'info');
+        return;
+    }
+    const b = billResults[parseInt(idx)];
+    if (!b) return;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    // 構建列印內容
+    const printContent = document.getElementById('print-content');
+    printContent.innerHTML = `
+        <div style="max-width: 600px; margin: 0 auto; padding: 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="font-size: 24px; font-weight: bold; color: #1a1a1a; margin: 0;">大都會物業</h1>
+                <h2 style="font-size: 18px; color: #333; margin: 8px 0 0;">費用明細單</h2>
+                <p style="color: #666; margin: 8px 0 0;">${year}年${month}月</p>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px 0; color: #666;">房號</td>
+                    <td style="padding: 8px 0; text-align: right; font-weight: 600;">${b.roomNumber}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px 0; color: #666;">房客</td>
+                    <td style="padding: 8px 0; text-align: right; font-weight: 600;">${b.tenantName}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px 0; color: #666;">坪數</td>
+                    <td style="padding: 8px 0; text-align: right;">${b.area} 坪</td>
+                </tr>
+            </table>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px 0; color: #666;">水費</td>
+                    <td style="padding: 10px 0; text-align: right;">${formatCurrency(b.waterFee)}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px 0; color: #666;">電費</td>
+                    <td style="padding: 10px 0; text-align: right;">${formatCurrency(b.elecFee)}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px 0; color: #666;">瓦斯費</td>
+                    <td style="padding: 10px 0; text-align: right;">${formatCurrency(b.gasFee)}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px 0; color: #666;">第四台</td>
+                    <td style="padding: 10px 0; text-align: right;">${formatCurrency(b.tvFee)}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px 0; color: #666;">WiFi</td>
+                    <td style="padding: 10px 0; text-align: right;">${formatCurrency(b.wifiFee)}</td>
+                </tr>
+                <tr style="border-bottom: 2px solid #333;">
+                    <td style="padding: 12px 0; font-weight: 600;">費用小計</td>
+                    <td style="padding: 12px 0; text-align: right; font-weight: 600;">${formatCurrency(b.subtotal)}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 10px 0; color: #666;">租金</td>
+                    <td style="padding: 10px 0; text-align: right;">${formatCurrency(b.rent)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 16px 0; font-size: 18px; font-weight: bold;">應繳總額</td>
+                    <td style="padding: 16px 0; text-align: right; font-size: 18px; font-weight: bold; color: #2563EB;">${formatCurrency(b.total)}</td>
+                </tr>
+            </table>
+            <div style="margin-top: 40px; text-align: center; color: #999; font-size: 12px;">
+                <p>此明細單由 RentalHub 系統產生</p>
+                <p>列印日期：${now.toLocaleDateString('zh-TW')}</p>
+            </div>
+        </div>
+    `;
+
+    // 觸發列印（瀏覽器可另存為 PDF）
+    window.print();
+}
+
+// ============================================================
+// 分享到 LINE
+// ============================================================
+function shareLINE() {
+    const idx = document.getElementById('bill-tenant-select').value;
+    if (idx === '') {
+        showToast('請先選擇一位房客', 'info');
+        return;
+    }
+    const b = billResults[parseInt(idx)];
+    if (!b) return;
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    // 構建分享文字
+    const text = `【${year}年${month}月 費用明細】\n` +
+        `房號：${b.roomNumber}\n` +
+        `房客：${b.tenantName}\n` +
+        `水費：${formatCurrency(b.waterFee)}\n` +
+        `電費：${formatCurrency(b.elecFee)}\n` +
+        `瓦斯：${formatCurrency(b.gasFee)}\n` +
+        `第四台：${formatCurrency(b.tvFee)}\n` +
+        `WiFi：${formatCurrency(b.wifiFee)}\n` +
+        `費用小計：${formatCurrency(b.subtotal)}\n` +
+        `租金：${formatCurrency(b.rent)}\n` +
+        `應繳總額：${formatCurrency(b.total)}`;
+
+    // 使用 LINE 分享 URL
+    const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`;
+    window.open(lineUrl, '_blank', 'width=600,height=600');
+}
 </script>
 </body>
 </html>

@@ -1,6 +1,9 @@
-// Firebase Configuration
+// ============================================================
+// Module 1: Firebase Config & Init
+// ============================================================
+
 const firebaseConfig = {
-  apiKey: "AIzaSyDgk5qz4mNA09g-3azau9mgWjd8996uvJU",
+  apiKey: "AIzaSy...uvJU",
   authDomain: "taipeimetrohouse-2.firebaseapp.com",
   projectId: "taipeimetrohouse-2",
   storageBucket: "taipeimetrohouse-2.firebasestorage.app",
@@ -9,12 +12,14 @@ const firebaseConfig = {
   measurementId: "G-EZDH90LHWB"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// Initialize Firebase (guard against double-init when login.js also loads)
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 // Analytics disabled due to permission issues
 
 // ============================================================
-// 共用工具函數
+// Module 2: Auth Functions
 // ============================================================
 
 // 取得當前使用者 UID
@@ -27,6 +32,44 @@ function getCurrentUserUid() {
 function getCurrentUser() {
     return firebase.auth().currentUser;
 }
+
+// 檢查登入狀態
+function checkAuth() {
+    firebase.auth().onAuthStateChanged(function (user) {
+        if (!user) {
+            // 未登入，導向登入頁
+            if (!window.location.pathname.includes('login.html')) {
+                window.location.href = 'login.html';
+            }
+        } else {
+            // 已登入，更新使用者資訊
+            updateUserInfo(user);
+        }
+    });
+}
+
+// 更新使用者資訊顯示
+function updateUserInfo(user) {
+    const nameEl = document.getElementById('user-name');
+    const emailEl = document.getElementById('user-email');
+    const avatarEl = document.getElementById('user-avatar');
+    if (nameEl) nameEl.textContent = user.displayName || '使用者';
+    if (emailEl) emailEl.textContent = user.email || '';
+    if (avatarEl) avatarEl.src = user.photoURL || 'img/profile_placeholder.png';
+}
+
+// 登出
+function handleSignOut() {
+    firebase.auth().signOut().then(() => {
+        window.location.href = 'login.html';
+    }).catch((error) => {
+        showToast('登出失敗', 'error');
+    });
+}
+
+// ============================================================
+// Module 3: Utility Functions
+// ============================================================
 
 // 格式化日期
 function formatDate(timestamp) {
@@ -71,42 +114,8 @@ function hideLoading() {
     if (loader) loader.classList.add('hidden');
 }
 
-// 檢查登入狀態
-function checkAuth() {
-    firebase.auth().onAuthStateChanged(function (user) {
-        if (!user) {
-            // 未登入，導向登入頁
-            if (!window.location.pathname.includes('login.html')) {
-                window.location.href = 'login.html';
-            }
-        } else {
-            // 已登入，更新使用者資訊
-            updateUserInfo(user);
-        }
-    });
-}
-
-// 更新使用者資訊顯示
-function updateUserInfo(user) {
-    const nameEl = document.getElementById('user-name');
-    const emailEl = document.getElementById('user-email');
-    const avatarEl = document.getElementById('user-avatar');
-    if (nameEl) nameEl.textContent = user.displayName || '使用者';
-    if (emailEl) emailEl.textContent = user.email || '';
-    if (avatarEl) avatarEl.src = user.photoURL || 'img/profile_placeholder.png';
-}
-
-// 登出
-function handleSignOut() {
-    firebase.auth().signOut().then(() => {
-        window.location.href = 'login.html';
-    }).catch((error) => {
-        showToast('登出失敗', 'error');
-    });
-}
-
 // ============================================================
-// Firestore 資料操作
+// Module 4: Firestore Data Access Layer
 // ============================================================
 
 const db = firebase.firestore();
@@ -183,8 +192,29 @@ async function getCleaningSchedules() {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
+// 通用新增文件
+async function addDoc(collection, data) {
+    const uid = getCurrentUserUid();
+    if (!uid) throw new Error('使用者未登入');
+    return await db.collection('users').doc(uid).collection(collection).add(data);
+}
+
+// 通用更新文件
+async function updateDoc(collection, id, data) {
+    const uid = getCurrentUserUid();
+    if (!uid) throw new Error('使用者未登入');
+    return await db.collection('users').doc(uid).collection(collection).doc(id).update(data);
+}
+
+// 通用刪除文件
+async function deleteDoc(collection, id) {
+    const uid = getCurrentUserUid();
+    if (!uid) throw new Error('使用者未登入');
+    return await db.collection('users').doc(uid).collection(collection).doc(id).delete();
+}
+
 // ============================================================
-// 費用計算邏輯
+// Module 5: Business Logic
 // ============================================================
 
 function calculateUtilityBill(billData, rooms, tenants) {
@@ -253,8 +283,10 @@ function calculateUtilityBill(billData, rooms, tenants) {
 }
 
 // ============================================================
-// 初始化 - 直接執行，不等待 DOMContentLoaded
+// Module 6: Auth State Listener
 // ============================================================
+
+// 初始化 - 直接執行，不等待 DOMContentLoaded
 firebase.auth().onAuthStateChanged(function(user) {
     console.log("App auth state:", user ? user.displayName : "null");
     if (!user) {

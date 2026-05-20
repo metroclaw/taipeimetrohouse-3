@@ -9,6 +9,9 @@ Thumbs.db
 # Node
 node_modules/
 
+# Environment
+.env
+
 # Firebase
 .firebase/
 firebase-debug.log

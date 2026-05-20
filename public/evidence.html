@@ -36,71 +36,531 @@
   <main class="flex-1 p-4 lg:p-6">
     <div class="flex items-center justify-between mb-6">
       <div><h1 class="text-2xl font-bold text-gray-900">證據保存</h1><p class="text-sm text-gray-500 mt-1">屋況照片、溝通紀錄、收據、合約文件</p></div>
-      <label class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-primary/90">
-        <i class="fas fa-upload"></i>上傳檔案
-        <input type="file" id="file-upload" multiple accept="image/*,.pdf,.doc,.docx" class="hidden" onchange="handleFileUpload(this)">
-      </label>
+      <div class="flex items-center gap-2">
+        <button onclick="openAddModal()" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition"><i class="fas fa-plus"></i>手動新增</button>
+        <label class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-primary/90 transition">
+          <i class="fas fa-upload"></i>上傳檔案
+          <input type="file" id="file-upload" multiple accept="image/*,.pdf,.doc,.docx" class="hidden" onchange="handleFileUpload(this)">
+        </label>
+      </div>
     </div>
+
+    <!-- 上傳進度 -->
+    <div id="upload-progress-container" class="hidden mb-4 bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm font-medium text-gray-700" id="upload-label">上傳中...</span>
+        <span class="text-sm text-gray-500" id="upload-percent">0%</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2.5">
+        <div id="upload-bar" class="bg-primary h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+    </div>
+
     <!-- 篩選 -->
     <div class="flex flex-wrap gap-2 mb-6">
       <button class="filter-btn active px-3 py-1.5 bg-primary text-white rounded-lg text-sm" data-filter="all">全部</button>
-      <button class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm" data-filter="屋況">🏠 屋況照片</button>
-      <button class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm" data-filter="溝通">💬 溝通紀錄</button>
-      <button class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm" data-filter="收據">🧾 收據/發票</button>
-      <button class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm" data-filter="合約">📄 合約文件</button>
-      <button class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm" data-filter="修繕">🔧 修繕紀錄</button>
+      <button class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50" data-filter="屋況">🏠 屋況照片</button>
+      <button class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50" data-filter="溝通">💬 溝通紀錄</button>
+      <button class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50" data-filter="收據">🧾 收據/發票</button>
+      <button class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50" data-filter="合約">📄 合約文件</button>
+      <button class="filter-btn px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50" data-filter="修繕">🔧 修繕紀錄</button>
     </div>
+
     <!-- 檔案網格 -->
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="evidence-grid">
       <!-- 由 JS 動態產生 -->
     </div>
   </main>
 </div>
-<script>
-const evidenceData = [
-    { name: 'A1 入住前客廳', date: '2026/05/01', type: '屋況', icon: '🏠', color: 'from-blue-50 to-blue-100' },
-    { name: 'A2 李小華 LINE 對話', date: '2026/05/10', type: '溝通', icon: '💬', color: 'from-green-50 to-green-100' },
-    { name: 'A1 冷氣修繕收據', date: '2026/05/15', type: '收據', icon: '🧾', color: 'from-amber-50 to-amber-100' },
-    { name: 'A5 陳小龍合約', date: '2026/04/01', type: '合約', icon: '📄', color: 'from-purple-50 to-purple-100' },
-    { name: 'B2 漏水修復前後', date: '2026/05/12', type: '修繕', icon: '🔧', color: 'from-red-50 to-red-100' },
-    { name: 'C1 退租檢查', date: '2026/05/18', type: '屋況', icon: '🏠', color: 'from-blue-50 to-blue-100' },
-    { name: 'A3 張小美 簽約照片', date: '2026/03/01', type: '合約', icon: '📄', color: 'from-purple-50 to-purple-100' },
-    { name: 'B1 林小婷 收據', date: '2026/05/02', type: '收據', icon: '🧾', color: 'from-amber-50 to-amber-100' },
-];
-const typeColors = { '屋況': 'bg-blue-100 text-blue-600', '溝通': 'bg-green-100 text-green-600', '收據': 'bg-amber-100 text-amber-600', '合約': 'bg-purple-100 text-purple-600', '修繕': 'bg-red-100 text-red-600' };
-function renderEvidence(filter = 'all') {
-    const grid = document.getElementById('evidence-grid');
-    const filtered = filter === 'all' ? evidenceData : evidenceData.filter(e => e.type === filter);
-    if (filtered.length === 0) { grid.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">無檔案</div>'; return; }
-    grid.innerHTML = filtered.map(e => `
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-md transition">
-            <div class="aspect-square bg-gradient-to-br ${e.color} flex items-center justify-center relative">
-                <span class="text-4xl">${e.icon}</span>
-                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center opacity-0 group-hover:opacity-100"><i class="fas fa-expand text-white text-xl"></i></div>
-            </div>
-            <div class="p-3">
-                <p class="text-sm font-medium text-gray-900 truncate">${e.name}</p>
-                <div class="flex items-center justify-between mt-1"><span class="text-xs text-gray-400">${e.date}</span><span class="text-xs ${typeColors[e.type] || 'bg-gray-100 text-gray-500'} px-1.5 py-0.5 rounded">${e.type}</span></div>
-            </div>
+
+<!-- 新增證據紀錄 Modal -->
+<div id="add-modal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md">
+    <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-gray-900">新增證據紀錄</h3>
+      <button onclick="closeAddModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+    </div>
+    <form id="add-form" class="p-5 space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">檔案名稱 <span class="text-red-500">*</span></label>
+        <input type="text" id="add-name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="例：A1 客廳照片">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">類型 <span class="text-red-500">*</span></label>
+        <select id="add-type" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+          <option value="屋況">屋況照片</option>
+          <option value="溝通">溝通紀錄</option>
+          <option value="收據">收據/發票</option>
+          <option value="合約">合約文件</option>
+          <option value="修繕">修繕紀錄</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">房號</label>
+          <input type="text" id="add-room" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="例：A1">
         </div>
-    `).join('') + `
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">房客姓名</label>
+          <input type="text" id="add-tenant" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="例：王小明">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">備註</label>
+        <textarea id="add-note" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="其他備註..."></textarea>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeAddModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">取消</button>
+        <button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 證據詳情 Modal -->
+<div id="detail-modal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md">
+    <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-gray-900">證據詳情</h3>
+      <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+    </div>
+    <div id="detail-content" class="p-5 space-y-3">
+      <!-- 動態填入 -->
+    </div>
+    <div class="p-5 border-t border-gray-100 flex gap-3">
+      <button id="detail-download-btn" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 hidden"><i class="fas fa-download mr-1"></i>下載</button>
+      <button onclick="deleteEvidence(currentDetailId)" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100"><i class="fas fa-trash mr-1"></i>刪除</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Evidence Page — Full CRUD with Firebase Storage Upload
+// ============================================================
+
+let allEvidence = [];
+let currentFilter = 'all';
+let currentDetailId = null;
+let isUploading = false;
+
+const typeConfig = {
+  '屋況': { icon: '🏠', color: 'from-blue-50 to-blue-100', badge: 'bg-blue-100 text-blue-600' },
+  '溝通': { icon: '💬', color: 'from-green-50 to-green-100', badge: 'bg-green-100 text-green-600' },
+  '收據': { icon: '🧾', color: 'from-amber-50 to-amber-100', badge: 'bg-amber-100 text-amber-600' },
+  '合約': { icon: '📄', color: 'from-purple-50 to-purple-100', badge: 'bg-purple-100 text-purple-600' },
+  '修繕': { icon: '🔧', color: 'from-red-50 to-red-100', badge: 'bg-red-100 text-red-600' },
+};
+
+// ---- Firestore helpers ----
+function evidenceCol() {
+  const uid = getCurrentUserUid();
+  if (!uid) throw new Error('使用者未登入');
+  return db.collection('users').doc(uid).collection('evidenceFiles');
+}
+
+// ---- Escape HTML ----
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ---- Format file size ----
+function formatFileSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// ---- Format date from timestamp ----
+function formatEvidenceDate(ts) {
+  if (!ts) return '—';
+  // Handle Firestore Timestamp object
+  if (ts.toDate) ts = ts.toDate();
+  else if (typeof ts === 'number') ts = new Date(ts);
+  else ts = new Date(ts);
+  return `${ts.getFullYear()}/${String(ts.getMonth() + 1).padStart(2, '0')}/${String(ts.getDate()).padStart(2, '0')}`;
+}
+
+// ---- Page Init ----
+document.addEventListener('DOMContentLoaded', () => {
+  initPage();
+});
+
+async function initPage() {
+  showLoading();
+  try {
+    await loadEvidence();
+  } catch (e) {
+    console.error('初始化失敗:', e);
+    showToast('載入失敗，請重新整理', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ---- Load evidence from Firestore ----
+async function loadEvidence() {
+  try {
+    const snapshot = await evidenceCol().orderBy('createdAt', 'desc').get();
+    allEvidence = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // 若無資料，建立測試資料
+    if (allEvidence.length === 0) {
+      await seedTestData();
+      const snap2 = await evidenceCol().orderBy('createdAt', 'desc').get();
+      allEvidence = snap2.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    renderEvidence();
+  } catch (e) {
+    console.error('載入證據檔案失敗:', e);
+    throw e;
+  }
+}
+
+// ---- Seed test data ----
+async function seedTestData() {
+  const now = Date.now();
+  const day = 86400000;
+  const testEvidence = [
+    { name: 'A1 入住前客廳', type: '屋況', fileName: 'living_room.jpg', fileSize: 2450000, fileUrl: '', storagePath: '', roomNumber: 'A1', tenantName: '王小明', note: '入住前拍攝，確認屋況良好', createdAt: now - 19 * day },
+    { name: 'A2 李小華 LINE 對話截圖', type: '溝通', fileName: 'line_chat.png', fileSize: 890000, fileUrl: '', storagePath: '', roomNumber: 'A2', tenantName: '李小華', note: '關於租金延後付款的溝通紀錄', createdAt: now - 10 * day },
+    { name: 'A1 冷氣修繕收據', type: '收據', fileName: 'receipt_ac.pdf', fileSize: 156000, fileUrl: '', storagePath: '', roomNumber: 'A1', tenantName: '王小明', note: '冷媒填充費用 NT$3,500', createdAt: now - 5 * day },
+    { name: 'A5 陳小龍合約', type: '合約', fileName: 'contract_chen.pdf', fileSize: 420000, fileUrl: '', storagePath: '', roomNumber: 'A5', tenantName: '陳小龍', note: '2026/04/01 簽約', createdAt: now - 40 * day },
+    { name: 'B2 漏水修復前後', type: '修繕', fileName: 'leak_repair.jpg', fileSize: 3100000, fileUrl: '', storagePath: '', roomNumber: 'B2', tenantName: '黃小強', note: '浴室漏水修復前後對比', createdAt: now - 8 * day },
+    { name: 'C1 退租檢查', type: '屋況', fileName: 'checkout_c1.jpg', fileSize: 2800000, fileUrl: '', storagePath: '', roomNumber: 'C1', tenantName: '', note: '退租檢查，牆面有輕微損傷', createdAt: now - 2 * day },
+    { name: 'A3 張小美 簽約照片', type: '合約', fileName: 'sign_photo.jpg', fileSize: 1750000, fileUrl: '', storagePath: '', roomNumber: 'A3', tenantName: '張小美', note: '簽約時拍攝', createdAt: now - 60 * day },
+    { name: 'B1 林小婷 收據', type: '收據', fileName: 'receipt_lin.pdf', fileSize: 98000, fileUrl: '', storagePath: '', roomNumber: 'B1', tenantName: '林小婷', note: '水費分攤收據', createdAt: now - 18 * day },
+  ];
+
+  for (const ev of testEvidence) {
+    await evidenceCol().add(ev);
+  }
+  showToast('已建立測試資料', 'success');
+}
+
+// ---- Render evidence grid ----
+function renderEvidence(filter = 'all') {
+  const grid = document.getElementById('evidence-grid');
+  const filtered = filter === 'all' ? allEvidence : allEvidence.filter(e => e.type === filter);
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '<div class="col-span-full text-center text-gray-400 py-12"><i class="fas fa-folder-open text-4xl mb-3 block"></i>無檔案</div>';
+    return;
+  }
+
+  grid.innerHTML = filtered.map(ev => {
+    const cfg = typeConfig[ev.type] || typeConfig['屋況'];
+    const dateStr = formatEvidenceDate(ev.createdAt);
+    const sizeStr = ev.fileSize ? formatFileSize(ev.fileSize) : '';
+
+    return `
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-md transition" onclick="openDetailModal('${ev.id}')">
+          <div class="aspect-square bg-gradient-to-br ${cfg.color} flex items-center justify-center relative">
+              <span class="text-4xl">${cfg.icon}</span>
+              <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <i class="fas fa-expand text-white text-xl drop-shadow-lg"></i>
+              </div>
+          </div>
+          <div class="p-3">
+              <p class="text-sm font-medium text-gray-900 truncate" title="${escapeHtml(ev.name)}">${escapeHtml(ev.name)}</p>
+              <div class="flex items-center justify-between mt-1">
+                  <span class="text-xs text-gray-400">${dateStr}${sizeStr ? ' · ' + sizeStr : ''}</span>
+                  <span class="text-xs ${cfg.badge} px-1.5 py-0.5 rounded">${ev.type}</span>
+              </div>
+              ${ev.roomNumber ? `<p class="text-xs text-gray-400 mt-0.5"><i class="fas fa-door-open mr-0.5"></i>${escapeHtml(ev.roomNumber)}${ev.tenantName ? ' · ' + escapeHtml(ev.tenantName) : ''}</p>` : ''}
+          </div>
+      </div>`;
+  }).join('') + `
     <label class="border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center aspect-square cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition">
         <i class="fas fa-plus text-2xl text-gray-300 mb-2"></i>
         <span class="text-sm text-gray-400">上傳檔案</span>
-        <input type="file" multiple accept="image/*,.pdf" class="hidden" onchange="handleFileUpload(this)">
+        <input type="file" multiple accept="image/*,.pdf,.doc,.docx" class="hidden" onchange="handleFileUpload(this)">
     </label>`;
 }
-function handleFileUpload(input) {
-    if (input.files.length > 0) { showToast(`已選擇 ${input.files.length} 個檔案（上傳功能需設定 Firebase Storage）`, 'info'); }
-}
+
+// ---- Filter buttons ----
 document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.filter-btn').forEach(b => { b.classList.remove('bg-primary', 'text-white'); b.classList.add('bg-white', 'text-gray-600'); });
-        btn.classList.add('bg-primary', 'text-white'); btn.classList.remove('bg-white', 'text-gray-600');
-        renderEvidence(btn.dataset.filter);
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.remove('bg-primary', 'text-white', 'active');
+      b.classList.add('bg-white', 'text-gray-600', 'border', 'border-gray-200');
     });
+    btn.classList.add('bg-primary', 'text-white', 'active');
+    btn.classList.remove('bg-white', 'text-gray-600', 'border', 'border-gray-200');
+    currentFilter = btn.dataset.filter;
+    renderEvidence(currentFilter);
+  });
 });
-document.addEventListener('DOMContentLoaded', () => renderEvidence());
+
+// ---- File Upload ----
+async function handleFileUpload(input) {
+  if (!input.files || input.files.length === 0) return;
+  if (isUploading) {
+    showToast('請等待目前上傳完成', 'info');
+    input.value = '';
+    return;
+  }
+
+  const files = Array.from(input.files);
+  const uid = getCurrentUserUid();
+  if (!uid) {
+    showToast('請先登入', 'error');
+    input.value = '';
+    return;
+  }
+
+  isUploading = true;
+  const progressContainer = document.getElementById('upload-progress-container');
+  const progressBar = document.getElementById('upload-bar');
+  const uploadLabel = document.getElementById('upload-label');
+
+  progressContainer.classList.remove('hidden');
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    uploadLabel.textContent = `上傳中 (${i + 1}/${files.length})：${file.name}`;
+
+    try {
+      await uploadSingleFile(file, uid, (percent) => {
+        const totalPercent = Math.round(((i * 100) + percent) / files.length);
+        progressBar.style.width = totalPercent + '%';
+        document.getElementById('upload-percent').textContent = totalPercent + '%';
+      });
+      successCount++;
+    } catch (e) {
+      console.error(`上傳 ${file.name} 失敗:`, e);
+      failCount++;
+    }
+  }
+
+  progressBar.style.width = '100%';
+  document.getElementById('upload-percent').textContent = '100%';
+
+  // 完成
+  setTimeout(async () => {
+    progressContainer.classList.add('hidden');
+    progressBar.style.width = '0%';
+    document.getElementById('upload-percent').textContent = '0%';
+    isUploading = false;
+    input.value = '';
+
+    if (successCount > 0) {
+      showToast(`成功上傳 ${successCount} 個檔案`, 'success');
+    }
+    if (failCount > 0) {
+      showToast(`${failCount} 個檔案上傳失敗`, 'error');
+    }
+
+    // 重新載入列表
+    await loadEvidence();
+  }, 500);
+}
+
+async function uploadSingleFile(file, uid, onProgress) {
+  const storage = firebase.storage();
+  const timestamp = Date.now();
+  const storagePath = 'users/' + uid + '/evidence/' + timestamp + '_' + file.name;
+  const storageRef = storage.ref().child(storagePath);
+
+  return new Promise((resolve, reject) => {
+    const uploadTask = storageRef.put(file);
+
+    uploadTask.on('state_changed',
+      (snapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        onProgress(Math.round(progress));
+      },
+      (error) => {
+        console.error('上傳錯誤:', error);
+        reject(error);
+      },
+      async () => {
+        try {
+          const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+
+          // 寫入 Firestore
+          await evidenceCol().add({
+            name: file.name.replace(/\.[^/.]+$/, ''),
+            type: detectFileType(file),
+            fileName: file.name,
+            fileSize: file.size,
+            fileUrl: downloadURL,
+            storagePath: storagePath,
+            roomNumber: '',
+            tenantName: '',
+            note: '',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+
+          resolve();
+        } catch (e) {
+          console.error('儲存 Firestore 失敗:', e);
+          reject(e);
+        }
+      }
+    );
+  });
+}
+
+// ---- Detect file type from extension/name ----
+function detectFileType(file) {
+  const name = file.name.toLowerCase();
+  const type = file.type;
+
+  if (type.startsWith('image/')) {
+    // 圖片可能是屋況、溝通、收據或修繕
+    if (/收據|receipt|invoice|發票/.test(name)) return '收據';
+    if (/合約|contract|簽約/.test(name)) return '合約';
+    if (/修繕|repair|維修/.test(name)) return '修繕';
+    if (/line|對話|chat|訊息/.test(name)) return '溝通';
+    return '屋況'; // 預設
+  }
+  if (type === 'application/pdf') {
+    if (/合約|contract|簽約/.test(name)) return '合約';
+    if (/收據|receipt|invoice/.test(name)) return '收據';
+    return '合約'; // 預設 PDF 為合約
+  }
+  return '屋況';
+}
+
+// ---- Add Modal ----
+function openAddModal() {
+  document.getElementById('add-form').reset();
+  document.getElementById('add-modal').classList.remove('hidden');
+}
+
+function closeAddModal() {
+  document.getElementById('add-modal').classList.add('hidden');
+}
+
+document.getElementById('add-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const uid = getCurrentUserUid();
+  if (!uid) { showToast('請先登入', 'error'); return; }
+
+  try {
+    showLoading();
+    await evidenceCol().add({
+      name: document.getElementById('add-name').value.trim(),
+      type: document.getElementById('add-type').value,
+      fileName: '',
+      fileSize: 0,
+      fileUrl: '',
+      storagePath: '',
+      roomNumber: document.getElementById('add-room').value.trim(),
+      tenantName: document.getElementById('add-tenant').value.trim(),
+      note: document.getElementById('add-note').value.trim(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    showToast('已新增證據紀錄', 'success');
+    closeAddModal();
+    await loadEvidence();
+  } catch (e) {
+    console.error('新增失敗:', e);
+    showToast('新增失敗', 'error');
+  } finally {
+    hideLoading();
+  }
+});
+
+// ---- Detail Modal ----
+function openDetailModal(id) {
+  const ev = allEvidence.find(e => e.id === id);
+  if (!ev) return;
+
+  currentDetailId = id;
+  const cfg = typeConfig[ev.type] || typeConfig['屋況'];
+  const dateStr = formatEvidenceDate(ev.createdAt);
+  const sizeStr = ev.fileSize ? formatFileSize(ev.fileSize) : '';
+
+  const content = document.getElementById('detail-content');
+  content.innerHTML = `
+    <div class="aspect-video bg-gradient-to-br ${cfg.color} rounded-xl flex items-center justify-center mb-4">
+      ${ev.fileUrl ? `<img src="${escapeHtml(ev.fileUrl)}" class="w-full h-full object-contain rounded-xl" alt="${escapeHtml(ev.name)}">` : `<span class="text-6xl">${cfg.icon}</span>`}
+    </div>
+    <div class="space-y-2 text-sm">
+      <div class="flex items-start gap-2"><span class="text-gray-400 w-16 flex-shrink-0">名稱</span><span class="text-gray-900 font-medium">${escapeHtml(ev.name)}</span></div>
+      <div class="flex items-center gap-2"><span class="text-gray-400 w-16 flex-shrink-0">類型</span><span class="${cfg.badge} px-2 py-0.5 rounded text-xs">${ev.type}</span></div>
+      <div class="flex items-center gap-2"><span class="text-gray-400 w-16 flex-shrink-0">日期</span><span class="text-gray-700">${dateStr}</span></div>
+      ${ev.fileName ? `<div class="flex items-center gap-2"><span class="text-gray-400 w-16 flex-shrink-0">檔案</span><span class="text-gray-700">${escapeHtml(ev.fileName)}${sizeStr ? ' (' + sizeStr + ')' : ''}</span></div>` : ''}
+      ${ev.roomNumber ? `<div class="flex items-center gap-2"><span class="text-gray-400 w-16 flex-shrink-0">房號</span><span class="text-gray-700">${escapeHtml(ev.roomNumber)}</span></div>` : ''}
+      ${ev.tenantName ? `<div class="flex items-center gap-2"><span class="text-gray-400 w-16 flex-shrink-0">房客</span><span class="text-gray-700">${escapeHtml(ev.tenantName)}</span></div>` : ''}
+      ${ev.note ? `<div class="flex items-start gap-2"><span class="text-gray-400 w-16 flex-shrink-0">備註</span><span class="text-gray-700">${escapeHtml(ev.note)}</span></div>` : ''}
+    </div>
+  `;
+
+  // 下載按鈕
+  const downloadBtn = document.getElementById('detail-download-btn');
+  if (ev.fileUrl) {
+    downloadBtn.classList.remove('hidden');
+    downloadBtn.onclick = () => window.open(ev.fileUrl, '_blank');
+  } else {
+    downloadBtn.classList.add('hidden');
+  }
+
+  document.getElementById('detail-modal').classList.remove('hidden');
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').classList.add('hidden');
+  currentDetailId = null;
+}
+
+// ---- Delete ----
+async function deleteEvidence(id) {
+  if (!confirm('確定要刪除此證據紀錄嗎？')) return;
+
+  const uid = getCurrentUserUid();
+  if (!uid) { showToast('請先登入', 'error'); return; }
+
+  try {
+    showLoading();
+
+    // 找到要刪除的文件
+    const ev = allEvidence.find(e => e.id === id);
+    if (!ev) return;
+
+    // 如果有 storagePath，也刪除 Storage 中的檔案
+    if (ev.storagePath) {
+      try {
+        const storage = firebase.storage();
+        const fileRef = storage.ref().child(ev.storagePath);
+        await fileRef.delete();
+      } catch (storageError) {
+        // 檔案可能已被刪除，不阻擋刪除 Firestore 記錄
+        console.warn('刪除 Storage 檔案失敗:', storageError);
+      }
+    }
+
+    // 刪除 Firestore 文件
+    await evidenceCol().doc(id).delete();
+
+    showToast('已刪除', 'success');
+    closeDetailModal();
+    await loadEvidence();
+  } catch (e) {
+    console.error('刪除失敗:', e);
+    showToast('刪除失敗', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// Close modals on backdrop click
+document.getElementById('add-modal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeAddModal();
+});
+document.getElementById('detail-modal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeDetailModal();
+});
 </script>
 </body>
 </html>

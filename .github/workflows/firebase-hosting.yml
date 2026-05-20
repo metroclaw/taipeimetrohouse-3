@@ -1,3 +1,19 @@
+# ============================================================
+# GitHub Actions — 自動部署到 Firebase Hosting
+# ============================================================
+#
+# 使用前請先設定 GitHub Secret：FIREBASE_TOKEN
+#
+# 產生 Token 的方式：
+#   1. 在本機執行：firebase login:ci
+#   2. 複製產生的 token
+#   3. 到 GitHub 倉庫 → Settings → Secrets and variables → Actions
+#   4. 點擊 "New repository secret"
+#   5. Name: FIREBASE_TOKEN
+#   6. Secret: <貼上 token>
+#   7. 點擊 "Add secret"
+#
+# ============================================================
 name: Deploy to Firebase Hosting
 
 on:
@@ -13,10 +29,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 18
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools

@@ -36,74 +36,702 @@
   <main class="flex-1 p-4 lg:p-6">
     <div class="flex items-center justify-between mb-6">
       <div><h1 class="text-2xl font-bold text-gray-900">修繕與派工</h1><p class="text-sm text-gray-500 mt-1">管理修繕請求、派工追蹤、清潔排程</p></div>
-      <button onclick="openTaskModal()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium"><i class="fas fa-plus"></i>新增派工單</button>
+      <button onclick="openTaskModal()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition"><i class="fas fa-plus"></i>新增派工單</button>
     </div>
     <!-- 統計 -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"><p class="text-sm text-gray-500 mb-1">待處理</p><p class="text-2xl font-bold text-red-500">3</p></div>
-      <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"><p class="text-sm text-gray-500 mb-1">進行中</p><p class="text-2xl font-bold text-amber-500">2</p></div>
-      <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"><p class="text-sm text-gray-500 mb-1">已完成</p><p class="text-2xl font-bold text-secondary">8</p></div>
-      <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"><p class="text-sm text-gray-500 mb-1">本月費用</p><p class="text-2xl font-bold text-gray-900">NT$ 12,500</p></div>
+      <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"><p class="text-sm text-gray-500 mb-1">待處理</p><p class="text-2xl font-bold text-red-500" id="stat-pending">0</p></div>
+      <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"><p class="text-sm text-gray-500 mb-1">進行中</p><p class="text-2xl font-bold text-amber-500" id="stat-inprogress">0</p></div>
+      <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"><p class="text-sm text-gray-500 mb-1">已完成</p><p class="text-2xl font-bold text-secondary" id="stat-completed">0</p></div>
+      <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"><p class="text-sm text-gray-500 mb-1">本月費用</p><p class="text-2xl font-bold text-gray-900" id="stat-cost">NT$ 0</p></div>
     </div>
     <!-- 派工單列表 -->
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm mb-6">
-      <div class="p-4 border-b border-gray-100"><h2 class="font-semibold text-gray-900">進行中 / 待處理</h2></div>
-      <div class="divide-y divide-gray-100">
-        <div class="p-4 flex items-start gap-4 hover:bg-gray-50">
-          <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-exclamation-circle text-red-500"></i></div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1"><span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">緊急</span><span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">A1 套房</span><span class="text-xs text-gray-400">王小明</span></div>
-            <p class="text-sm font-medium text-gray-900">冷氣不冷</p>
-            <p class="text-xs text-gray-500 mt-1">2026/05/15 回報 • 已派工 冷氣師傅 陳先生</p>
-          </div>
-          <div class="text-right flex-shrink-0"><span class="text-xs bg-amber-100 text-amber-600 px-2 py-1 rounded-full">進行中</span><p class="text-xs text-gray-400 mt-1">預估 NT$ 3,500</p></div>
+      <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h2 class="font-semibold text-gray-900">派工單列表</h2>
+        <div class="flex gap-2 text-xs">
+          <button onclick="filterTasks('all')" class="filter-btn px-3 py-1 rounded-full bg-primary text-white" data-filter="all">全部</button>
+          <button onclick="filterTasks('待處理')" class="filter-btn px-3 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200" data-filter="待處理">待處理</button>
+          <button onclick="filterTasks('進行中')" class="filter-btn px-3 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200" data-filter="進行中">進行中</button>
+          <button onclick="filterTasks('已完成')" class="filter-btn px-3 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200" data-filter="已完成">已完成</button>
         </div>
-        <div class="p-4 flex items-start gap-4 hover:bg-gray-50">
-          <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-wrench text-amber-500"></i></div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1"><span class="text-xs bg-amber-100 text-amber-600 px-2 py-0.5 rounded-full font-medium">一般</span><span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">B2 套房</span><span class="text-xs text-gray-400">黃小強</span></div>
-            <p class="text-sm font-medium text-gray-900">水龍頭漏水</p>
-            <p class="text-xs text-gray-500 mt-1">2026/05/16 回報 • 待派工</p>
-          </div>
-          <div class="text-right flex-shrink-0"><span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">待處理</span><p class="text-xs text-gray-400 mt-1">預估 NT$ 800</p></div>
-        </div>
-        <div class="p-4 flex items-start gap-4 hover:bg-gray-50">
-          <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-broom text-blue-500"></i></div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-1"><span class="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-medium">清潔</span><span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">C1 套房</span></div>
-            <p class="text-sm font-medium text-gray-900">退租清潔</p>
-            <p class="text-xs text-gray-500 mt-1">2026/05/20 排程 • 清潔公司 乾淨王</p>
-          </div>
-          <div class="text-right flex-shrink-0"><span class="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">已排程</span><p class="text-xs text-gray-400 mt-1">預估 NT$ 2,500</p></div>
-        </div>
+      </div>
+      <div id="task-list" class="divide-y divide-gray-100">
+        <!-- 動態載入 -->
       </div>
     </div>
     <!-- 清潔排程日曆 -->
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
-      <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h2 class="font-semibold text-gray-900">清潔排程日曆</h2><button class="text-sm text-primary font-medium"><i class="fas fa-plus mr-1"></i>新增排程</button></div>
+      <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h2 class="font-semibold text-gray-900">清潔排程日曆</h2><button onclick="openCleaningModal()" class="text-sm text-primary font-medium hover:underline"><i class="fas fa-plus mr-1"></i>新增排程</button></div>
       <div class="p-4">
-        <div class="grid grid-cols-7 gap-1 text-center text-xs text-gray-500 mb-2"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
-        <div class="grid grid-cols-7 gap-1 text-center text-sm">
-          <div class="p-2 text-gray-300">27</div><div class="p-2 text-gray-300">28</div><div class="p-2 text-gray-300">29</div><div class="p-2 text-gray-300">30</div>
-          <div class="p-2 text-gray-600 hover:bg-gray-50 rounded">1</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">2</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">3</div>
-          <div class="p-2 text-gray-600 hover:bg-gray-50 rounded">4</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">5</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">6</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">7</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">8</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">9</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">10</div>
-          <div class="p-2 text-gray-600 hover:bg-gray-50 rounded">11</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">12</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">13</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">14</div>
-          <div class="p-2 text-gray-600 hover:bg-gray-50 rounded relative">15<span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full"></span></div>
-          <div class="p-2 text-gray-600 hover:bg-gray-50 rounded">16</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">17</div>
-          <div class="p-2 text-gray-600 hover:bg-gray-50 rounded">18</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">19</div>
-          <div class="p-2 text-gray-600 hover:bg-gray-50 rounded relative">20<span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 bg-secondary rounded-full"></span></div>
-          <div class="p-2 text-gray-600 hover:bg-gray-50 rounded">21</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">22</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">23</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">24</div>
-          <div class="p-2 text-gray-600 hover:bg-gray-50 rounded">25</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">26</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">27</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">28</div>
-          <div class="p-2 text-gray-600 hover:bg-gray-50 rounded">29</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">30</div><div class="p-2 text-gray-600 hover:bg-gray-50 rounded">31</div>
+        <div class="flex items-center justify-between mb-3">
+          <button onclick="changeMonth(-1)" class="p-1 hover:bg-gray-100 rounded"><i class="fas fa-chevron-left text-gray-500"></i></button>
+          <span id="calendar-month" class="font-semibold text-gray-800"></span>
+          <button onclick="changeMonth(1)" class="p-1 hover:bg-gray-100 rounded"><i class="fas fa-chevron-right text-gray-500"></i></button>
         </div>
-        <div class="mt-4 space-y-2">
-          <div class="flex items-center gap-2 text-xs"><span class="w-2 h-2 bg-primary rounded-full"></span><span class="text-gray-600">5/15 A3 定期清潔</span></div>
-          <div class="flex items-center gap-2 text-xs"><span class="w-2 h-2 bg-secondary rounded-full"></span><span class="text-gray-600">5/20 C1 退租清潔</span></div>
+        <div class="grid grid-cols-7 gap-1 text-center text-xs text-gray-500 mb-2"><div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div></div>
+        <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center text-sm">
+          <!-- 動態載入 -->
+        </div>
+        <div id="cleaning-legend" class="mt-4 space-y-2">
+          <!-- 動態載入 -->
         </div>
       </div>
     </div>
   </main>
 </div>
-<script>document.addEventListener('DOMContentLoaded', () => {});</script>
+
+<!-- 新增/編輯派工單 Modal -->
+<div id="task-modal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+      <h3 id="task-modal-title" class="text-lg font-semibold text-gray-900">新增派工單</h3>
+      <button onclick="closeTaskModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+    </div>
+    <form id="task-form" class="p-5 space-y-4">
+      <input type="hidden" id="task-id">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">派工標題 <span class="text-red-500">*</span></label>
+        <input type="text" id="task-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="例：冷氣不冷">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">描述</label>
+        <textarea id="task-description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="詳細描述問題..."></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">房號</label>
+          <input type="text" id="task-room" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="例：A1 套房">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">房客姓名</label>
+          <input type="text" id="task-tenant" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="例：王小明">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">優先級</label>
+          <select id="task-priority" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+            <option value="緊急">緊急</option>
+            <option value="一般" selected>一般</option>
+            <option value="低">低</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">分類</label>
+          <select id="task-category" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+            <option value="修繕">修繕</option>
+            <option value="清潔">清潔</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">派工對象</label>
+          <input type="text" id="task-assigned" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="例：陳師傅">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">預估費用</label>
+          <input type="number" id="task-estimated-cost" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="0">
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">備註</label>
+        <textarea id="task-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="其他備註..."></textarea>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeTaskModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">取消</button>
+        <button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 新增清潔排程 Modal -->
+<div id="cleaning-modal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md">
+    <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-gray-900">新增清潔排程</h3>
+      <button onclick="closeCleaningModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+    </div>
+    <form id="cleaning-form" class="p-5 space-y-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">日期</label>
+        <input type="date" id="cleaning-date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">房號</label>
+        <input type="text" id="cleaning-room" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="例：A1 套房">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">清潔類型</label>
+        <select id="cleaning-type" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+          <option value="定期清潔">定期清潔</option>
+          <option value="退租清潔">退租清潔</option>
+          <option value="深度清潔">深度清潔</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">備註</label>
+        <textarea id="cleaning-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none" placeholder="其他備註..."></textarea>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeCleaningModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50">取消</button>
+        <button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90">儲存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Maintenance Page — Full CRUD
+// ============================================================
+
+let allTasks = [];
+let cleaningSchedules = [];
+let currentFilter = 'all';
+let calendarYear, calendarMonth;
+
+document.addEventListener('DOMContentLoaded', () => {
+  initPage();
+});
+
+async function initPage() {
+  showLoading();
+  try {
+    await loadTasks();
+    await loadCleaningSchedules();
+    renderCalendar();
+  } catch (e) {
+    console.error('初始化失敗:', e);
+    showToast('載入失敗，請重新整理', 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ---- Firestore helpers ----
+function maintenanceCol() {
+  const uid = getCurrentUserUid();
+  if (!uid) throw new Error('使用者未登入');
+  return db.collection('users').doc(uid).collection('maintenanceTasks');
+}
+
+function cleaningCol() {
+  const uid = getCurrentUserUid();
+  if (!uid) throw new Error('使用者未登入');
+  return db.collection('users').doc(uid).collection('cleaningSchedules');
+}
+
+// ---- Load data ----
+async function loadTasks() {
+  try {
+    const snapshot = await maintenanceCol().orderBy('createdAt', 'desc').get();
+    allTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // 若無資料，建立測試資料
+    if (allTasks.length === 0) {
+      await seedTestData();
+      const snap2 = await maintenanceCol().orderBy('createdAt', 'desc').get();
+      allTasks = snap2.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    renderTasks();
+    updateStats();
+  } catch (e) {
+    console.error('載入派工單失敗:', e);
+    throw e;
+  }
+}
+
+async function loadCleaningSchedules() {
+  try {
+    const snapshot = await cleaningCol().get();
+    cleaningSchedules = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderCleaningLegend();
+  } catch (e) {
+    console.error('載入清潔排程失敗:', e);
+  }
+}
+
+// ---- Seed test data ----
+async function seedTestData() {
+  const now = Date.now();
+  const day = 86400000;
+  const testTasks = [
+    {
+      title: '冷氣不冷',
+      description: '冷氣開啟後不冷，疑似冷媒不足',
+      roomNumber: 'A1 套房',
+      tenantName: '王小明',
+      priority: '緊急',
+      category: '修繕',
+      status: '進行中',
+      assignedTo: '冷氣師傅 陳先生',
+      estimatedCost: 3500,
+      actualCost: 0,
+      createdAt: now - 5 * day,
+      updatedAt: now - 4 * day,
+      completedAt: null,
+      notes: '已聯繫師傅，預計本週處理'
+    },
+    {
+      title: '水龍頭漏水',
+      description: '浴室水龍頭持續滴水',
+      roomNumber: 'B2 套房',
+      tenantName: '黃小強',
+      priority: '一般',
+      category: '修繕',
+      status: '待處理',
+      assignedTo: '',
+      estimatedCost: 800,
+      actualCost: 0,
+      createdAt: now - 3 * day,
+      updatedAt: now - 3 * day,
+      completedAt: null,
+      notes: ''
+    },
+    {
+      title: '退租清潔',
+      description: '房客退租後需進行全面清潔',
+      roomNumber: 'C1 套房',
+      tenantName: '',
+      priority: '一般',
+      category: '清潔',
+      status: '待處理',
+      assignedTo: '清潔公司 乾淨王',
+      estimatedCost: 2500,
+      actualCost: 0,
+      createdAt: now - 2 * day,
+      updatedAt: now - 2 * day,
+      completedAt: null,
+      notes: '退租日期：5/25'
+    },
+    {
+      title: '門鎖故障',
+      description: '大門門鎖無法正常上鎖',
+      roomNumber: 'A2 套房',
+      tenantName: '林小美',
+      priority: '緊急',
+      category: '修繕',
+      status: '已完成',
+      assignedTo: '鎖匠 張先生',
+      estimatedCost: 1200,
+      actualCost: 1000,
+      createdAt: now - 10 * day,
+      updatedAt: now - 7 * day,
+      completedAt: now - 7 * day,
+      notes: '已更換新鎖'
+    },
+    {
+      title: '定期清潔',
+      description: '每月定期清潔',
+      roomNumber: 'A3 套房',
+      tenantName: '陳小華',
+      priority: '低',
+      category: '清潔',
+      status: '已完成',
+      assignedTo: '清潔公司 乾淨王',
+      estimatedCost: 1500,
+      actualCost: 1500,
+      createdAt: now - 15 * day,
+      updatedAt: now - 12 * day,
+      completedAt: now - 12 * day,
+      notes: ''
+    }
+  ];
+
+  for (const task of testTasks) {
+    await maintenanceCol().add(task);
+  }
+  showToast('已建立測試資料', 'success');
+}
+
+// ---- Statistics ----
+function updateStats() {
+  const pending = allTasks.filter(t => t.status === '待處理').length;
+  const inProgress = allTasks.filter(t => t.status === '進行中').length;
+  const completed = allTasks.filter(t => t.status === '已完成').length;
+
+  // 本月費用：已完成且 completedAt 在本月的 actualCost 加總
+  const now = new Date();
+  const thisMonth = now.getMonth();
+  const thisYear = now.getFullYear();
+  const monthlyCost = allTasks
+    .filter(t => {
+      if (!t.completedAt) return false;
+      const d = new Date(t.completedAt);
+      return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+    })
+    .reduce((sum, t) => sum + (t.actualCost || 0), 0);
+
+  document.getElementById('stat-pending').textContent = pending;
+  document.getElementById('stat-inprogress').textContent = inProgress;
+  document.getElementById('stat-completed').textContent = completed;
+  document.getElementById('stat-cost').textContent = formatCurrency(monthlyCost);
+}
+
+// ---- Render task list ----
+function renderTasks() {
+  const container = document.getElementById('task-list');
+  const filtered = currentFilter === 'all'
+    ? allTasks
+    : allTasks.filter(t => t.status === currentFilter);
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="p-8 text-center text-gray-400 text-sm">目前沒有派工單</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(task => {
+    const priorityConfig = {
+      '緊急': { bg: 'bg-red-100', text: 'text-red-600', icon: 'fa-exclamation-circle', iconColor: 'text-red-500', bgIcon: 'bg-red-100' },
+      '一般': { bg: 'bg-amber-100', text: 'text-amber-600', icon: 'fa-wrench', iconColor: 'text-amber-500', bgIcon: 'bg-amber-100' },
+      '低': { bg: 'bg-blue-100', text: 'text-blue-600', icon: 'fa-clipboard-check', iconColor: 'text-blue-500', bgIcon: 'bg-blue-100' }
+    };
+    const pCfg = priorityConfig[task.priority] || priorityConfig['一般'];
+
+    const statusConfig = {
+      '待處理': 'bg-red-100 text-red-600',
+      '進行中': 'bg-amber-100 text-amber-600',
+      '已完成': 'bg-emerald-100 text-emerald-600',
+      '已取消': 'bg-gray-100 text-gray-500'
+    };
+    const sCfg = statusConfig[task.status] || 'bg-gray-100 text-gray-500';
+
+    const catConfig = {
+      '修繕': 'bg-amber-100 text-amber-600',
+      '清潔': 'bg-blue-100 text-blue-600',
+      '其他': 'bg-gray-100 text-gray-500'
+    };
+    const cCfg = catConfig[task.category] || catConfig['其他'];
+
+    const dateStr = task.createdAt ? formatDate(task.createdAt) : '—';
+    const costStr = task.estimatedCost ? formatCurrency(task.estimatedCost) : '—';
+
+    return `
+      <div class="p-4 flex items-start gap-4 hover:bg-gray-50 transition">
+        <div class="w-10 h-10 ${pCfg.bgIcon} rounded-lg flex items-center justify-center flex-shrink-0">
+          <i class="fas ${pCfg.icon} ${pCfg.iconColor}"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <span class="text-xs ${pCfg.bg} ${pCfg.text} px-2 py-0.5 rounded-full font-medium">${task.priority || '一般'}</span>
+            <span class="text-xs ${cCfg} px-2 py-0.5 rounded-full">${task.category || '其他'}</span>
+            ${task.roomNumber ? `<span class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">${task.roomNumber}</span>` : ''}
+            ${task.tenantName ? `<span class="text-xs text-gray-400">${task.tenantName}</span>` : ''}
+          </div>
+          <p class="text-sm font-medium text-gray-900">${escapeHtml(task.title)}</p>
+          ${task.description ? `<p class="text-xs text-gray-500 mt-0.5 truncate">${escapeHtml(task.description)}</p>` : ''}
+          <p class="text-xs text-gray-400 mt-1">${dateStr} 回報 ${task.assignedTo ? '• 已派工 ' + escapeHtml(task.assignedTo) : '• 待派工'}</p>
+        </div>
+        <div class="text-right flex-shrink-0 flex flex-col items-end gap-1">
+          <span class="text-xs ${sCfg} px-2 py-1 rounded-full">${task.status}</span>
+          <p class="text-xs text-gray-400 mt-1">預估 ${formatCurrency(task.estimatedCost || 0)}</p>
+          <div class="flex gap-1 mt-1">
+            <button onclick="editTask('${task.id}')" class="p-1.5 text-gray-400 hover:text-primary hover:bg-primary/10 rounded transition" title="編輯"><i class="fas fa-edit text-xs"></i></button>
+            ${task.status !== '已完成' && task.status !== '已取消' ? `<button onclick="markComplete('${task.id}')" class="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition" title="標記完成"><i class="fas fa-check text-xs"></i></button>` : ''}
+            <button onclick="deleteTask('${task.id}')" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition" title="刪除"><i class="fas fa-trash text-xs"></i></button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function filterTasks(status) {
+  currentFilter = status;
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    if (btn.dataset.filter === status) {
+      btn.className = 'filter-btn px-3 py-1 rounded-full bg-primary text-white';
+    } else {
+      btn.className = 'filter-btn px-3 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200';
+    }
+  });
+  renderTasks();
+}
+
+// ---- Task Modal ----
+function openTaskModal(taskId = null) {
+  const modal = document.getElementById('task-modal');
+  const title = document.getElementById('task-modal-title');
+  const form = document.getElementById('task-form');
+
+  form.reset();
+  document.getElementById('task-id').value = '';
+
+  if (taskId) {
+    const task = allTasks.find(t => t.id === taskId);
+    if (!task) return;
+    title.textContent = '編輯派工單';
+    document.getElementById('task-id').value = task.id;
+    document.getElementById('task-title').value = task.title || '';
+    document.getElementById('task-description').value = task.description || '';
+    document.getElementById('task-room').value = task.roomNumber || '';
+    document.getElementById('task-tenant').value = task.tenantName || '';
+    document.getElementById('task-priority').value = task.priority || '一般';
+    document.getElementById('task-category').value = task.category || '修繕';
+    document.getElementById('task-assigned').value = task.assignedTo || '';
+    document.getElementById('task-estimated-cost').value = task.estimatedCost || '';
+    document.getElementById('task-notes').value = task.notes || '';
+  } else {
+    title.textContent = '新增派工單';
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeTaskModal() {
+  document.getElementById('task-modal').classList.add('hidden');
+}
+
+// ---- Task Form Submit ----
+document.getElementById('task-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const id = document.getElementById('task-id').value;
+  const now = Date.now();
+
+  const data = {
+    title: document.getElementById('task-title').value.trim(),
+    description: document.getElementById('task-description').value.trim(),
+    roomNumber: document.getElementById('task-room').value.trim(),
+    tenantName: document.getElementById('task-tenant').value.trim(),
+    priority: document.getElementById('task-priority').value,
+    category: document.getElementById('task-category').value,
+    assignedTo: document.getElementById('task-assigned').value.trim(),
+    estimatedCost: Number(document.getElementById('task-estimated-cost').value) || 0,
+    notes: document.getElementById('task-notes').value.trim(),
+    updatedAt: now
+  };
+
+  if (!data.title) {
+    showToast('請輸入派工標題', 'error');
+    return;
+  }
+
+  showLoading();
+  try {
+    if (id) {
+      // 編輯
+      await maintenanceCol().doc(id).update(data);
+      const idx = allTasks.findIndex(t => t.id === id);
+      if (idx !== -1) {
+        allTasks[idx] = { ...allTasks[idx], ...data };
+      }
+      showToast('派工單已更新', 'success');
+    } else {
+      // 新增
+      data.status = '待處理';
+      data.actualCost = 0;
+      data.createdAt = now;
+      data.completedAt = null;
+      const docRef = await maintenanceCol().add(data);
+      allTasks.unshift({ id: docRef.id, ...data });
+      showToast('派工單已新增', 'success');
+    }
+    closeTaskModal();
+    renderTasks();
+    updateStats();
+  } catch (e) {
+    console.error('儲存失敗:', e);
+    showToast('儲存失敗: ' + e.message, 'error');
+  } finally {
+    hideLoading();
+  }
+});
+
+// ---- Edit task ----
+function editTask(id) {
+  openTaskModal(id);
+}
+
+// ---- Mark complete ----
+async function markComplete(id) {
+  if (!confirm('確定要將此派工單標記為已完成嗎？')) return;
+
+  showLoading();
+  try {
+    const now = Date.now();
+    await maintenanceCol().doc(id).update({
+      status: '已完成',
+      completedAt: now,
+      updatedAt: now
+    });
+    const idx = allTasks.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      allTasks[idx].status = '已完成';
+      allTasks[idx].completedAt = now;
+      allTasks[idx].updatedAt = now;
+    }
+    showToast('已標記為完成', 'success');
+    renderTasks();
+    updateStats();
+  } catch (e) {
+    console.error('標記完成失敗:', e);
+    showToast('操作失敗: ' + e.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ---- Delete task ----
+async function deleteTask(id) {
+  if (!confirm('確定要刪除此派工單嗎？此操作無法復原。')) return;
+
+  showLoading();
+  try {
+    await maintenanceCol().doc(id).delete();
+    allTasks = allTasks.filter(t => t.id !== id);
+    showToast('派工單已刪除', 'success');
+    renderTasks();
+    updateStats();
+  } catch (e) {
+    console.error('刪除失敗:', e);
+    showToast('刪除失敗: ' + e.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ---- Cleaning Schedule Modal ----
+function openCleaningModal(dateStr = null) {
+  document.getElementById('cleaning-form').reset();
+  if (dateStr) {
+    document.getElementById('cleaning-date').value = dateStr;
+  } else {
+    const now = new Date();
+    document.getElementById('cleaning-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  }
+  document.getElementById('cleaning-modal').classList.remove('hidden');
+}
+
+function closeCleaningModal() {
+  document.getElementById('cleaning-modal').classList.add('hidden');
+}
+
+document.getElementById('cleaning-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    date: document.getElementById('cleaning-date').value,
+    roomNumber: document.getElementById('cleaning-room').value.trim(),
+    type: document.getElementById('cleaning-type').value,
+    notes: document.getElementById('cleaning-notes').value.trim(),
+    createdAt: Date.now()
+  };
+
+  if (!data.roomNumber) {
+    showToast('請輸入房號', 'error');
+    return;
+  }
+
+  showLoading();
+  try {
+    const docRef = await cleaningCol().add(data);
+    cleaningSchedules.push({ id: docRef.id, ...data });
+    showToast('清潔排程已新增', 'success');
+    closeCleaningModal();
+    renderCalendar();
+    renderCleaningLegend();
+  } catch (e) {
+    console.error('新增清潔排程失敗:', e);
+    showToast('新增失敗: ' + e.message, 'error');
+  } finally {
+    hideLoading();
+  }
+});
+
+function renderCleaningLegend() {
+  const container = document.getElementById('cleaning-legend');
+  if (cleaningSchedules.length === 0) {
+    container.innerHTML = '<p class="text-xs text-gray-400">目前無清潔排程</p>';
+    return;
+  }
+  container.innerHTML = cleaningSchedules.map(cs => `
+    <div class="flex items-center gap-2 text-xs">
+      <span class="w-2 h-2 bg-primary rounded-full"></span>
+      <span class="text-gray-600">${cs.date} ${cs.roomNumber} ${cs.type}</span>
+      <button onclick="deleteCleaning('${cs.id}')" class="ml-auto text-gray-400 hover:text-red-500"><i class="fas fa-times"></i></button>
+    </div>
+  `).join('');
+}
+
+async function deleteCleaning(id) {
+  if (!confirm('刪除此清潔排程？')) return;
+  try {
+    await cleaningCol().doc(id).delete();
+    cleaningSchedules = cleaningSchedules.filter(c => c.id !== id);
+    renderCalendar();
+    renderCleaningLegend();
+    showToast('已刪除', 'success');
+  } catch (e) {
+    showToast('刪除失敗', 'error');
+  }
+}
+
+// ---- Calendar ----
+function renderCalendar() {
+  const now = new Date();
+  calendarYear = calendarYear || now.getFullYear();
+  calendarMonth = calendarMonth != null ? calendarMonth : now.getMonth();
+
+  const monthNames = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  document.getElementById('calendar-month').textContent = `${calendarYear}年 ${monthNames[calendarMonth]}`;
+
+  const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const daysInPrevMonth = new Date(calendarYear, calendarMonth, 0).getDate();
+
+  const grid = document.getElementById('calendar-grid');
+  let html = '';
+
+  // 上月填充
+  for (let i = firstDay - 1; i >= 0; i--) {
+    html += `<div class="p-2 text-gray-300">${daysInPrevMonth - i}</div>`;
+  }
+
+  // 當月
+  const today = now.getDate();
+  const isCurrentMonth = calendarYear === now.getFullYear() && calendarMonth === now.getMonth();
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const hasCleaning = cleaningSchedules.some(cs => cs.date === dateStr);
+    const isToday = isCurrentMonth && d === today;
+    const dotHtml = hasCleaning ? '<span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-primary rounded-full"></span>' : '';
+    const todayClass = isToday ? 'bg-primary text-white font-bold' : 'text-gray-600 hover:bg-gray-50';
+
+    html += `<div class="p-2 rounded cursor-pointer relative transition ${todayClass}" onclick="handleDateClick('${dateStr}')">${d}${dotHtml}</div>`;
+  }
+
+  // 下月填充
+  const totalCells = firstDay + daysInMonth;
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="p-2 text-gray-300">${i}</div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function changeMonth(delta) {
+  calendarMonth += delta;
+  if (calendarMonth > 11) { calendarMonth = 0; calendarYear++; }
+  if (calendarMonth < 0) { calendarMonth = 11; calendarYear--; }
+  renderCalendar();
+}
+
+function handleDateClick(dateStr) {
+  openCleaningModal(dateStr);
+}
+
+// ---- Utility ----
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
 </body>
 </html>

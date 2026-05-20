@@ -9,8 +9,10 @@ var firebaseConfig = {
     measurementId: "G-EZDH90LHWB"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// Initialize Firebase (guard against double-init when app.js also loads)
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
 // Google Sign In
 function handleGoogleSignIn() {

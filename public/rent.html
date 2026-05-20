@@ -45,11 +45,15 @@
       <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"><p class="text-sm text-gray-500 mb-1">逾期未收</p><p class="text-2xl font-bold text-red-500" id="rent-overdue">NT$ 0</p></div>
       <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm"><p class="text-sm text-gray-500 mb-1">收繳率</p><p class="text-2xl font-bold text-primary" id="rent-rate">0%</p></div>
     </div>
-    <!-- 月份選擇 -->
-    <div class="flex items-center gap-3 mb-4">
-      <button onclick="changeMonth(-1)" class="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"><i class="fas fa-chevron-left"></i></button>
-      <span class="font-medium text-gray-900" id="current-month-label">2026年5月</span>
-      <button onclick="changeMonth(1)" class="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"><i class="fas fa-chevron-right"></i></button>
+    <!-- 月份選擇 & 批量操作 -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <button onclick="changeMonth(-1)" class="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"><i class="fas fa-chevron-left"></i></button>
+        <span class="font-medium text-gray-900" id="current-month-label">2026年5月</span>
+        <button onclick="changeMonth(1)" class="p-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"><i class="fas fa-chevron-right"></i></button>
+        <button onclick="goToToday()" class="ml-2 px-3 py-1.5 text-xs font-medium text-primary bg-primary/10 rounded-lg hover:bg-primary/20"><i class="fas fa-calendar-day mr-1"></i>回到今天</button>
+      </div>
+      <button onclick="markAllPaid()" class="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-secondary bg-secondary/10 rounded-lg hover:bg-secondary/20"><i class="fas fa-check-double"></i>全部標記已繳</button>
     </div>
     <!-- 租金列表 -->
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
@@ -62,19 +66,24 @@
     </div>
   </main>
 </div>
-<!-- 收款 Modal -->
+<!-- 收款/編輯 Modal -->
 <div id="rent-modal" class="fixed inset-0 bg-black/30 z-50 hidden flex items-center justify-center p-4">
   <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
-    <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h3 class="font-semibold text-gray-900">紀錄收款</h3><button onclick="closeRentModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
+    <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h3 class="font-semibold text-gray-900" id="rent-modal-title">紀錄收款</h3><button onclick="closeRentModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
     <form id="rent-form" class="p-4 space-y-4">
+      <input type="hidden" id="rent-edit-id">
       <div><label class="block text-sm font-medium text-gray-700 mb-1">房客 *</label><select id="rent-tenant" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="">選擇房客</option></select></div>
       <div class="grid grid-cols-2 gap-4">
         <div><label class="block text-sm font-medium text-gray-700 mb-1">月份</label><input type="month" id="rent-month" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
-        <div><label class="block text-sm font-medium text-gray-700 mb-1">金額 (NT$)</label><input type="number" id="rent-amount" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">應收金額 (NT$)</label><input type="number" id="rent-amount" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">實收金額 (NT$)</label><input type="number" id="rent-paid-amount" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="0"></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">收款方式</label><select id="rent-method" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="轉帳">轉帳</option><option value="現金">現金</option><option value="混和">混和</option></select></div>
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div><label class="block text-sm font-medium text-gray-700 mb-1">收款日期</label><input type="date" id="rent-date" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
-        <div><label class="block text-sm font-medium text-gray-700 mb-1">收款方式</label><select id="rent-method" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="轉帳">轉帳</option><option value="現金">現金</option><option value="混和">混和</option></select></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">狀態</label><div id="rent-status-display" class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500">自動計算</div></div>
       </div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">備註</label><input type="text" id="rent-note" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
       <div class="flex gap-3 pt-2"><button type="button" onclick="closeRentModal()" class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm">取消</button><button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">儲存</button></div>
@@ -83,99 +92,293 @@
 </div>
 <script>
 let rentRecords = [], tenantsData = [];
-let currentYear = 2026, currentMonth = 5;
+let currentYear, currentMonth;
+
+// 初始化當前月份為今天
+(function initDate() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth() + 1;
+})();
+
+// 根據 paid vs amount 自動計算狀態
+function calcStatus(paid, amount) {
+  if (!amount) return '逾期';
+  if (paid >= amount) return '已繳';
+  if (paid > 0) return '部分';
+  return '逾期';
+}
+
 async function loadRentData() {
-    const uid = getCurrentUserUid(); if (!uid) return;
-    try {
-        const [rSnap, tSnap] = await Promise.all([
-            db.collection('users').doc(uid).collection('rentRecords').get(),
-            db.collection('users').doc(uid).collection('tenants').get()
-        ]);
-        rentRecords = rSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        tenantsData = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        if (rentRecords.length === 0) { await seedRentData(); return; }
-        renderRentTable();
-    } catch (e) { console.error(e); }
-}
-async function seedRentData() {
-    const uid = getCurrentUserUid();
-    const records = [
-        { tenantName: '王小明', room: 'A1', year: 2026, month: 5, amount: 12000, paid: 12000, date: '2026-05-01', method: '轉帳', status: '已繳', note: '' },
-        { tenantName: '李小華', room: 'A2', year: 2026, month: 5, amount: 10000, paid: 0, date: '', method: '', status: '逾期', note: '逾期5天' },
-        { tenantName: '張小美', room: 'A3', year: 2026, month: 5, amount: 6000, paid: 6000, date: '2026-05-03', method: '轉帳', status: '已繳', note: '' },
-        { tenantName: '陳小龍', room: 'A5', year: 2026, month: 5, amount: 25000, paid: 25000, date: '2026-05-01', method: '轉帳', status: '已繳', note: '' },
-        { tenantName: '林小婷', room: 'B1', year: 2026, month: 5, amount: 11000, paid: 11000, date: '2026-05-02', method: '轉帳', status: '已繳', note: '' },
-        { tenantName: '黃小強', room: 'B2', year: 2026, month: 5, amount: 11000, paid: 11000, date: '2026-05-01', method: '現金', status: '已繳', note: '' },
-        { tenantName: '吳小琳', room: 'C1', year: 2026, month: 5, amount: 13000, paid: 13000, date: '2026-05-02', method: '轉帳', status: '已繳', note: '' },
-        { tenantName: '鄭小偉', room: 'C2', year: 2026, month: 5, amount: 12000, paid: 12000, date: '2026-05-01', method: '轉帳', status: '已繳', note: '' },
-        { tenantName: '謝小琪', room: 'C3', year: 2026, month: 5, amount: 6500, paid: 0, date: '', method: '', status: '逾期', note: '逾期3天' },
-        { tenantName: '楊小豪', room: 'C4', year: 2026, month: 5, amount: 6500, paid: 6500, date: '2026-05-03', method: '轉帳', status: '已繳', note: '' }
-    ];
-    for (const r of records) { await db.collection('users').doc(uid).collection('rentRecords').add(r); }
-    showToast('已建立測試租金資料', 'success');
-    loadRentData();
-}
-function renderRentTable() {
-    const filtered = rentRecords.filter(r => r.year === currentYear && r.month === currentMonth);
-    const tbody = document.getElementById('rent-table-body');
-    if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">本月無租金紀錄</td></tr>'; }
-    else {
-        tbody.innerHTML = filtered.map(r => {
-            const statusColor = r.status === '已繳' ? 'bg-secondary/10 text-secondary' : 'bg-red-100 text-red-600';
-            return `<tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 text-sm font-medium text-gray-900">${r.tenantName}</td>
-                <td class="px-4 py-3 text-sm text-gray-600">${r.room}</td>
-                <td class="px-4 py-3 text-sm font-medium text-gray-900">${formatCurrency(r.amount)}</td>
-                <td class="px-4 py-3 text-sm ${r.paid > 0 ? 'text-secondary' : 'text-red-500'}">${formatCurrency(r.paid)}</td>
-                <td class="px-4 py-3 text-sm text-gray-600">${r.date || '—'}</td>
-                <td class="px-4 py-3 text-sm text-gray-600">${r.method || '—'}</td>
-                <td class="px-4 py-3"><span class="text-xs ${statusColor} px-2 py-1 rounded-full">${r.status}</span></td>
-                <td class="px-4 py-3"><button onclick="markPaid('${r.id}')" class="text-sm text-secondary hover:underline">標記已繳</button></td>
-            </tr>`;
-        }).join('');
+  const uid = getCurrentUserUid(); if (!uid) return;
+  try {
+    const [rSnap, tSnap] = await Promise.all([
+      db.collection('users').doc(uid).collection('rentRecords').get(),
+      db.collection('users').doc(uid).collection('tenants').get()
+    ]);
+    rentRecords = rSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    tenantsData = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (rentRecords.length === 0) {
+      await seedRentData();
+      return;
     }
-    // 統計
-    const due = filtered.reduce((s, r) => s + (r.amount || 0), 0);
-    const paid = filtered.reduce((s, r) => s + (r.paid || 0), 0);
-    const overdue = filtered.filter(r => r.status === '逾期').reduce((s, r) => s + (r.amount - r.paid || 0), 0);
-    document.getElementById('rent-due').textContent = formatCurrency(due);
-    document.getElementById('rent-paid').textContent = formatCurrency(paid);
-    document.getElementById('rent-overdue').textContent = formatCurrency(overdue);
-    document.getElementById('rent-rate').textContent = due > 0 ? Math.round(paid / due * 100) + '%' : '0%';
-    document.getElementById('current-month-label').textContent = `${currentYear}年${currentMonth}月`;
-}
-function changeMonth(delta) {
-    currentMonth += delta;
-    if (currentMonth > 12) { currentMonth = 1; currentYear++; }
-    if (currentMonth < 1) { currentMonth = 12; currentYear--; }
     renderRentTable();
+  } catch (e) { console.error('載入租金資料失敗:', e); showToast('載入失敗', 'error'); }
 }
+
+async function seedRentData() {
+  const uid = getCurrentUserUid();
+  if (!uid) return;
+
+  // 如果 tenants 也為空，先建立測試房客
+  if (tenantsData.length === 0) {
+    const testTenants = [
+      { name: '王小明', room: 'A1', phone: '0912345678', rent: 12000 },
+      { name: '李小華', room: 'A2', phone: '0923456789', rent: 10000 },
+      { name: '張小美', room: 'A3', phone: '0934567890', rent: 6000 },
+      { name: '陳小龍', room: 'A5', phone: '0945678901', rent: 25000 },
+      { name: '林小婷', room: 'B1', phone: '0956789012', rent: 11000 },
+      { name: '黃小強', room: 'B2', phone: '0967890123', rent: 11000 },
+      { name: '吳小琳', room: 'C1', phone: '0978901234', rent: 13000 },
+      { name: '鄭小偉', room: 'C2', phone: '0989012345', rent: 12000 },
+      { name: '謝小琪', room: 'C3', phone: '0990123456', rent: 6500 },
+      { name: '楊小豪', room: 'C4', phone: '0901234567', rent: 6500 }
+    ];
+    for (const t of testTenants) {
+      await db.collection('users').doc(uid).collection('tenants').add(t);
+    }
+    tenantsData = (await db.collection('users').doc(uid).collection('tenants').get()).docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
+  // 用真實房客資料建立 rentRecords
+  const records = tenantsData.map(t => ({
+    tenantId: t.id,
+    tenantName: t.name,
+    room: t.room || '',
+    year: currentYear,
+    month: currentMonth,
+    amount: t.rent || 10000,
+    paid: Math.random() > 0.3 ? (t.rent || 10000) : 0,
+    date: Math.random() > 0.3 ? `${currentYear}-${String(currentMonth).padStart(2, '0')}-01` : '',
+    method: Math.random() > 0.3 ? (Math.random() > 0.5 ? '轉帳' : '現金') : '',
+    status: Math.random() > 0.3 ? '已繳' : '逾期',
+    note: ''
+  }));
+
+  for (const r of records) {
+    await db.collection('users').doc(uid).collection('rentRecords').add(r);
+  }
+  showToast('已建立測試租金資料', 'success');
+  loadRentData();
+}
+
+function renderRentTable() {
+  const filtered = rentRecords.filter(r => r.year === currentYear && r.month === currentMonth);
+  const tbody = document.getElementById('rent-table-body');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">本月無租金紀錄</td></tr>';
+  } else {
+    tbody.innerHTML = filtered.map(r => {
+      const statusColor = r.status === '已繳' ? 'bg-secondary/10 text-secondary' : r.status === '部分' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-600';
+      return `<tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 text-sm font-medium text-gray-900">${r.tenantName}</td>
+        <td class="px-4 py-3 text-sm text-gray-600">${r.room}</td>
+        <td class="px-4 py-3 text-sm font-medium text-gray-900">${formatCurrency(r.amount)}</td>
+        <td class="px-4 py-3 text-sm ${r.paid > 0 ? 'text-secondary' : 'text-red-500'}">${formatCurrency(r.paid || 0)}</td>
+        <td class="px-4 py-3 text-sm text-gray-600">${r.date || '—'}</td>
+        <td class="px-4 py-3 text-sm text-gray-600">${r.method || '—'}</td>
+        <td class="px-4 py-3"><span class="text-xs ${statusColor} px-2 py-1 rounded-full">${r.status}</span></td>
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-2">
+            <button onclick="editRent('${r.id}')" class="text-xs text-primary hover:underline" title="編輯"><i class="fas fa-edit"></i></button>
+            ${r.status !== '已繳' ? `<button onclick="markPaid('${r.id}')" class="text-xs text-secondary hover:underline" title="標記已繳"><i class="fas fa-check"></i></button>` : ''}
+            <button onclick="deleteRent('${r.id}')" class="text-xs text-red-500 hover:underline" title="刪除"><i class="fas fa-trash"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+  // 統計
+  const due = filtered.reduce((s, r) => s + (r.amount || 0), 0);
+  const paid = filtered.reduce((s, r) => s + (r.paid || 0), 0);
+  const overdue = filtered.filter(r => r.status === '逾期' || r.status === '部分').reduce((s, r) => s + (r.amount - r.paid || 0), 0);
+  document.getElementById('rent-due').textContent = formatCurrency(due);
+  document.getElementById('rent-paid').textContent = formatCurrency(paid);
+  document.getElementById('rent-overdue').textContent = formatCurrency(overdue);
+  document.getElementById('rent-rate').textContent = due > 0 ? Math.round(paid / due * 100) + '%' : '0%';
+  document.getElementById('current-month-label').textContent = `${currentYear}年${currentMonth}月`;
+}
+
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+  renderRentTable();
+}
+
+function goToToday() {
+  const now = new Date();
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth() + 1;
+  renderRentTable();
+}
+
 function openRentModal() {
-    document.getElementById('rent-modal').classList.remove('hidden');
-    document.getElementById('rent-tenant').innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}" data-room="${t.room || ''}">${t.name} (${t.room || ''})</option>`).join('');
-    document.getElementById('rent-month').value = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
-    document.getElementById('rent-date').value = new Date().toISOString().split('T')[0];
+  // 重置表單為新增模式
+  document.getElementById('rent-modal-title').textContent = '紀錄收款';
+  document.getElementById('rent-edit-id').value = '';
+  document.getElementById('rent-form').reset();
+  document.getElementById('rent-tenant').innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}" data-room="${t.room || ''}" data-rent="${t.rent || ''}">${t.name} (${t.room || ''})</option>`).join('');
+  document.getElementById('rent-month').value = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+  document.getElementById('rent-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('rent-status-display').textContent = '自動計算';
+  document.getElementById('rent-modal').classList.remove('hidden');
 }
-function closeRentModal() { document.getElementById('rent-modal').classList.add('hidden'); }
+
+function closeRentModal() {
+  document.getElementById('rent-modal').classList.add('hidden');
+  document.getElementById('rent-edit-id').value = '';
+  document.getElementById('rent-form').reset();
+}
+
+function editRent(id) {
+  const record = rentRecords.find(r => r.id === id);
+  if (!record) return;
+
+  document.getElementById('rent-modal-title').textContent = '編輯收款紀錄';
+  document.getElementById('rent-edit-id').value = id;
+
+  // 載入房客選單
+  document.getElementById('rent-tenant').innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}" data-room="${t.room || ''}" data-rent="${t.rent || ''}">${t.name} (${t.room || ''})</option>`).join('');
+
+  // 填入資料
+  document.getElementById('rent-tenant').value = record.tenantId || '';
+  document.getElementById('rent-month').value = `${record.year}-${String(record.month).padStart(2, '0')}`;
+  document.getElementById('rent-amount').value = record.amount || '';
+  document.getElementById('rent-paid-amount').value = record.paid || 0;
+  document.getElementById('rent-date').value = record.date || '';
+  document.getElementById('rent-method').value = record.method || '轉帳';
+  document.getElementById('rent-note').value = record.note || '';
+  document.getElementById('rent-status-display').textContent = record.status;
+
+  document.getElementById('rent-modal').classList.remove('hidden');
+}
+
+async function deleteRent(id) {
+  if (!confirm('確定要刪除此筆租金紀錄嗎？')) return;
+  const uid = getCurrentUserUid(); if (!uid) return;
+  try {
+    await db.collection('users').doc(uid).collection('rentRecords').doc(id).delete();
+    showToast('已刪除');
+    loadRentData();
+  } catch (e) { console.error(e); showToast('刪除失敗', 'error'); }
+}
+
 async function markPaid(id) {
-    const uid = getCurrentUserUid(); if (!uid) return;
-    const record = rentRecords.find(r => r.id === id);
-    if (!record) return;
-    try {
-        await db.collection('users').doc(uid).collection('rentRecords').doc(id).update({ paid: record.amount, status: '已繳', date: new Date().toISOString().split('T')[0], method: record.method || '轉帳' });
-        showToast('已標記為已繳');
-        loadRentData();
-    } catch (e) { showToast('更新失敗', 'error'); }
+  const uid = getCurrentUserUid(); if (!uid) return;
+  const record = rentRecords.find(r => r.id === id);
+  if (!record) return;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    await db.collection('users').doc(uid).collection('rentRecords').doc(id).update({
+      paid: record.amount,
+      status: '已繳',
+      date: today,
+      method: record.method || '轉帳'
+    });
+    showToast('已標記為已繳');
+    loadRentData();
+  } catch (e) { showToast('更新失敗', 'error'); }
 }
+
+async function markAllPaid() {
+  const uid = getCurrentUserUid(); if (!uid) return;
+  const filtered = rentRecords.filter(r => r.year === currentYear && r.month === currentMonth && r.status !== '已繳');
+  if (filtered.length === 0) { showToast('本月所有紀錄已繳清', 'success'); return; }
+  if (!confirm(`確定要將本月 ${filtered.length} 筆逾期/部分紀錄全部標記為已繳嗎？`)) return;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const batch = db.batch();
+    for (const r of filtered) {
+      const ref = db.collection('users').doc(uid).collection('rentRecords').doc(r.id);
+      batch.update(ref, { paid: r.amount, status: '已繳', date: today, method: r.method || '轉帳' });
+    }
+    await batch.commit();
+    showToast(`已將 ${filtered.length} 筆紀錄標記為已繳`, 'success');
+    loadRentData();
+  } catch (e) { console.error(e); showToast('批量更新失敗', 'error'); }
+}
+
+// 表單提交（新增或編輯）
 document.getElementById('rent-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const uid = getCurrentUserUid(); if (!uid) return;
-    const tenantSelect = document.getElementById('rent-tenant');
-    const selected = tenantSelect.options[tenantSelect.selectedIndex];
-    const [y, m] = document.getElementById('rent-month').value.split('-').map(Number);
-    const data = { tenantName: selected?.text?.split(' (')[0] || '', room: selected?.dataset?.room || '', year: y, month: m, amount: parseInt(document.getElementById('rent-amount').value) || 0, paid: parseInt(document.getElementById('rent-amount').value) || 0, date: document.getElementById('rent-date').value, method: document.getElementById('rent-method').value, status: '已繳', note: document.getElementById('rent-note').value };
-    try { await db.collection('users').doc(uid).collection('rentRecords').add(data); showToast('收款紀錄已新增'); closeRentModal(); loadRentData(); } catch (e) { showToast('儲存失敗', 'error'); }
+  e.preventDefault();
+  const uid = getCurrentUserUid(); if (!uid) return;
+
+  const editId = document.getElementById('rent-edit-id').value;
+  const tenantSelect = document.getElementById('rent-tenant');
+  const selected = tenantSelect.options[tenantSelect.selectedIndex];
+  const tenantId = tenantSelect.value;
+  const tenantName = selected?.text?.split(' (')[0] || '';
+  const room = selected?.dataset?.room || '';
+  const [y, m] = document.getElementById('rent-month').value.split('-').map(Number);
+  const amount = parseInt(document.getElementById('rent-amount').value) || 0;
+  const paid = parseInt(document.getElementById('rent-paid-amount').value) || 0;
+  const date = document.getElementById('rent-date').value;
+  const method = document.getElementById('rent-method').value;
+  const note = document.getElementById('rent-note').value;
+  const status = calcStatus(paid, amount);
+
+  const data = {
+    tenantId,
+    tenantName,
+    room,
+    year: y,
+    month: m,
+    amount,
+    paid,
+    date,
+    method,
+    status,
+    note
+  };
+
+  try {
+    if (editId) {
+      // 編輯模式
+      await db.collection('users').doc(uid).collection('rentRecords').doc(editId).update(data);
+      showToast('收款紀錄已更新');
+    } else {
+      // 新增模式
+      await db.collection('users').doc(uid).collection('rentRecords').add(data);
+      showToast('收款紀錄已新增');
+    }
+    closeRentModal();
+    loadRentData();
+  } catch (e) { console.error(e); showToast('儲存失敗', 'error'); }
 });
+
+// 即時狀態預覽
+document.getElementById('rent-paid-amount').addEventListener('input', updateStatusPreview);
+document.getElementById('rent-amount').addEventListener('input', updateStatusPreview);
+
+function updateStatusPreview() {
+  const amount = parseInt(document.getElementById('rent-amount').value) || 0;
+  const paid = parseInt(document.getElementById('rent-paid-amount').value) || 0;
+  const status = calcStatus(paid, amount);
+  const el = document.getElementById('rent-status-display');
+  el.textContent = status;
+  el.className = 'px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium ' +
+    (status === '已繳' ? 'bg-secondary/10 text-secondary' : status === '部分' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-600');
+}
+
+// 房客選擇時自動填入金額
+document.getElementById('rent-tenant').addEventListener('change', function() {
+  const selected = this.options[this.selectedIndex];
+  const rent = selected?.dataset?.rent;
+  if (rent) document.getElementById('rent-amount').value = rent;
+  updateStatusPreview();
+});
+
 document.addEventListener('DOMContentLoaded', loadRentData);
 </script>
 </body>
