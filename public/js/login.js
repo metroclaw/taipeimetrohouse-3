@@ -49,6 +49,12 @@ function saveUserInformation(user) {
 function initLoginPage() {
     console.log("initLoginPage called");
 
+    // Hide preloader
+    var preloader = document.getElementById('preloader');
+    if (preloader) {
+        preloader.style.display = 'none';
+    }
+
     // Handle redirect result
     firebase.auth().getRedirectResult().then(function (result) {
         console.log("Redirect result:", result.user ? result.user.displayName : "no user");
