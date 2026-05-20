@@ -61,6 +61,8 @@ function initLoginPage() {
         if (result.user) {
             console.log("Redirect login successful, saving user...");
             saveUserInformation(result.user);
+            // 設置 flag 讓 dashboard 知道剛登入完成
+            sessionStorage.setItem('justLoggedIn', 'true');
             setTimeout(function () {
                 window.location.href = './dashboard.html';
             }, 500);
@@ -74,6 +76,8 @@ function initLoginPage() {
         console.log("Login page auth state:", user ? user.displayName : "null");
         if (user) {
             saveUserInformation(user);
+            // 設置 flag 讓 dashboard 知道剛登入完成
+            sessionStorage.setItem('justLoggedIn', 'true');
             window.location.href = './dashboard.html';
         }
     });

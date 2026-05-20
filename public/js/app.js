@@ -287,8 +287,36 @@ function calculateUtilityBill(billData, rooms, tenants) {
 // ============================================================
 
 // 初始化 - 直接執行，不等待 DOMContentLoaded
+// 使用 authReady flag 避免在 Auth 初始化完成前就導向登入頁
+let authReady = false;
 firebase.auth().onAuthStateChanged(function(user) {
-    console.log("App auth state:", user ? user.displayName : "null");
+    console.log("App auth state:", user ? user.displayName : "null", "authReady:", authReady);
+    
+    // 第一次觸發時，標記 auth 已準備好
+    if (!authReady) {
+        authReady = true;
+        // 如果有 user，或剛從 login 頁面登入完成（sessionStorage flag），不導向 login
+        const justLoggedIn = sessionStorage.getItem('justLoggedIn');
+        if (user) {
+            updateUserInfo(user);
+            // 清除 flag
+            sessionStorage.removeItem('justLoggedIn');
+            return;
+        }
+        if (justLoggedIn === 'true') {
+            // 剛登入但 user 可能還沒準備好，等待下次 onAuthStateChanged
+            console.log("Just logged in, waiting for user...");
+            sessionStorage.removeItem('justLoggedIn');
+            return;
+        }
+        // 沒有 user 且不是從 login 過來的，才導向 login
+        if (!window.location.pathname.includes('login.html')) {
+            window.location.href = 'login.html';
+        }
+        return;
+    }
+    
+    // 後續觸發（登入/登出狀態變更）
     if (!user) {
         // 未登入，導向登入頁
         if (!window.location.pathname.includes('login.html')) {
