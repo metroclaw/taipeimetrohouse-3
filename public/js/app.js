@@ -3,7 +3,7 @@
 // ============================================================
 
 const firebaseConfig = {
-  apiKey: "AIzaSy...uvJU",
+  apiKey: "AIzaSyDgk5qz4mNA09g-3azau9mgWjd8996uvJU",
   authDomain: "taipeimetrohouse-2.firebaseapp.com",
   projectId: "taipeimetrohouse-2",
   storageBucket: "taipeimetrohouse-2.firebasestorage.app",
