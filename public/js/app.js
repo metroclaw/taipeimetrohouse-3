@@ -51,7 +51,8 @@ function updateUserInfo(user) {
 // 登出
 function handleSignOut() {
     firebase.auth().signOut().then(() => {
-        window.location.href = 'login.html';
+        clearSession();
+        window.location.replace('login.html');
     }).catch((error) => {
         showToast('登出失敗', 'error');
     });
@@ -273,55 +274,57 @@ function calculateUtilityBill(billData, rooms, tenants) {
 }
 
 // ============================================================
+// ============================================================
 // Module 6: Auth State Listener
 // ============================================================
+// 參考 taipeimetrohouse-2 的設計：用 localStorage session 做同步檢查
+// 輔以 Firebase Auth onAuthStateChanged 做後續狀態同步
 
-// 統一的 Auth 狀態監聽
-// 使用 Promise 等待 Auth 初始化完成，避免在初始化階段就跳轉
-function _waitForAuthInit() {
-    return new Promise(function(resolve) {
-        // 如果 currentUser 已經存在，直接返回
-        if (firebase.auth().currentUser) {
-            resolve(firebase.auth().currentUser);
-            return;
-        }
-        // 否則等待 onAuthStateChanged 觸發
-        var unsubscribe = firebase.auth().onAuthStateChanged(function(user) {
-            unsubscribe();
-            resolve(user);
-        });
-    });
+var SESSION_KEY = 'tmh2-session';
+
+function getSession() {
+    try { return window.localStorage.getItem(SESSION_KEY); } catch (e) { return null; }
+}
+function clearSession() {
+    try { window.localStorage.removeItem(SESSION_KEY); } catch (e) {}
 }
 
-// 頁面載入時等待 Auth 初始化，然後做跳轉判斷
-_waitForAuthInit().then(function(user) {
-    console.log("[Auth] Init complete:", user ? user.displayName : "null");
+// 頁面載入時同步檢查 session（立即執行，不等待 Firebase Auth）
+(function() {
+    var session = getSession();
+    var path = window.location.pathname;
+    var isLoginPage = path.includes('login.html') || path === '/' || path === '' || path.endsWith('/');
     
-    if (user) {
-        updateUserInfo(user);
-    } else {
-        var path = window.location.pathname;
-        // 更寬鬆的 login 頁面判斷
-        var isLoginPage = path.includes('login.html') || path === '/' || path === '' || path.endsWith('/');
-        if (!isLoginPage) {
-            console.log("[Auth] Not logged in, redirecting to login...");
-            window.location.href = 'login.html';
-        }
+    if (session && isLoginPage) {
+        // 有 session 但在 login 頁面，跳轉到 dashboard
+        console.log("[Auth] Session found on login page, redirecting...");
+        window.location.replace('dashboard.html');
+        return;
     }
-});
+    
+    if (!session && !isLoginPage) {
+        // 沒有 session 且不在 login 頁面，跳轉到 login
+        console.log("[Auth] No session, redirecting to login...");
+        window.location.replace('login.html');
+        return;
+    }
+})();
 
-// 持續監聽 Auth 狀態變化（登入/登出）
+// 持續監聽 Firebase Auth 狀態變化（處理登出、token 過期等）
 firebase.auth().onAuthStateChanged(function(user) {
-    console.log("[Auth] state changed:", user ? user.displayName : "null");
+    console.log("[Auth] Firebase state:", user ? user.email : "null");
     
     if (user) {
+        // Firebase Auth 確認有 user，更新 UI
         updateUserInfo(user);
     } else {
+        // Firebase Auth 確認無 user，清除 session 並跳轉 login
         var path = window.location.pathname;
         var isLoginPage = path.includes('login.html') || path === '/' || path === '' || path.endsWith('/');
         if (!isLoginPage) {
-            console.log("[Auth] Logged out, redirecting to login...");
-            window.location.href = 'login.html';
+            console.log("[Auth] Firebase logged out, clearing session and redirecting...");
+            clearSession();
+            window.location.replace('login.html');
         }
     }
 });
