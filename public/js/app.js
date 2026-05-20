@@ -301,7 +301,8 @@ _waitForAuthInit().then(function(user) {
         updateUserInfo(user);
     } else {
         var path = window.location.pathname;
-        var isLoginPage = path.includes('login.html') || path === '/' || path.endsWith('/');
+        // 更寬鬆的 login 頁面判斷
+        var isLoginPage = path.includes('login.html') || path === '/' || path === '' || path.endsWith('/');
         if (!isLoginPage) {
             console.log("[Auth] Not logged in, redirecting to login...");
             window.location.href = 'login.html';
@@ -317,7 +318,7 @@ firebase.auth().onAuthStateChanged(function(user) {
         updateUserInfo(user);
     } else {
         var path = window.location.pathname;
-        var isLoginPage = path.includes('login.html') || path === '/' || path.endsWith('/');
+        var isLoginPage = path.includes('login.html') || path === '/' || path === '' || path.endsWith('/');
         if (!isLoginPage) {
             console.log("[Auth] Logged out, redirecting to login...");
             window.location.href = 'login.html';

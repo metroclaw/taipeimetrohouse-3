@@ -151,12 +151,12 @@
                 photoURL: user.photoURL || '',
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true }).then(function() {
-                // 登入成功，跳轉到 dashboard
-                window.location.href = 'dashboard.html';
+                // 不立即跳轉！讓 onAuthStateChanged 處理跳轉
+                // 這樣可以確保 Auth 狀態同步完成後才跳轉
+                console.log("User saved, waiting for auth state sync...");
             }).catch(function(error) {
                 console.error("Save user error:", error);
-                // 即使儲存失敗也跳轉
-                window.location.href = 'dashboard.html';
+                // 即使儲存失敗也讓 onAuthStateChanged 處理跳轉
             });
 
         }).catch(function(error) {
