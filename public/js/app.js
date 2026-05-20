@@ -33,19 +33,9 @@ function getCurrentUser() {
     return firebase.auth().currentUser;
 }
 
-// 檢查登入狀態
+// 檢查登入狀態（已整合到 Module 6，此函數保留供相容性使用但不執行）
 function checkAuth() {
-    firebase.auth().onAuthStateChanged(function (user) {
-        if (!user) {
-            // 未登入，導向登入頁
-            if (!window.location.pathname.includes('login.html')) {
-                window.location.href = 'login.html';
-            }
-        } else {
-            // 已登入，更新使用者資訊
-            updateUserInfo(user);
-        }
-    });
+    // Module 6 已處理 auth 狀態監聽，此函數不再重複註冊
 }
 
 // 更新使用者資訊顯示
@@ -286,44 +276,21 @@ function calculateUtilityBill(billData, rooms, tenants) {
 // Module 6: Auth State Listener
 // ============================================================
 
-// 初始化 - 直接執行，不等待 DOMContentLoaded
-// 使用 authReady flag 避免在 Auth 初始化完成前就導向登入頁
-let authReady = false;
+// 統一的 Auth 狀態監聽
+// 只在確認未登入時才導向 login，不會在初始化階段就跳轉
 firebase.auth().onAuthStateChanged(function(user) {
-    console.log("App auth state:", user ? user.displayName : "null", "authReady:", authReady);
+    console.log("[Auth] state changed:", user ? user.displayName : "null");
     
-    // 第一次觸發時，標記 auth 已準備好
-    if (!authReady) {
-        authReady = true;
-        // 如果有 user，或剛從 login 頁面登入完成（sessionStorage flag），不導向 login
-        const justLoggedIn = sessionStorage.getItem('justLoggedIn');
-        if (user) {
-            updateUserInfo(user);
-            // 清除 flag
-            sessionStorage.removeItem('justLoggedIn');
-            return;
-        }
-        if (justLoggedIn === 'true') {
-            // 剛登入但 user 可能還沒準備好，等待下次 onAuthStateChanged
-            console.log("Just logged in, waiting for user...");
-            sessionStorage.removeItem('justLoggedIn');
-            return;
-        }
-        // 沒有 user 且不是從 login 過來的，才導向 login
-        if (!window.location.pathname.includes('login.html')) {
-            window.location.href = 'login.html';
-        }
-        return;
-    }
-    
-    // 後續觸發（登入/登出狀態變更）
-    if (!user) {
-        // 未登入，導向登入頁
-        if (!window.location.pathname.includes('login.html')) {
-            window.location.href = 'login.html';
-        }
-    } else {
+    if (user) {
         // 已登入，更新使用者資訊
         updateUserInfo(user);
+    } else {
+        // 未登入，只有在非 login 頁面時才導向 login
+        var path = window.location.pathname;
+        var isLoginPage = path.includes('login.html') || path === '/' || path.endsWith('/');
+        if (!isLoginPage) {
+            console.log("[Auth] Not logged in, redirecting to login...");
+            window.location.href = 'login.html';
+        }
     }
 });
