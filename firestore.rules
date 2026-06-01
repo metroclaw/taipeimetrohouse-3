@@ -1,12 +1,16 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 使用者只能讀取/寫入自己的資料
+    // 使用者只能讀取/寫入自己的資料根節點
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // 子集合
-      match /{collection}/{document} {
+
+      // RentalHub 會使用多層子集合，例如：
+      // /users/{uid}/projects/{projectId}/rooms/{roomId}
+      // /users/{uid}/rentRecords/{recordId}
+      // /users/{uid}/utilityBills/{billId}
+      // 因此需要遞迴允許使用者自己名下的所有文件。
+      match /{document=**} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }

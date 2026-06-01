@@ -130,7 +130,15 @@ async function loadProjects() {
     if (!uid) return;
     try {
         const snapshot = await db.collection('users').doc(uid).collection('projects').get();
-        projectsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        projectsData = await Promise.all(snapshot.docs.map(async (doc) => {
+            const project = { id: doc.id, ...doc.data() };
+            const roomsSnapshot = await db.collection('users').doc(uid).collection('projects').doc(doc.id).collection('rooms').get();
+            const rooms = roomsSnapshot.docs.map(roomDoc => ({ id: roomDoc.id, ...roomDoc.data() }));
+            project.totalRooms = rooms.length;
+            project.occupied = rooms.filter(room => room.status === '已出租' || !!room.tenant).length;
+            project.vacant = rooms.filter(room => room.status === '空置' || !room.tenant).length;
+            return project;
+        }));
         if (projectsData.length === 0) {
             // 建立測試資料
             await seedTestData();
@@ -174,6 +182,11 @@ async function seedTestData() {
         for (const r of projectRooms) {
             await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').add(r);
         }
+        await ref.update({
+            totalRooms: projectRooms.length,
+            occupied: projectRooms.filter(r => r.status === '已出租' || !!r.tenant).length,
+            vacant: projectRooms.filter(r => r.status === '空置' || !r.tenant).length
+        });
     }
     showToast('已建立測試資料', 'success');
     loadProjects();

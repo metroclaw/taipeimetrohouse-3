@@ -277,58 +277,92 @@ function calculateUtilityBill(billData, rooms, tenants) {
 // ============================================================
 // Module 6: Auth State Listener
 // ============================================================
-// 參考 taipeimetrohouse-2 的設計：用 localStorage session 做同步檢查
-// 輔以 Firebase Auth onAuthStateChanged 做後續狀態同步
+// 使用 localStorage 做快速 session 標記，但真正是否導向 login 必須等 Firebase Auth 初始化完成。
+// 避免 Google 登入後 dashboard 在 Auth 尚未恢復時被第一個 null 狀態誤導回 login。
 
 var SESSION_KEY = 'tmh2-session';
+window.__authInitComplete = false;
 
 function getSession() {
     try { return window.localStorage.getItem(SESSION_KEY); } catch (e) { return null; }
 }
+function setSession(value) {
+    try { window.localStorage.setItem(SESSION_KEY, value || 'authenticated'); } catch (e) {}
+}
 function clearSession() {
     try { window.localStorage.removeItem(SESSION_KEY); } catch (e) {}
 }
-
-// 頁面載入時同步檢查 session（立即執行，不等待 Firebase Auth）
-(function() {
-    var session = getSession();
+function isLoginLikePage() {
     var path = window.location.pathname;
-    console.log("[Auth] IIFE check - session:", session, "path:", path);
-    
-    var isLoginPage = path.includes('login.html') || path === '/' || path === '' || path.endsWith('/');
-    
+    return path.includes('login.html') || path === '/' || path === '' || path.endsWith('/');
+}
+function waitForAuthInit() {
+    return new Promise(function(resolve) {
+        if (firebase.auth().currentUser) {
+            resolve(firebase.auth().currentUser);
+            return;
+        }
+        var settled = false;
+        var unsubscribe = firebase.auth().onAuthStateChanged(function(user) {
+            if (settled) return;
+            settled = true;
+            unsubscribe();
+            resolve(user);
+        });
+        // 防止 SDK 或網路異常導致永遠等待；逾時後用 currentUser 最終值決定。
+        setTimeout(function() {
+            if (settled) return;
+            settled = true;
+            unsubscribe();
+            resolve(firebase.auth().currentUser);
+        }, 3000);
+    });
+}
+
+(function initAuthGate() {
+    var session = getSession();
+    var isLoginPage = isLoginLikePage();
+    console.log("[Auth] init gate - session:", session, "path:", window.location.pathname);
+
     if (session && isLoginPage) {
-        // 有 session 但在 login 頁面，跳轉到 dashboard
         console.log("[Auth] Session found on login page, redirecting...");
         window.location.replace('dashboard.html');
         return;
     }
-    
-    if (!session && !isLoginPage) {
-        // 沒有 session 且不在 login 頁面，跳轉到 login
-        console.log("[Auth] No session, redirecting to login...");
-        window.location.replace('login.html');
-        return;
-    }
-    
-    console.log("[Auth] No redirect needed");
-})();
 
-// 持續監聽 Firebase Auth 狀態變化（處理登出、token 過期等）
-firebase.auth().onAuthStateChanged(function(user) {
-    console.log("[Auth] Firebase state:", user ? user.email : "null");
-    
-    if (user) {
-        // Firebase Auth 確認有 user，更新 UI
-        updateUserInfo(user);
-    } else {
-        // Firebase Auth 確認無 user，清除 session 並跳轉 login
-        var path = window.location.pathname;
-        var isLoginPage = path.includes('login.html') || path === '/' || path === '' || path.endsWith('/');
+    waitForAuthInit().then(function(user) {
+        window.__authInitComplete = true;
+        console.log("[Auth] init complete:", user ? user.email : "null");
+
+        if (user) {
+            setSession(user.email || user.uid);
+            updateUserInfo(user);
+            if (isLoginPage) {
+                window.location.replace('dashboard.html');
+            }
+            return;
+        }
+
+        clearSession();
         if (!isLoginPage) {
-            console.log("[Auth] Firebase logged out, clearing session and redirecting...");
-            clearSession();
             window.location.replace('login.html');
         }
+    });
+})();
+
+// 持續監聽初始化之後的 Firebase Auth 狀態變化（處理登出、token 過期等）
+firebase.auth().onAuthStateChanged(function(user) {
+    if (!window.__authInitComplete) return;
+    console.log("[Auth] Firebase state:", user ? user.email : "null");
+
+    if (user) {
+        setSession(user.email || user.uid);
+        updateUserInfo(user);
+        return;
+    }
+
+    clearSession();
+    if (!isLoginLikePage()) {
+        window.location.replace('login.html');
     }
 });
