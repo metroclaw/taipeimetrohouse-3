@@ -83,65 +83,51 @@ let contractsData = [], tenantsData = [], roomsData = [];
 async function loadContracts() {
     const uid = getCurrentUserUid(); if (!uid) return;
     try {
-        const [cSnap, tSnap, rSnap] = await Promise.all([
+        const [cSnap, tSnap, pSnap] = await Promise.all([
             db.collection('users').doc(uid).collection('contracts').get(),
             db.collection('users').doc(uid).collection('tenants').get(),
-            db.collection('users').doc(uid).collection('rooms').get()
+            db.collection('users').doc(uid).collection('projects').get()
         ]);
         contractsData = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         tenantsData = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        roomsData = rSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        if (contractsData.length === 0) { await seedContractData(); return; }
+        roomsData = [];
+        for (const projectDoc of pSnap.docs) {
+            const project = { id: projectDoc.id, ...projectDoc.data() };
+            const rSnap = await db.collection('users').doc(uid).collection('projects').doc(project.id).collection('rooms').get();
+            roomsData = roomsData.concat(rSnap.docs.map(d => ({ id: d.id, projectId: project.id, projectName: project.name || project.address || '', ...d.data() })));
+        }
         renderContracts();
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error(e); showToast('載入合約失敗', 'error'); }
 }
-async function seedContractData() {
-    const uid = getCurrentUserUid();
-    const contracts = [
-        { tenantId: '', tenantName: '王小明', room: 'A1', start: '2026-01-01', end: '2026-12-31', rent: 12000, deposit: 24000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
-        { tenantId: '', tenantName: '李小華', room: 'A2', start: '2026-01-01', end: '2026-11-30', rent: 10000, deposit: 20000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
-        { tenantId: '', tenantName: '張小美', room: 'A3', start: '2026-03-01', end: '2026-10-31', rent: 6000, deposit: 12000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
-        { tenantId: '', tenantName: '陳小龍', room: 'A5', start: '2025-07-01', end: '2026-06-30', rent: 25000, deposit: 50000, status: '即將到期', waterSplit: 'area', elecSplit: 'ac' },
-        { tenantId: '', tenantName: '林小婷', room: 'B1', start: '2026-02-01', end: '2027-01-31', rent: 11000, deposit: 22000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
-        { tenantId: '', tenantName: '黃小強', room: 'B2', start: '2025-10-01', end: '2026-09-30', rent: 11000, deposit: 22000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
-        { tenantId: '', tenantName: '吳小琳', room: 'C1', start: '2026-03-01', end: '2027-02-28', rent: 13000, deposit: 26000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
-        { tenantId: '', tenantName: '鄭小偉', room: 'C2', start: '2026-01-01', end: '2026-12-31', rent: 12000, deposit: 24000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
-        { tenantId: '', tenantName: '謝小琪', room: 'C3', start: '2026-03-01', end: '2026-08-31', rent: 6500, deposit: 13000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' },
-        { tenantId: '', tenantName: '楊小豪', room: 'C4', start: '2026-04-01', end: '2027-03-31', rent: 6500, deposit: 13000, status: '進行中', waterSplit: 'area', elecSplit: 'ac' }
-    ];
-    for (const c of contracts) { await db.collection('users').doc(uid).collection('contracts').add(c); }
-    showToast('已建立測試合約資料', 'success');
-    loadContracts();
-}
+function contractRoomLabel(c) { return c.roomNumber || c.room || '—'; }
 function renderContracts() {
     const tbody = document.getElementById('contracts-table-body');
-    if (contractsData.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">尚無合約</td></tr>'; return; }
+    if (contractsData.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">尚無合約，請先新增房客與客房後建立合約</td></tr>'; document.getElementById('expiring-contracts').innerHTML = '無即將到期的合約'; return; }
     tbody.innerHTML = contractsData.map(c => {
         const statusColor = c.status === '進行中' ? 'bg-secondary/10 text-secondary' : c.status === '即將到期' ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500';
         return `<tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 text-sm font-medium text-gray-900">${c.tenantName}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">${c.room}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">${c.start} ~ ${c.end}</td>
+            <td class="px-4 py-3 text-sm font-medium text-gray-900">${c.tenantName || '—'}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${contractRoomLabel(c)}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${c.start || '—'} ~ ${c.end || '—'}</td>
             <td class="px-4 py-3 text-sm font-medium text-gray-900">${formatCurrency(c.rent)}</td>
             <td class="px-4 py-3 text-sm text-gray-600">${formatCurrency(c.deposit)}</td>
-            <td class="px-4 py-3"><span class="text-xs ${statusColor} px-2 py-1 rounded-full">${c.status}</span></td>
+            <td class="px-4 py-3"><span class="text-xs ${statusColor} px-2 py-1 rounded-full">${c.status || '進行中'}</span></td>
             <td class="px-4 py-3"><button onclick="editContract('${c.id}')" class="text-sm text-primary hover:underline mr-2">編輯</button><button onclick="renewContract('${c.id}')" class="text-sm text-secondary hover:underline mr-2">續約</button></td>
         </tr>`;
     }).join('');
-    // 即將到期
-    const expiring = contractsData.filter(c => c.status === '即將到期');
-    document.getElementById('expiring-contracts').innerHTML = expiring.length > 0 ? expiring.map(c => `<div>• ${c.tenantName} — ${c.room}，${c.end} 到期（剩 ${Math.ceil((new Date(c.end) - new Date()) / 86400000)} 天）</div>`).join('') : '無即將到期的合約';
+    const today = new Date();
+    const expiring = contractsData.filter(c => c.end && Math.ceil((new Date(c.end) - today) / 86400000) <= 60 && Math.ceil((new Date(c.end) - today) / 86400000) >= 0);
+    document.getElementById('expiring-contracts').innerHTML = expiring.length > 0 ? expiring.map(c => `<div>• ${c.tenantName || '—'} — ${contractRoomLabel(c)}，${c.end} 到期（剩 ${Math.ceil((new Date(c.end) - today) / 86400000)} 天）</div>`).join('') : '無即將到期的合約';
 }
 function openContractModal() {
     document.getElementById('contract-modal').classList.remove('hidden');
     document.getElementById('contract-modal-title').textContent = '新增合約';
     document.getElementById('contract-form').reset();
     document.getElementById('contract-id').value = '';
-    // 填充房客和客房選單
     const tSel = document.getElementById('contract-tenant');
     tSel.innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
     const rSel = document.getElementById('contract-room');
-    rSel.innerHTML = '<option value="">選擇客房</option>' + roomsData.map(r => `<option value="${r.id}">${r.number}</option>`).join('');
+    rSel.innerHTML = '<option value="">選擇客房</option>' + roomsData.map(r => `<option value="${r.id}" data-project-id="${r.projectId}">${r.projectName ? r.projectName + ' / ' : ''}${r.number}</option>`).join('');
 }
 function closeContractModal() { document.getElementById('contract-modal').classList.add('hidden'); }
 function editContract(id) {
@@ -155,30 +141,68 @@ function editContract(id) {
     document.getElementById('contract-end').value = c.end || '';
     document.getElementById('contract-rent').value = c.rent || '';
     document.getElementById('contract-deposit').value = c.deposit || '';
+    document.getElementById('contract-water-split').value = c.waterSplit || 'area';
+    document.getElementById('contract-elec-split').value = c.elecSplit || 'ac';
     document.getElementById('contract-notes').value = c.notes || '';
 }
-function renewContract(id) {
+async function renewContract(id) {
     const c = contractsData.find(x => x.id === id); if (!c) return;
     if (!confirm(`確定要為 ${c.tenantName} 續約？將自動延長一年。`)) return;
-    const endDate = new Date(c.end);
-    const newEnd = new Date(endDate.setFullYear(endDate.getFullYear() + 1));
-    // 更新合約
     const uid = getCurrentUserUid();
-    db.collection('users').doc(uid).collection('contracts').doc(id).update({ end: newEnd.toISOString().split('T')[0], status: '進行中' }).then(() => { showToast('已續約一年'); loadContracts(); });
+    const endDate = new Date(c.end);
+    const newEnd = new Date(endDate.setFullYear(endDate.getFullYear() + 1)).toISOString().split('T')[0];
+    try {
+        const batch = db.batch();
+        batch.update(db.collection('users').doc(uid).collection('contracts').doc(id), { end: newEnd, status: '進行中' });
+        if (c.tenantId) batch.update(db.collection('users').doc(uid).collection('tenants').doc(c.tenantId), { contractEnd: newEnd });
+        await batch.commit();
+        showToast('已續約一年'); loadContracts();
+    } catch (e) { console.error(e); showToast('續約失敗', 'error'); }
 }
 document.getElementById('contract-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const uid = getCurrentUserUid(); if (!uid) return;
     const tenantSelect = document.getElementById('contract-tenant');
-    const data = { tenantId: tenantSelect.value, tenantName: tenantSelect.options[tenantSelect.selectedIndex]?.text || '', room: document.getElementById('contract-room').value, start: document.getElementById('contract-start').value, end: document.getElementById('contract-end').value, rent: parseInt(document.getElementById('contract-rent').value) || 0, deposit: parseInt(document.getElementById('contract-deposit').value) || 0, waterSplit: document.getElementById('contract-water-split').value, elecSplit: document.getElementById('contract-elec-split').value, notes: document.getElementById('contract-notes').value, status: '進行中' };
+    const roomSelect = document.getElementById('contract-room');
+    const selectedTenant = tenantsData.find(t => t.id === tenantSelect.value);
+    const selectedRoom = roomsData.find(r => r.id === roomSelect.value && r.projectId === roomSelect.options[roomSelect.selectedIndex]?.dataset.projectId);
+    if (!selectedTenant || !selectedRoom) { showToast('請選擇房客與客房', 'error'); return; }
+    const data = {
+        tenantId: selectedTenant.id,
+        tenantName: selectedTenant.name || '',
+        projectId: selectedRoom.projectId,
+        projectName: selectedRoom.projectName || '',
+        roomId: selectedRoom.id,
+        roomNumber: selectedRoom.number || '',
+        room: selectedRoom.number || '',
+        start: document.getElementById('contract-start').value,
+        end: document.getElementById('contract-end').value,
+        rent: parseInt(document.getElementById('contract-rent').value) || selectedRoom.rent || 0,
+        deposit: parseInt(document.getElementById('contract-deposit').value) || 0,
+        waterSplit: document.getElementById('contract-water-split').value,
+        elecSplit: document.getElementById('contract-elec-split').value,
+        notes: document.getElementById('contract-notes').value,
+        status: '進行中',
+        updatedAt: Date.now()
+    };
     const id = document.getElementById('contract-id').value;
     try {
-        if (id) { await db.collection('users').doc(uid).collection('contracts').doc(id).update(data); showToast('合約已更新'); }
-        else { await db.collection('users').doc(uid).collection('contracts').add(data); showToast('合約已新增'); }
+        const userRef = db.collection('users').doc(uid);
+        const contractRef = id ? userRef.collection('contracts').doc(id) : userRef.collection('contracts').doc();
+        const batch = db.batch();
+        if (id) batch.update(contractRef, data); else batch.set(contractRef, { ...data, createdAt: Date.now() });
+        batch.update(userRef.collection('projects').doc(selectedRoom.projectId).collection('rooms').doc(selectedRoom.id), {
+            status: '已出租', tenantId: selectedTenant.id, tenantName: selectedTenant.name || '', tenant: selectedTenant.name || '', contractId: contractRef.id, updatedAt: Date.now()
+        });
+        batch.update(userRef.collection('tenants').doc(selectedTenant.id), {
+            status: '已承租', roomId: selectedRoom.id, roomNumber: selectedRoom.number || '', room: selectedRoom.number || '', projectId: selectedRoom.projectId, projectName: selectedRoom.projectName || '', contractId: contractRef.id, contractStart: data.start, contractEnd: data.end, rent: data.rent, updatedAt: Date.now()
+        });
+        await batch.commit();
+        showToast(id ? '合約已更新' : '合約已新增');
         closeContractModal(); loadContracts();
-    } catch (e) { showToast('儲存失敗', 'error'); }
+    } catch (e) { console.error(e); showToast('儲存失敗', 'error'); }
 });
-document.addEventListener('DOMContentLoaded', loadContracts);
+document.addEventListener('DOMContentLoaded', () => onAuthReady(user => { if (user) loadContracts(); }));
 </script>
 </body>
 </html>

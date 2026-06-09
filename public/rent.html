@@ -112,16 +112,18 @@ function calcStatus(paid, amount) {
 async function loadRentData() {
   const uid = getCurrentUserUid(); if (!uid) return;
   try {
-    const [rSnap, tSnap] = await Promise.all([
+    const [rSnap, tSnap, cSnap] = await Promise.all([
       db.collection('users').doc(uid).collection('rentRecords').get(),
-      db.collection('users').doc(uid).collection('tenants').get()
+      db.collection('users').doc(uid).collection('tenants').get(),
+      db.collection('users').doc(uid).collection('contracts').get()
     ]);
     rentRecords = rSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    tenantsData = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (rentRecords.length === 0) {
-      await seedRentData();
-      return;
-    }
+    const contracts = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    tenantsData = tSnap.docs.map(d => {
+      const tenant = { id: d.id, ...d.data() };
+      const activeContract = contracts.find(c => c.tenantId === tenant.id && c.status !== '已結束');
+      return activeContract ? { ...tenant, room: activeContract.roomNumber || activeContract.room || tenant.room || '', roomNumber: activeContract.roomNumber || tenant.roomNumber || '', rent: activeContract.rent || tenant.rent || 0, contractId: activeContract.id } : tenant;
+    });
     renderRentTable();
   } catch (e) { console.error('載入租金資料失敗:', e); showToast('載入失敗', 'error'); }
 }
@@ -228,7 +230,7 @@ function openRentModal() {
   document.getElementById('rent-modal-title').textContent = '紀錄收款';
   document.getElementById('rent-edit-id').value = '';
   document.getElementById('rent-form').reset();
-  document.getElementById('rent-tenant').innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}" data-room="${t.room || ''}" data-rent="${t.rent || ''}">${t.name} (${t.room || ''})</option>`).join('');
+  document.getElementById('rent-tenant').innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}" data-room="${t.roomNumber || t.room || ''}" data-rent="${t.rent || ''}">${t.name} (${t.roomNumber || t.room || '未綁定客房'})</option>`).join('');
   document.getElementById('rent-month').value = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
   document.getElementById('rent-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('rent-status-display').textContent = '自動計算';
@@ -249,7 +251,7 @@ function editRent(id) {
   document.getElementById('rent-edit-id').value = id;
 
   // 載入房客選單
-  document.getElementById('rent-tenant').innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}" data-room="${t.room || ''}" data-rent="${t.rent || ''}">${t.name} (${t.room || ''})</option>`).join('');
+  document.getElementById('rent-tenant').innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}" data-room="${t.roomNumber || t.room || ''}" data-rent="${t.rent || ''}">${t.name} (${t.roomNumber || t.room || '未綁定客房'})</option>`).join('');
 
   // 填入資料
   document.getElementById('rent-tenant').value = record.tenantId || '';
@@ -379,7 +381,7 @@ document.getElementById('rent-tenant').addEventListener('change', function() {
   updateStatusPreview();
 });
 
-document.addEventListener('DOMContentLoaded', loadRentData);
+document.addEventListener('DOMContentLoaded', () => onAuthReady(user => { if (user) loadRentData(); }));
 </script>
 </body>
 </html>

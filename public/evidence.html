@@ -186,9 +186,10 @@ function formatEvidenceDate(ts) {
 }
 
 // ---- Page Init ----
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => onAuthReady(user => {
+  if (!user) return;
   initPage();
-});
+}));
 
 async function initPage() {
   showLoading();
@@ -207,13 +208,6 @@ async function loadEvidence() {
   try {
     const snapshot = await evidenceCol().orderBy('createdAt', 'desc').get();
     allEvidence = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // 若無資料，建立測試資料
-    if (allEvidence.length === 0) {
-      await seedTestData();
-      const snap2 = await evidenceCol().orderBy('createdAt', 'desc').get();
-      allEvidence = snap2.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    }
 
     renderEvidence();
   } catch (e) {
@@ -484,7 +478,7 @@ function openDetailModal(id) {
   const content = document.getElementById('detail-content');
   content.innerHTML = `
     <div class="aspect-video bg-gradient-to-br ${cfg.color} rounded-xl flex items-center justify-center mb-4">
-      ${ev.fileUrl ? `<img src="${escapeHtml(ev.fileUrl)}" class="w-full h-full object-contain rounded-xl" alt="${escapeHtml(ev.name)}">` : `<span class="text-6xl">${cfg.icon}</span>`}
+      ${ev.fileUrl && (ev.fileType || '').startsWith('image/') ? `<img src="${escapeHtml(ev.fileUrl)}" class="w-full h-full object-contain rounded-xl" alt="${escapeHtml(ev.name)}">` : `<div class="text-center"><span class="text-6xl">${cfg.icon}</span><div class="text-sm text-gray-500 mt-3">${ev.fileUrl ? '此檔案可用下方按鈕開啟/下載' : '無檔案預覽'}</div></div>`}
     </div>
     <div class="space-y-2 text-sm">
       <div class="flex items-start gap-2"><span class="text-gray-400 w-16 flex-shrink-0">名稱</span><span class="text-gray-900 font-medium">${escapeHtml(ev.name)}</span></div>

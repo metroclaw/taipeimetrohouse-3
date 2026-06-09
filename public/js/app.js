@@ -224,7 +224,12 @@ function calculateUtilityBill(billData, rooms, tenants) {
     const gasTotal = gasUsage * (billData.gasRate || 25);
 
     for (const room of rooms) {
-        const tenant = tenants.find(t => t.roomId === room.id);
+        const tenant = tenants.find(t =>
+            (t.roomId && t.roomId === room.id && (!t.projectId || !room.projectId || t.projectId === room.projectId)) ||
+            (room.tenantId && t.id === room.tenantId) ||
+            (t.roomNumber && t.roomNumber === room.number) ||
+            (t.room && t.room === room.number)
+        );
         if (!tenant) continue;
 
         let elecFee = 0, waterFee = 0, gasFee = 0, tvFee = 0, wifiFee = 0;
@@ -282,6 +287,15 @@ function calculateUtilityBill(billData, rooms, tenants) {
 
 var SESSION_KEY = 'tmh2-session';
 window.__authInitComplete = false;
+window.__authReadyPromise = null;
+
+function onAuthReady(callback) {
+    var promise = window.__authReadyPromise || waitForAuthInit();
+    return promise.then(function(user) {
+        if (typeof callback === 'function') callback(user);
+        return user;
+    });
+}
 
 function getSession() {
     try { return window.localStorage.getItem(SESSION_KEY); } catch (e) { return null; }
@@ -297,7 +311,8 @@ function isLoginLikePage() {
     return path.includes('login.html') || path === '/' || path === '' || path.endsWith('/');
 }
 function waitForAuthInit() {
-    return new Promise(function(resolve) {
+    if (window.__authReadyPromise) return window.__authReadyPromise;
+    window.__authReadyPromise = new Promise(function(resolve) {
         if (firebase.auth().currentUser) {
             resolve(firebase.auth().currentUser);
             return;
@@ -317,6 +332,7 @@ function waitForAuthInit() {
             resolve(firebase.auth().currentUser);
         }, 3000);
     });
+    return window.__authReadyPromise;
 }
 
 (function initAuthGate() {
@@ -333,6 +349,7 @@ function waitForAuthInit() {
     waitForAuthInit().then(function(user) {
         window.__authInitComplete = true;
         console.log("[Auth] init complete:", user ? user.email : "null");
+        window.dispatchEvent(new CustomEvent('rentalhub:auth-ready', { detail: { user: user } }));
 
         if (user) {
             setSession(user.email || user.uid);

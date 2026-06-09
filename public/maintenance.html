@@ -193,9 +193,10 @@ let cleaningSchedules = [];
 let currentFilter = 'all';
 let calendarYear, calendarMonth;
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => onAuthReady(user => {
+  if (!user) return;
   initPage();
-});
+}));
 
 async function initPage() {
   showLoading();
@@ -229,13 +230,6 @@ async function loadTasks() {
   try {
     const snapshot = await maintenanceCol().orderBy('createdAt', 'desc').get();
     allTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // 若無資料，建立測試資料
-    if (allTasks.length === 0) {
-      await seedTestData();
-      const snap2 = await maintenanceCol().orderBy('createdAt', 'desc').get();
-      allTasks = snap2.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    }
 
     renderTasks();
     updateStats();

@@ -139,12 +139,10 @@ async function loadProjects() {
             project.vacant = rooms.filter(room => room.status === '空置' || !room.tenant).length;
             return project;
         }));
-        if (projectsData.length === 0) {
-            // 建立測試資料
-            await seedTestData();
-            return;
-        }
         renderProjects();
+        if (projectsData.length === 0) {
+            document.getElementById('projects-container').innerHTML = '<div class="col-span-full bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">尚未新增建案，請點右上角「新增建案」開始。</div>';
+        }
     } catch (e) {
         console.error('Error loading projects:', e);
         showToast('載入失敗', 'error');
@@ -280,11 +278,11 @@ document.getElementById('room-form').addEventListener('submit', async (e) => {
     try {
         if (id) { await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').doc(id).update(data); showToast('客房已更新'); }
         else { await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').add(data); showToast('客房已新增'); }
-        closeRoomModal(); selectProject(projectId);
+        closeRoomModal(); await loadProjects(); selectProject(projectId);
     } catch (e) { showToast('儲存失敗', 'error'); }
 });
 
-document.addEventListener('DOMContentLoaded', loadProjects);
+document.addEventListener('DOMContentLoaded', () => onAuthReady(user => { if (user) loadProjects(); }));
 </script>
 </body>
 </html>

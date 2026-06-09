@@ -131,7 +131,8 @@ let historyBills = [];
 // ============================================================
 // 初始化：載入 Firestore 資料
 // ============================================================
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => onAuthReady(async user => {
+    if (!user) return;
     try {
         // 載入歷史紀錄
         await loadHistory();
@@ -146,7 +147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('初始化失敗:', err);
         showToast('資料載入失敗：' + err.message, 'error');
     }
-});
+}));
 
 // ============================================================
 // 載入房間與房客資料
@@ -358,31 +359,9 @@ function calculateBill() {
     let tenantsData = allTenants;
 
     if (roomsData.length === 0) {
-        // Fallback：使用預設測試資料
-        roomsData = [
-            { id: 'r1', number: 'A1', area: 8, acUnits: 1, rent: 8500 },
-            { id: 'r2', number: 'A2', area: 6, acUnits: 1, rent: 7000 },
-            { id: 'r3', number: 'A3', area: 4, acUnits: 1, rent: 5500 },
-            { id: 'r4', number: 'A5', area: 25, acUnits: 2, rent: 15000 },
-            { id: 'r5', number: 'B1', area: 7, acUnits: 1, rent: 7500 },
-            { id: 'r6', number: 'B2', area: 7, acUnits: 1, rent: 7500 },
-            { id: 'r7', number: 'C1', area: 9, acUnits: 1, rent: 9000 },
-            { id: 'r8', number: 'C2', area: 8, acUnits: 1, rent: 8000 },
-            { id: 'r9', number: 'C3', area: 4, acUnits: 1, rent: 5500 },
-            { id: 'r10', number: 'C4', area: 4, acUnits: 1, rent: 5500 }
-        ];
-        tenantsData = [
-            { id: 't1', roomId: 'r1', name: '王小明', roommates: 1 },
-            { id: 't2', roomId: 'r2', name: '李小華', roommates: 1 },
-            { id: 't3', roomId: 'r3', name: '張小美', roommates: 1 },
-            { id: 't4', roomId: 'r4', name: '陳小龍', roommates: 2 },
-            { id: 't5', roomId: 'r5', name: '林小婷', roommates: 1 },
-            { id: 't6', roomId: 'r6', name: '黃小強', roommates: 1 },
-            { id: 't7', roomId: 'r7', name: '吳小琳', roommates: 1 },
-            { id: 't8', roomId: 'r8', name: '鄭小偉', roommates: 1 },
-            { id: 't9', roomId: 'r9', name: '謝小琪', roommates: 1 },
-            { id: 't10', roomId: 'r10', name: '楊小豪', roommates: 1 }
-        ];
+        showToast('尚無房間資料，請先在建案管理建立房間', 'error');
+        document.getElementById('btn-save').disabled = true;
+        return;
     }
 
     // 使用 app.js 的 calculateUtilityBill 函數
@@ -410,6 +389,11 @@ function calculateBill() {
     // 啟用儲存按鈕
     document.getElementById('btn-save').disabled = false;
 
+    if (billResults.length === 0) {
+        document.getElementById('btn-save').disabled = true;
+        showToast('無可分攤房間，請先建立合約把房客綁定到客房', 'error');
+        return;
+    }
     showToast(`計算完成，共 ${billResults.length} 間房間`, 'success');
 }
 

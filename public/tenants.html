@@ -95,7 +95,6 @@ async function loadTenants() {
     try {
         const snapshot = await db.collection('users').doc(uid).collection('tenants').get();
         tenantsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (tenantsData.length === 0) { await seedTenantData(); return; }
         renderTenants();
     } catch (e) { console.error(e); showToast('載入失敗', 'error'); }
 }
@@ -130,9 +129,9 @@ function renderTenants(filter = 'all') {
             <td class="px-4 py-3 text-sm font-medium text-gray-900">${t.name}</td>
             <td class="px-4 py-3 text-sm text-gray-600">${t.phone}</td>
             <td class="px-4 py-3 text-sm text-gray-600">${t.email || '—'}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">${t.room}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">${t.contractEnd}</td>
-            <td class="px-4 py-3"><span class="text-xs ${statusColor} px-2 py-1 rounded-full">${t.status}</span></td>
+            <td class="px-4 py-3 text-sm text-gray-600">${t.roomNumber || t.room || '—'}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${t.contractEnd || '—'}</td>
+            <td class="px-4 py-3"><span class="text-xs ${statusColor} px-2 py-1 rounded-full">${t.status || '未承租'}</span></td>
             <td class="px-4 py-3 text-sm text-amber-500">${stars}</td>
             <td class="px-4 py-3"><button onclick="editTenant('${t.id}')" class="text-sm text-primary hover:underline mr-2">編輯</button><button onclick="deleteTenant('${t.id}')" class="text-sm text-red-500 hover:underline">刪除</button></td>
         </tr>`;
@@ -174,7 +173,7 @@ document.getElementById('tenant-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const uid = getCurrentUserUid();
     if (!uid) return;
-    const data = { name: document.getElementById('tenant-name').value, phone: document.getElementById('tenant-phone').value, email: document.getElementById('tenant-email').value, line: document.getElementById('tenant-line').value, emergencyName: document.getElementById('tenant-emergency-name').value, emergencyPhone: document.getElementById('tenant-emergency-phone').value, job: document.getElementById('tenant-job').value, roommates: parseInt(document.getElementById('tenant-roommates').value) || 1, notes: document.getElementById('tenant-notes').value };
+    const data = { name: document.getElementById('tenant-name').value, phone: document.getElementById('tenant-phone').value, email: document.getElementById('tenant-email').value, line: document.getElementById('tenant-line').value, emergencyName: document.getElementById('tenant-emergency-name').value, emergencyPhone: document.getElementById('tenant-emergency-phone').value, job: document.getElementById('tenant-job').value, roommates: parseInt(document.getElementById('tenant-roommates').value) || 1, notes: document.getElementById('tenant-notes').value, status: '未承租', rating: 0, roomNumber: '', roomId: '', projectId: '', contractEnd: '', rent: 0 };
     const id = document.getElementById('tenant-id').value;
     try {
         if (id) { await db.collection('users').doc(uid).collection('tenants').doc(id).update(data); showToast('房客已更新'); }
@@ -182,7 +181,7 @@ document.getElementById('tenant-form').addEventListener('submit', async (e) => {
         closeTenantModal(); loadTenants();
     } catch (e) { showToast('儲存失敗', 'error'); }
 });
-document.addEventListener('DOMContentLoaded', loadTenants);
+document.addEventListener('DOMContentLoaded', () => onAuthReady(user => { if (user) loadTenants(); }));
 </script>
 </body>
 </html>
