@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RentalHub 主控台</title>
+    <title>大都會物業房務管理系統 — 主控台</title>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -57,6 +57,9 @@
         }
         .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
 
+        /* Sidebar normalization */
+        .nav-link{display:flex;align-items:center;gap:.75rem;padding:.625rem .75rem;border-radius:.5rem;font-size:.875rem;line-height:1.25rem;min-height:2.5rem;transition:background-color .15s,color .15s}.nav-link i{width:1.25rem;text-align:center}.nav-link.active,.nav-link.bg-primary\/10{background:#2563EB15;color:#2563EB;font-weight:600}.nav-link:not(.active):hover{background:#f9fafb;color:#2563EB}
+
         /* Stagger children */
         .stagger-1 { animation-delay: 0.05s; }
         .stagger-2 { animation-delay: 0.1s; }
@@ -81,7 +84,7 @@
                     <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                         <i class="fas fa-building text-white text-sm"></i>
                     </div>
-                    <span class="text-lg font-bold text-gray-800 hidden sm:block">RentalHub</span>
+                    <span class="text-base lg:text-lg font-bold text-gray-800 hidden sm:block">大都會物業房務管理系統</span>
                 </a>
             </div>
 
@@ -129,45 +132,45 @@
         <nav class="p-4 space-y-1">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">主要功能</p>
 
-            <a href="dashboard.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-medium">
+            <a href="dashboard.html" class="nav-link active">
                 <i class="fas fa-th-large w-5 text-center"></i>
                 <span>主控台</span>
             </a>
-            <a href="projects.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors">
+            <a href="projects.html" class="nav-link text-gray-600">
                 <i class="fas fa-building w-5 text-center"></i>
                 <span>建案管理</span>
             </a>
-            <a href="tenants.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors">
+            <a href="tenants.html" class="nav-link text-gray-600">
                 <i class="fas fa-users w-5 text-center"></i>
                 <span>房客管理</span>
             </a>
-            <a href="contracts.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors">
+            <a href="contracts.html" class="nav-link text-gray-600">
                 <i class="fas fa-file-contract w-5 text-center"></i>
                 <span>合約管理</span>
             </a>
-            <a href="rent.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors">
+            <a href="rent.html" class="nav-link text-gray-600">
                 <i class="fas fa-money-bill-wave w-5 text-center"></i>
                 <span>租金管理</span>
             </a>
 
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-3 px-3">工具與分析</p>
 
-            <a href="billing.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors">
+            <a href="billing.html" class="nav-link text-gray-600">
                 <i class="fas fa-calculator w-5 text-center"></i>
                 <span>費用計算</span>
             </a>
-            <a href="maintenance.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors">
+            <a href="maintenance.html" class="nav-link text-gray-600">
                 <i class="fas fa-tools w-5 text-center"></i>
                 <span>修繕派工</span>
             </a>
-            <a href="evidence.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors">
+            <a href="evidence.html" class="nav-link text-gray-600">
                 <i class="fas fa-folder-open w-5 text-center"></i>
                 <span>證據保存</span>
             </a>
 
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-6 mb-3 px-3">系統</p>
 
-            <a href="settings.html" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-primary transition-colors">
+            <a href="settings.html" class="nav-link text-gray-600">
                 <i class="fas fa-cog w-5 text-center"></i>
                 <span>設定</span>
             </a>
@@ -379,7 +382,7 @@
 
             <!-- Footer -->
             <footer class="mt-10 pb-6 text-center text-sm text-gray-400">
-                <p>© 2025 RentalHub 個人房東租賃管理系統. All rights reserved.</p>
+                <p>© 2026 大都會物業房務管理系統. All rights reserved.</p>
             </footer>
 
         </div>
@@ -387,9 +390,6 @@
 
     <!-- Dashboard Logic -->
     <script>
-        // ============================================================
-        // Sidebar Toggle (Mobile)
-        // ============================================================
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebar-overlay');
@@ -397,160 +397,88 @@
             overlay.classList.toggle('hidden');
         }
 
-        // ============================================================
-        // Fallback / Demo Data
-        // ============================================================
-        const DEMO_DATA = {
-            projects: [
-                { id: 'p1', name: '大都會美寓 A 棟', address: '台北市中正區重慶南路一段', totalRooms: 6, rentedRooms: 5 },
-                { id: 'p2', name: '大都會美寓 B 棟', address: '台北市中正區衡陽路', totalRooms: 4, rentedRooms: 3 },
-                { id: 'p3', name: '站前之星', address: '台北市中正區忠孝西路一段', totalRooms: 3, rentedRooms: 2 },
-            ],
-            tenants: [
-                { id: 't1', name: '王小明', roomNumber: 'A101' },
-                { id: 't2', name: '陳美玲', roomNumber: 'A102' },
-                { id: 't3', name: '林大偉', roomNumber: 'A201' },
-                { id: 't4', name: '張雅琪', roomNumber: 'A202' },
-                { id: 't5', name: '黃建志', roomNumber: 'A301' },
-                { id: 't6', name: '吳思涵', roomNumber: 'B101' },
-                { id: 't7', name: '李宗豪', roomNumber: 'B102' },
-                { id: 't8', name: '周佳蓉', roomNumber: 'B201' },
-                { id: 't9', name: '鄭宇翔', roomNumber: 'C101' },
-                { id: 't10', name: '趙珮琪', roomNumber: 'C102' },
-            ],
-            contracts: [
-                { id: 'c1', tenantName: '王小明', roomNumber: 'A101', endDate: '2025-06-15', status: 'active' },
-                { id: 'c2', tenantName: '陳美玲', roomNumber: 'A102', endDate: '2025-12-31', status: 'active' },
-                { id: 'c3', tenantName: '林大偉', roomNumber: 'A201', endDate: '2025-11-30', status: 'active' },
-            ],
-            rentRecords: [
-                { id: 'r1', tenantName: '王小明', roomNumber: 'A101', amount: 12000, year: 2025, month: 5, status: '逾期', dueDate: '2025-05-05', createdAt: Date.now() - 86400000 },
-                { id: 'r2', tenantName: '陳美玲', roomNumber: 'A102', amount: 13500, year: 2025, month: 5, status: '未繳', dueDate: '2025-05-05', createdAt: Date.now() - 172800000 },
-                { id: 'r3', tenantName: '林大偉', roomNumber: 'A201', amount: 11000, year: 2025, month: 5, status: '已繳', dueDate: '2025-05-05', createdAt: Date.now() - 259200000 },
-                { id: 'r4', tenantName: '張雅琪', roomNumber: 'A202', amount: 12500, year: 2025, month: 5, status: '已繳', dueDate: '2025-05-05', createdAt: Date.now() - 345600000 },
-                { id: 'r5', tenantName: '黃建志', roomNumber: 'A301', amount: 10000, year: 2025, month: 4, status: '已繳', dueDate: '2025-04-05', createdAt: Date.now() - 2592000000 },
-            ],
-            maintenanceTasks: [
-                { id: 'm1', title: 'A101 冷氣不冷', roomNumber: 'A101', status: '待處理', priority: 'high', createdAt: Date.now() - 86400000 },
-                { id: 'm2', title: 'B202 水龍頭漏水', roomNumber: 'B202', status: '待處理', priority: 'medium', createdAt: Date.now() - 172800000 },
-                { id: 'm3', title: 'A301 燈具更換', roomNumber: 'A301', status: '處理中', priority: 'low', createdAt: Date.now() - 259200000 },
-            ],
-            monthlyIncome: 145000,
-        };
+        function toMillis(value) {
+            if (!value) return 0;
+            if (typeof value === 'number') return value;
+            if (value.toMillis) return value.toMillis();
+            if (value.seconds) return value.seconds * 1000;
+            const parsed = new Date(value).getTime();
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
 
-        // ============================================================
-        // Helper: Relative Time String
-        // ============================================================
-        function getRelativeTime(timestamp) {
+        function getRelativeTime(value) {
+            const timestamp = toMillis(value);
             if (!timestamp) return '未知時間';
-            const now = Date.now();
-            const diff = now - timestamp;
-            if (diff < 0) return '剛剛';
-            const seconds = Math.floor(diff / 1000);
-            const minutes = Math.floor(seconds / 60);
+            const diff = Date.now() - timestamp;
+            if (diff < 60000) return '剛剛';
+            const minutes = Math.floor(diff / 60000);
             const hours = Math.floor(minutes / 60);
             const days = Math.floor(hours / 24);
             if (days > 30) return `${Math.floor(days / 30)} 個月前`;
             if (days > 0) return `${days} 天前`;
             if (hours > 0) return `${hours} 小時前`;
-            if (minutes > 0) return `${minutes} 分鐘前`;
-            return '剛剛';
+            return `${minutes} 分鐘前`;
         }
 
-        // ============================================================
-        // Data Loading
-        // ============================================================
+        function getContractEnd(c) { return c.end || c.endDate || c.contractEnd || ''; }
+        function roomLabel(record) { return record.roomNumber || record.room || ''; }
+        function isRoomOccupied(room) { return room.status === '已出租' || !!room.tenantId || !!room.tenant || !!room.contractId; }
+
         async function loadDashboardData() {
             const uid = getCurrentUserUid();
-            let useDemo = false;
+            if (!uid) return;
+            try {
+                showLoading();
+                const [projects, tenants, contracts, rentRecords, maintenanceTasks] = await Promise.all([
+                    getProjects(), getTenants(), getContracts(), getRentRecords(), getMaintenanceTasks()
+                ]);
 
-            let projects = [], tenants = [], contracts = [], rentRecords = [], maintenanceTasks = [];
-
-            if (uid) {
-                try {
-                    projects = await getProjects();
-                    tenants = await getTenants();
-                    contracts = await getContracts();
-                    rentRecords = await getRentRecords();
-                    maintenanceTasks = await getMaintenanceTasks();
-                } catch (e) {
-                    console.warn('Firestore read failed, using demo data:', e);
-                    useDemo = true;
+                const projectsWithRooms = [];
+                for (const project of projects) {
+                    const rooms = await getRooms(project.id);
+                    const normalizedRooms = rooms.map(room => ({ ...room, projectId: project.id, projectName: project.name || '' }));
+                    projectsWithRooms.push({ ...project, rooms: normalizedRooms, totalRooms: normalizedRooms.length, rentedRooms: normalizedRooms.filter(isRoomOccupied).length });
                 }
-            } else {
-                useDemo = true;
-            }
 
-            if (useDemo || (projects.length === 0 && tenants.length === 0)) {
-                projects = DEMO_DATA.projects;
-                tenants = DEMO_DATA.tenants;
-                contracts = DEMO_DATA.contracts;
-                rentRecords = DEMO_DATA.rentRecords;
-                maintenanceTasks = DEMO_DATA.maintenanceTasks;
+                renderDashboard(projectsWithRooms, tenants, contracts, rentRecords, maintenanceTasks);
+            } catch (e) {
+                console.error('主控台資料載入失敗:', e);
+                showToast('主控台資料載入失敗', 'error');
+                renderDashboard([], [], [], [], []);
+            } finally {
+                hideLoading();
             }
-
-            renderDashboard(projects, tenants, contracts, rentRecords, maintenanceTasks);
         }
 
-        // ============================================================
-        // Render Functions
-        // ============================================================
         function renderDashboard(projects, tenants, contracts, rentRecords, maintenanceTasks) {
-            // --- Stat Cards ---
-            // Calculate room stats from projects (support both pre-computed fields and raw data)
-            let totalRooms = 0;
-            let rentedRooms = 0;
-
-            projects.forEach(p => {
-                if (p.totalRooms !== undefined) {
-                    totalRooms += p.totalRooms;
-                    rentedRooms += (p.rentedRooms || 0);
-                }
-            });
-
-            // If no pre-computed room data, estimate from tenants count
-            if (totalRooms === 0 && tenants.length > 0) {
-                rentedRooms = tenants.length;
-                totalRooms = Math.max(tenants.length, projects.length * 3);
-            }
-
-            const vacantRooms = totalRooms - rentedRooms;
+            const allRooms = projects.flatMap(p => p.rooms || []);
+            const totalRooms = allRooms.length;
+            const rentedRooms = allRooms.filter(isRoomOccupied).length;
+            const vacantRooms = Math.max(totalRooms - rentedRooms, 0);
             const occupancyRate = totalRooms > 0 ? Math.round((rentedRooms / totalRooms) * 100) : 0;
 
-            // Calculate monthly income from rentRecords
             const now = new Date();
             const currentYear = now.getFullYear();
             const currentMonth = now.getMonth() + 1;
-            let monthlyIncome = 0;
-            let paidCount = 0;
+            const currentMonthRentRecords = rentRecords.filter(r => Number(r.year) === currentYear && Number(r.month) === currentMonth);
+            const currentActiveContracts = contracts.filter(c => (c.status || '進行中') !== '已結束');
+            const rentDue = currentMonthRentRecords.length > 0
+                ? currentMonthRentRecords.reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
+                : currentActiveContracts.reduce((sum, c) => sum + (Number(c.rent) || 0), 0);
+            const rentPaid = currentMonthRentRecords.reduce((sum, r) => sum + (Number(r.paid) || (r.status === '已繳' ? Number(r.amount) || 0 : 0)), 0);
+            const overdueAmount = currentMonthRentRecords
+                .filter(r => r.status === '逾期' || r.status === '部分' || (Number(r.amount || 0) > Number(r.paid || 0) && r.status !== '已繳'))
+                .reduce((sum, r) => sum + Math.max((Number(r.amount) || 0) - (Number(r.paid) || 0), 0), 0);
 
-            rentRecords.forEach(r => {
-                // Support both old format (month string + paid boolean) and new format (year/month + status string)
-                const isCurrentMonth = (r.year === currentYear && r.month === currentMonth) ||
-                    (r.month && r.month === `${currentYear}-${String(currentMonth).padStart(2, '0')}`);
-                const isPaid = r.status === '已繳' || r.paid === true;
-                if (isCurrentMonth && isPaid) {
-                    monthlyIncome += (r.amount || 0);
-                    paidCount++;
-                }
-            });
-
-            // If no paid records found, use demo income as fallback
-            if (monthlyIncome === 0) {
-                monthlyIncome = DEMO_DATA.monthlyIncome;
-            }
-
-            // Update stat cards
             document.getElementById('stat-total-rooms').textContent = totalRooms;
             document.getElementById('stat-total-projects').textContent = projects.length;
             document.getElementById('stat-rented').textContent = rentedRooms;
             document.getElementById('stat-occupancy-rate').textContent = occupancyRate + '%';
             document.getElementById('stat-vacant').textContent = vacantRooms;
             document.getElementById('stat-vacant-rooms').textContent = vacantRooms + ' 間';
-            document.getElementById('stat-income').textContent = formatCurrency(monthlyIncome);
-            document.getElementById('stat-income-note').textContent = paidCount > 0 ? `${paidCount} 筆已繳` : '本月已繳';
+            document.getElementById('stat-income').textContent = formatCurrency(rentPaid);
+            document.getElementById('stat-income-note').textContent = `${formatCurrency(rentDue)} 應收`;
 
-            // --- Project Overview ---
             const projectList = document.getElementById('project-overview-list');
             if (projects.length === 0) {
                 projectList.innerHTML = '<p class="text-gray-400 text-sm text-center py-6">尚無建案資料</p>';
@@ -559,272 +487,68 @@
                     const total = p.totalRooms || 0;
                     const rented = p.rentedRooms || 0;
                     const pct = total > 0 ? Math.round((rented / total) * 100) : 0;
-                    const vacant = total - rented;
-                    return `
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <div>
-                                    <h3 class="font-semibold text-gray-700 text-sm">${p.name || '未命名建案'}</h3>
-                                    <p class="text-xs text-gray-400">${p.address || ''}</p>
-                                </div>
-                                <div class="text-right">
-                                    <span class="text-sm font-bold text-gray-700">${rented}/${total}</span>
-                                    <span class="text-xs text-gray-400 ml-1">間</span>
-                                </div>
-                            </div>
-                            <div class="w-full bg-gray-100 rounded-full h-2.5">
-                                <div class="progress-bar h-2.5 rounded-full ${pct >= 80 ? 'bg-secondary' : pct >= 50 ? 'bg-primary' : 'bg-amber-400'}" style="width: ${pct}%"></div>
-                            </div>
-                            <div class="flex items-center gap-4 mt-1.5 text-xs text-gray-400">
-                                <span><i class="fas fa-user-check text-secondary mr-1"></i>已租 ${rented}</span>
-                                <span><i class="fas fa-door-closed text-amber-400 mr-1"></i>空置 ${vacant}</span>
-                                <span class="ml-auto font-medium ${pct >= 80 ? 'text-secondary' : pct >= 50 ? 'text-primary' : 'text-amber-500'}">${pct}%</span>
-                            </div>
+                    const vacant = Math.max(total - rented, 0);
+                    return `<div>
+                        <div class="flex items-center justify-between mb-2">
+                            <div><h3 class="font-semibold text-gray-700 text-sm">${p.name || '未命名建案'}</h3><p class="text-xs text-gray-400">${p.address || ''}</p></div>
+                            <div class="text-right"><span class="text-sm font-bold text-gray-700">${rented}/${total}</span><span class="text-xs text-gray-400 ml-1">間</span></div>
                         </div>
-                    `;
+                        <div class="w-full bg-gray-100 rounded-full h-2.5"><div class="progress-bar h-2.5 rounded-full ${pct >= 80 ? 'bg-secondary' : pct >= 50 ? 'bg-primary' : 'bg-amber-400'}" style="width: ${pct}%"></div></div>
+                        <div class="flex items-center gap-4 mt-1.5 text-xs text-gray-400"><span><i class="fas fa-user-check text-secondary mr-1"></i>已租 ${rented}</span><span><i class="fas fa-door-closed text-amber-400 mr-1"></i>空置 ${vacant}</span><span class="ml-auto font-medium ${pct >= 80 ? 'text-secondary' : pct >= 50 ? 'text-primary' : 'text-amber-500'}">${pct}%</span></div>
+                    </div>`;
                 }).join('');
             }
 
-            // --- Todo / Alerts ---
-            const todoList = document.getElementById('todo-list');
             const todos = [];
-
-            // 1. Overdue rent: status === '逾期'
-            const overdueRents = rentRecords.filter(r => r.status === '逾期');
-            overdueRents.forEach(r => {
-                todos.push({
-                    type: 'overdue',
-                    icon: 'fa-money-bill-wave',
-                    color: 'red',
-                    title: '逾期租金',
-                    desc: `${r.tenantName || '房客'}・${r.roomNumber || ''}・${formatCurrency(r.amount || 0)}`,
-                    link: 'rent.html',
-                    time: r.dueDate ? `到期日: ${r.dueDate}` : '',
-                    sortTime: r.createdAt || 0,
-                });
+            currentMonthRentRecords.filter(r => r.status === '逾期' || r.status === '部分' || Math.max((Number(r.amount) || 0) - (Number(r.paid) || 0), 0) > 0).forEach(r => {
+                todos.push({ icon:'fa-money-bill-wave', color:'red', title:'待收租金', desc:`${r.tenantName || '房客'}・${roomLabel(r)}・未收 ${formatCurrency(Math.max((Number(r.amount)||0)-(Number(r.paid)||0),0))}`, link:'rent.html', time:r.date || '', sortTime: toMillis(r.createdAt) || Date.now() });
             });
-
-            // 2. Unpaid rent: status === '未繳'
-            const unpaidRents = rentRecords.filter(r => r.status === '未繳');
-            unpaidRents.forEach(r => {
-                todos.push({
-                    type: 'unpaid',
-                    icon: 'fa-clock',
-                    color: 'amber',
-                    title: '未繳租金',
-                    desc: `${r.tenantName || '房客'}・${r.roomNumber || ''}・${formatCurrency(r.amount || 0)}`,
-                    link: 'rent.html',
-                    time: r.dueDate ? `到期日: ${r.dueDate}` : '',
-                    sortTime: r.createdAt || 0,
-                });
+            maintenanceTasks.filter(t => ['待處理','處理中','進行中'].includes(t.status)).forEach(t => {
+                todos.push({ icon:'fa-tools', color:t.priority === 'high' ? 'red' : 'amber', title:'待處理修繕', desc:`${roomLabel(t)}・${t.title || '修繕任務'}`, link:'maintenance.html', time:t.assignedTo ? `負責：${t.assignedTo}` : '', sortTime: toMillis(t.createdAt) });
             });
-
-            // 3. Pending maintenance: status === '待處理' or '處理中'
-            const pendingTasks = maintenanceTasks.filter(t => t.status === '待處理' || t.status === '處理中');
-            pendingTasks.forEach(t => {
-                const priorityColors = { high: 'red', medium: 'amber', low: 'blue' };
-                const priorityLabels = { high: '高優先', medium: '中優先', low: '低優先' };
-                const color = priorityColors[t.priority] || 'blue';
-                todos.push({
-                    type: 'maintenance',
-                    icon: 'fa-tools',
-                    color: color,
-                    title: '待修繕',
-                    desc: `${t.roomNumber || ''}・${t.title || '修繕任務'}`,
-                    link: 'maintenance.html',
-                    time: priorityLabels[t.priority] || '',
-                    sortTime: t.createdAt || 0,
-                });
-            });
-
-            // 4. Expiring contracts (within 30 days)
-            const nowDate = new Date();
-            const thirtyDaysLater = new Date(nowDate.getTime() + 30 * 86400000);
+            const sixtyDaysLater = new Date(now.getTime() + 60 * 86400000);
             contracts.forEach(c => {
-                if (!c.endDate) return;
-                const end = new Date(c.endDate);
-                if (end >= nowDate && end <= thirtyDaysLater) {
-                    const daysLeft = Math.ceil((end - nowDate) / 86400000);
-                    todos.push({
-                        type: 'contract',
-                        icon: 'fa-file-contract',
-                        color: 'amber',
-                        title: '合約即將到期',
-                        desc: `${c.tenantName || '房客'}・${c.roomNumber || ''}`,
-                        link: 'contracts.html',
-                        time: `剩 ${daysLeft} 天`,
-                        sortTime: (end.getTime() - nowDate.getTime()),
-                    });
+                const endValue = getContractEnd(c);
+                if (!endValue) return;
+                const end = new Date(endValue);
+                if (end >= now && end <= sixtyDaysLater) {
+                    const daysLeft = Math.ceil((end - now) / 86400000);
+                    todos.push({ icon:'fa-file-contract', color:'amber', title:'合約即將到期', desc:`${c.tenantName || '房客'}・${roomLabel(c)}`, link:'contracts.html', time:`剩 ${daysLeft} 天`, sortTime:end.getTime() });
                 }
             });
+            if (overdueAmount > 0) {
+                todos.unshift({ icon:'fa-exclamation-circle', color:'red', title:'本月逾期金額', desc:formatCurrency(overdueAmount), link:'rent.html', time:'需追蹤', sortTime:Date.now() + 1 });
+            }
 
-            // Sort todos: red first, then amber, then blue
-            const colorOrder = { red: 0, amber: 1, blue: 2 };
-            todos.sort((a, b) => (colorOrder[a.color] ?? 2) - (colorOrder[b.color] ?? 2));
-
-            // Update notification badge
+            const colorOrder = { red:0, amber:1, blue:2 };
+            todos.sort((a,b) => (colorOrder[a.color] ?? 2) - (colorOrder[b.color] ?? 2) || (b.sortTime || 0) - (a.sortTime || 0));
             const badge = document.getElementById('notification-badge');
-            if (badge) {
-                if (todos.length > 0) {
-                    badge.textContent = todos.length;
-                    badge.classList.remove('hidden');
-                } else {
-                    badge.classList.add('hidden');
-                }
-            }
-
+            if (badge) { badge.textContent = todos.length; badge.classList.toggle('hidden', todos.length === 0); }
             document.getElementById('todo-count').textContent = todos.length;
-
+            const todoList = document.getElementById('todo-list');
             if (todos.length === 0) {
-                todoList.innerHTML = `
-                    <div class="text-center py-8">
-                        <div class="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <i class="fas fa-check text-secondary text-lg"></i>
-                        </div>
-                        <p class="text-sm text-gray-400">目前沒有待辦事項 🎉</p>
-                    </div>
-                `;
+                todoList.innerHTML = '<div class="text-center py-8"><div class="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-check text-secondary text-lg"></i></div><p class="text-sm text-gray-400">目前沒有待辦事項 🎉</p></div>';
             } else {
-                const colorMap = {
-                    red: { bg: 'bg-red-50', text: 'text-red-500', border: 'border-red-100' },
-                    amber: { bg: 'bg-amber-50', text: 'text-amber-500', border: 'border-amber-100' },
-                    blue: { bg: 'bg-blue-50', text: 'text-blue-500', border: 'border-blue-100' },
-                };
-                todoList.innerHTML = todos.map(t => {
-                    const c = colorMap[t.color] || colorMap.blue;
-                    return `
-                        <a href="${t.link}" class="flex items-start gap-3 p-3 rounded-lg border ${c.border} hover:shadow-sm transition-shadow">
-                            <div class="w-8 h-8 ${c.bg} rounded-lg flex items-center justify-center shrink-0 mt-0.5">
-                                <i class="fas ${t.icon} ${c.text} text-sm"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-xs font-semibold ${c.text}">${t.title}</p>
-                                <p class="text-sm text-gray-600 truncate">${t.desc}</p>
-                                ${t.time ? `<p class="text-xs text-gray-400 mt-0.5">${t.time}</p>` : ''}
-                            </div>
-                            <i class="fas fa-chevron-right text-gray-300 text-xs mt-2 shrink-0"></i>
-                        </a>
-                    `;
-                }).join('');
+                const colorMap = { red:{bg:'bg-red-50',text:'text-red-500',border:'border-red-100'}, amber:{bg:'bg-amber-50',text:'text-amber-500',border:'border-amber-100'}, blue:{bg:'bg-blue-50',text:'text-blue-500',border:'border-blue-100'} };
+                todoList.innerHTML = todos.slice(0, 8).map(t => { const c = colorMap[t.color] || colorMap.blue; return `<a href="${t.link}" class="flex items-start gap-3 p-3 rounded-lg border ${c.border} hover:shadow-sm transition-shadow"><div class="w-8 h-8 ${c.bg} rounded-lg flex items-center justify-center shrink-0 mt-0.5"><i class="fas ${t.icon} ${c.text} text-sm"></i></div><div class="min-w-0 flex-1"><p class="text-xs font-semibold ${c.text}">${t.title}</p><p class="text-sm text-gray-600 truncate">${t.desc}</p>${t.time ? `<p class="text-xs text-gray-400 mt-0.5">${t.time}</p>` : ''}</div><i class="fas fa-chevron-right text-gray-300 text-xs mt-2 shrink-0"></i></a>`; }).join('');
             }
 
-            // --- Recent Activity (Dynamic) ---
-            const activityList = document.getElementById('activity-list');
             const activities = [];
-
-            // Add rent records
-            rentRecords.forEach(r => {
-                const statusConfig = {
-                    '已繳': { icon: 'fa-money-bill-wave', color: 'emerald', title: '租金已收款' },
-                    '未繳': { icon: 'fa-clock', color: 'amber', title: '租金待繳納' },
-                    '逾期': { icon: 'fa-exclamation-circle', color: 'red', title: '租金已逾期' },
-                };
-                const cfg = statusConfig[r.status] || { icon: 'fa-money-bill-wave', color: 'blue', title: '租金紀錄' };
-                const monthLabel = r.year && r.month ? `${r.year}/${String(r.month).padStart(2, '0')}` : (r.month || '');
-                activities.push({
-                    icon: cfg.icon,
-                    color: cfg.color,
-                    title: cfg.title,
-                    desc: `${r.tenantName || '房客'}・${r.roomNumber || ''}・${formatCurrency(r.amount || 0)} (${monthLabel})`,
-                    time: getRelativeTime(r.createdAt),
-                    sortTime: r.createdAt || 0,
-                });
-            });
-
-            // Add maintenance tasks
-            maintenanceTasks.forEach(t => {
-                const statusConfig = {
-                    '待處理': { icon: 'fa-tools', color: 'amber', title: '新增修繕任務' },
-                    '處理中': { icon: 'fa-wrench', color: 'blue', title: '修繕處理中' },
-                    '已完成': { icon: 'fa-check-circle', color: 'emerald', title: '修繕已完成' },
-                };
-                const cfg = statusConfig[t.status] || { icon: 'fa-tools', color: 'amber', title: '修繕任務更新' };
-                activities.push({
-                    icon: cfg.icon,
-                    color: cfg.color,
-                    title: cfg.title,
-                    desc: `${t.roomNumber || ''}・${t.title || '修繕任務'}`,
-                    time: getRelativeTime(t.createdAt),
-                    sortTime: t.createdAt || 0,
-                });
-            });
-
-            // Add contracts
-            contracts.forEach(c => {
-                activities.push({
-                    icon: 'fa-file-contract',
-                    color: 'indigo',
-                    title: '合約建立',
-                    desc: `${c.tenantName || '房客'}・${c.roomNumber || ''}・到期日 ${c.endDate || '未設定'}`,
-                    time: getRelativeTime(c.createdAt),
-                    sortTime: c.createdAt || 0,
-                });
-            });
-
-            // Sort by time descending, take latest 10
-            activities.sort((a, b) => b.sortTime - a.sortTime);
-            const latestActivities = activities.slice(0, 10);
-
-            const iconColorMap = {
-                blue: { bg: 'bg-blue-50', text: 'text-primary' },
-                emerald: { bg: 'bg-emerald-50', text: 'text-secondary' },
-                amber: { bg: 'bg-amber-50', text: 'text-amber-500' },
-                indigo: { bg: 'bg-indigo-50', text: 'text-indigo-500' },
-                purple: { bg: 'bg-purple-50', text: 'text-purple-500' },
-                teal: { bg: 'bg-teal-50', text: 'text-teal-500' },
-                red: { bg: 'bg-red-50', text: 'text-red-500' },
-            };
-
+            rentRecords.forEach(r => activities.push({ icon:'fa-money-bill-wave', color:r.status === '已繳' ? 'emerald' : r.status === '逾期' ? 'red' : 'amber', title:r.status === '已繳' ? '租金已收款' : '租金紀錄', desc:`${r.tenantName || '房客'}・${roomLabel(r)}・${formatCurrency(r.amount || 0)}`, time:getRelativeTime(r.createdAt || r.date), sortTime:toMillis(r.createdAt || r.date) }));
+            maintenanceTasks.forEach(t => activities.push({ icon:'fa-tools', color:t.status === '已完成' ? 'emerald' : 'amber', title:t.status === '已完成' ? '修繕已完成' : '修繕任務更新', desc:`${roomLabel(t)}・${t.title || '修繕任務'}`, time:getRelativeTime(t.createdAt || t.updatedAt), sortTime:toMillis(t.createdAt || t.updatedAt) }));
+            contracts.forEach(c => activities.push({ icon:'fa-file-contract', color:'indigo', title:'合約紀錄', desc:`${c.tenantName || '房客'}・${roomLabel(c)}・到期日 ${getContractEnd(c) || '未設定'}`, time:getRelativeTime(c.createdAt || c.updatedAt), sortTime:toMillis(c.createdAt || c.updatedAt) }));
+            activities.sort((a,b) => (b.sortTime || 0) - (a.sortTime || 0));
+            const activityList = document.getElementById('activity-list');
+            const latestActivities = activities.slice(0,10);
             if (latestActivities.length === 0) {
-                activityList.innerHTML = `
-                    <div class="text-center py-8">
-                        <div class="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <i class="fas fa-inbox text-gray-300 text-lg"></i>
-                        </div>
-                        <p class="text-sm text-gray-400">目前沒有活動紀錄</p>
-                    </div>
-                `;
+                activityList.innerHTML = '<div class="text-center py-8"><div class="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3"><i class="fas fa-inbox text-gray-300 text-lg"></i></div><p class="text-sm text-gray-400">目前沒有活動紀錄</p></div>';
             } else {
-                activityList.innerHTML = latestActivities.map(a => {
-                    const c = iconColorMap[a.color] || iconColorMap.blue;
-                    return `
-                        <div class="flex gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-                            <div class="w-10 h-10 ${c.bg} rounded-full flex items-center justify-center shrink-0">
-                                <i class="fas ${a.icon} ${c.text} text-sm"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-700">${a.title}</p>
-                                <p class="text-xs text-gray-400 mt-0.5 truncate">${a.desc}</p>
-                            </div>
-                            <span class="text-xs text-gray-300 whitespace-nowrap shrink-0">${a.time}</span>
-                        </div>
-                    `;
-                }).join('');
+                const iconColorMap = { blue:{bg:'bg-blue-50',text:'text-primary'}, emerald:{bg:'bg-emerald-50',text:'text-secondary'}, amber:{bg:'bg-amber-50',text:'text-amber-500'}, indigo:{bg:'bg-indigo-50',text:'text-indigo-500'}, red:{bg:'bg-red-50',text:'text-red-500'} };
+                activityList.innerHTML = latestActivities.map(a => { const c = iconColorMap[a.color] || iconColorMap.blue; return `<div class="flex gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"><div class="w-10 h-10 ${c.bg} rounded-full flex items-center justify-center shrink-0"><i class="fas ${a.icon} ${c.text} text-sm"></i></div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-gray-700">${a.title}</p><p class="text-xs text-gray-400 mt-0.5 truncate">${a.desc}</p></div><span class="text-xs text-gray-300 whitespace-nowrap shrink-0">${a.time}</span></div>`; }).join('');
             }
         }
 
-        // ============================================================
-        // Initialize
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auth check
-            firebase.auth().onAuthStateChanged(function(user) {
-                if (!user) {
-                    if (!window.location.pathname.includes('login.html')) {
-                        window.location.href = 'login.html';
-                    }
-                } else {
-                    updateUserInfo(user);
-                    // Set avatar initials
-                    const name = user.displayName || '使用者';
-                    const initials = name.charAt(0);
-                    const avatarEl = document.getElementById('user-avatar');
-                    if (avatarEl) avatarEl.textContent = initials;
-                }
-                // Load dashboard data regardless (will use demo if not logged in for preview)
-                loadDashboardData();
-            });
-        });
+        document.addEventListener('DOMContentLoaded', () => onAuthReady(user => { if (user) loadDashboardData(); }));
     </script>
 </body>
 </html>

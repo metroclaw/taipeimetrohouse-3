@@ -52,7 +52,7 @@ function updateUserInfo(user) {
 function handleSignOut() {
     firebase.auth().signOut().then(() => {
         clearSession();
-        window.location.replace('login.html');
+        window.location.replace('index.html');
     }).catch((error) => {
         showToast('登出失敗', 'error');
     });
