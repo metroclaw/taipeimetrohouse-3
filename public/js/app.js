@@ -48,6 +48,60 @@ function updateUserInfo(user) {
     if (avatarEl) avatarEl.src = user.photoURL || 'img/profile_placeholder.png';
 }
 
+
+const ACCOUNT_ROLES = ['管理員', '員工', '房務', '工務', '租客', '訪客'];
+const ACCOUNT_STATUSES = ['啟用', '停用'];
+
+async function ensureAccountProfile(user) {
+    if (!user) return null;
+    const accountRef = db.collection('accounts').doc(user.uid);
+    const accountSnap = await accountRef.get();
+    let role = '訪客';
+    if (!accountSnap.exists) {
+        try {
+            const firstSnap = await db.collection('accounts').limit(1).get();
+            role = firstSnap.empty ? '管理員' : '訪客';
+        } catch (e) {
+            console.warn('[Accounts] Failed to check first account, defaulting to visitor:', e);
+        }
+        await accountRef.set({
+            uid: user.uid,
+            displayName: user.displayName || '未命名使用者',
+            email: user.email || '',
+            photoURL: user.photoURL || '',
+            role,
+            status: '啟用',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    } else {
+        await accountRef.set({
+            uid: user.uid,
+            displayName: user.displayName || accountSnap.data().displayName || '未命名使用者',
+            email: user.email || accountSnap.data().email || '',
+            photoURL: user.photoURL || accountSnap.data().photoURL || '',
+            status: accountSnap.data().status || '啟用',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    }
+    const fresh = await accountRef.get();
+    return { id: fresh.id, ...fresh.data() };
+}
+
+async function getCurrentAccountProfile() {
+    const user = getCurrentUser();
+    if (!user) return null;
+    const doc = await db.collection('accounts').doc(user.uid).get();
+    return doc.exists ? { id: doc.id, ...doc.data() } : null;
+}
+
+async function getAllAccounts() {
+    const snapshot = await db.collection('accounts').orderBy('createdAt', 'asc').get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
 // 登出
 function handleSignOut() {
     firebase.auth().signOut().then(() => {
@@ -354,6 +408,7 @@ function waitForAuthInit() {
         if (user) {
             setSession(user.email || user.uid);
             updateUserInfo(user);
+            ensureAccountProfile(user).catch(function(e) { console.warn('[Accounts] profile sync failed:', e); });
             if (isLoginPage) {
                 window.location.replace('dashboard.html');
             }
@@ -375,6 +430,7 @@ firebase.auth().onAuthStateChanged(function(user) {
     if (user) {
         setSession(user.email || user.uid);
         updateUserInfo(user);
+        ensureAccountProfile(user).catch(function(e) { console.warn('[Accounts] profile sync failed:', e); });
         return;
     }
 

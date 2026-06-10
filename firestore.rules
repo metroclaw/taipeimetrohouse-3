@@ -1,17 +1,40 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/accounts/$(request.auth.uid))
+        && get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.role == '管理員'
+        && get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.status == '啟用';
+    }
+
+    // 帳號管理：登入者可讀取帳號列表；本人可建立自己的帳號資料；管理員可調整角色/狀態。
+    match /accounts/{accountId} {
+      allow read: if signedIn();
+      allow create: if isSelf(accountId);
+      allow update: if isSelf(accountId) || isAdmin();
+      allow delete: if isAdmin() && request.auth.uid != accountId;
+    }
+
     // 使用者只能讀取/寫入自己的資料根節點
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isSelf(userId);
 
-      // RentalHub 會使用多層子集合，例如：
+      // 系統會使用多層子集合，例如：
       // /users/{uid}/projects/{projectId}/rooms/{roomId}
       // /users/{uid}/rentRecords/{recordId}
       // /users/{uid}/utilityBills/{billId}
       // 因此需要遞迴允許使用者自己名下的所有文件。
       match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isSelf(userId);
       }
     }
   }

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大都會物業房務管理系統 — 帳號管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#2563EB',secondary:'#10B981',bg:'#F8FAFC'}}}}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="js/app.js"></script>
+<style>
+.sidebar-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .75rem!important;border-radius:.5rem;font-size:.875rem;line-height:1.25rem;min-height:2.5rem;color:#4b5563;transition:background-color .15s,color .15s}.sidebar-item i{width:1.25rem!important;text-align:center}.sidebar-item:hover{background:#f9fafb;color:#2563EB}.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}
+</style>
+</head>
+<body class="bg-bg min-h-screen">
+<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+  <div class="flex items-center gap-4"><button class="lg:hidden text-gray-600" onclick="document.getElementById('sidebar').classList.toggle('hidden')"><i class="fas fa-bars text-xl"></i></button><div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">R</span></div><span class="font-bold text-base lg:text-lg text-gray-900">大都會物業房務管理系統</span></div></div>
+  <div class="flex items-center gap-3"><button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i></button><div class="flex items-center gap-2 cursor-pointer" onclick="handleSignOut()"><div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div><span class="text-sm text-gray-700 hidden sm:inline">登出</span></div></div>
+</nav>
+<div class="flex">
+  <aside id="sidebar" class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40 overflow-y-auto">
+    <nav class="space-y-1 text-sm">
+      <a href="dashboard.html" class="sidebar-item text-gray-600"><i class="fas fa-home w-5"></i>主控台</a>
+      <a href="projects.html" class="sidebar-item text-gray-600"><i class="fas fa-building w-5"></i>建案管理</a>
+      <a href="tenants.html" class="sidebar-item text-gray-600"><i class="fas fa-users w-5"></i>房客管理</a>
+      <a href="contracts.html" class="sidebar-item text-gray-600"><i class="fas fa-file-contract w-5"></i>合約管理</a>
+      <a href="rent.html" class="sidebar-item text-gray-600"><i class="fas fa-money-bill w-5"></i>租金管理</a>
+      <a href="billing.html" class="sidebar-item text-gray-600"><i class="fas fa-calculator w-5"></i>費用計算</a>
+      <a href="maintenance.html" class="sidebar-item text-gray-600"><i class="fas fa-tools w-5"></i>修繕派工</a>
+      <a href="evidence.html" class="sidebar-item text-gray-600"><i class="fas fa-camera w-5"></i>證據保存</a>
+      <a href="accounts.html" class="sidebar-item active"><i class="fas fa-user-shield w-5"></i>帳號管理</a>
+      <a href="settings.html" class="sidebar-item text-gray-600"><i class="fas fa-cog w-5"></i>設定</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-4 lg:p-6">
+    <div class="flex items-center justify-between mb-6">
+      <div><h1 class="text-2xl font-bold text-gray-900">帳號管理</h1><p class="text-sm text-gray-500 mt-1">根據 Google 登入資料建立帳號，設定角色與啟用狀態。</p></div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-4 mb-6">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 lg:col-span-1">
+        <h2 class="font-semibold text-gray-900 mb-4">目前登入帳號</h2>
+        <div class="flex items-center gap-4">
+          <div id="current-photo" class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden"><i class="fas fa-user text-primary text-xl"></i></div>
+          <div class="min-w-0"><p id="current-name" class="font-semibold text-gray-900 truncate">載入中...</p><p id="current-email" class="text-sm text-gray-500 truncate">—</p><p id="current-role" class="text-xs text-primary mt-1">—</p></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 lg:col-span-2">
+        <h2 class="font-semibold text-gray-900 mb-3">角色說明</h2>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-gray-600">
+          <div class="p-3 bg-gray-50 rounded-lg"><b>管理員</b><br>操作所有頁面與帳號角色。</div>
+          <div class="p-3 bg-gray-50 rounded-lg"><b>員工</b><br>瀏覽所有頁面，可新增修繕/清潔工單。</div>
+          <div class="p-3 bg-gray-50 rounded-lg"><b>房務/工務</b><br>只處理派發給自己的工單。</div>
+          <div class="p-3 bg-gray-50 rounded-lg"><b>租客</b><br>自己的租屋、繳費、報修與度數。</div>
+          <div class="p-3 bg-gray-50 rounded-lg"><b>訪客</b><br>只看未出租資訊。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between"><h2 class="font-semibold text-gray-900">帳號列表</h2><span id="account-count" class="text-xs text-gray-400">載入中</span></div>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead><tr class="bg-gray-50 text-left"><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">帳號</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">角色</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">最近登入</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
+          <tbody id="accounts-table-body" class="divide-y divide-gray-100"><tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">載入中...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+let currentAccount = null;
+let accountsData = [];
+const roles = ['管理員','員工','房務','工務','租客','訪客'];
+const statuses = ['啟用','停用'];
+
+function tsLabel(value) {
+  if (!value) return '—';
+  const d = value.toDate ? value.toDate() : new Date(value.seconds ? value.seconds * 1000 : value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('zh-TW', { hour12: false });
+}
+
+async function loadAccountsPage() {
+  const user = getCurrentUser();
+  if (!user) return;
+  try {
+    showLoading();
+    currentAccount = await ensureAccountProfile(user);
+    accountsData = await getAllAccounts();
+    renderCurrentAccount(user, currentAccount);
+    renderAccounts();
+  } catch (e) {
+    console.error(e);
+    showToast('帳號資料載入失敗', 'error');
+  } finally { hideLoading(); }
+}
+
+function renderCurrentAccount(user, account) {
+  document.getElementById('current-name').textContent = account.displayName || user.displayName || '未命名使用者';
+  document.getElementById('current-email').textContent = account.email || user.email || '';
+  document.getElementById('current-role').textContent = `角色：${account.role || '訪客'}｜狀態：${account.status || '啟用'}`;
+  const photo = account.photoURL || user.photoURL;
+  if (photo) document.getElementById('current-photo').innerHTML = `<img src="${photo}" class="w-full h-full object-cover" alt="avatar">`;
+}
+
+function renderAccounts() {
+  const tbody = document.getElementById('accounts-table-body');
+  document.getElementById('account-count').textContent = `${accountsData.length} 個帳號`;
+  if (!accountsData.length) { tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">尚無帳號</td></tr>'; return; }
+  const isAdmin = currentAccount && currentAccount.role === '管理員';
+  tbody.innerHTML = accountsData.map(a => {
+    const roleSelect = `<select data-uid="${a.uid}" data-field="role" class="account-field px-2 py-1 border border-gray-200 rounded text-sm" ${isAdmin ? '' : 'disabled'}>${roles.map(r => `<option value="${r}" ${(a.role || '訪客') === r ? 'selected' : ''}>${r}</option>`).join('')}</select>`;
+    const statusSelect = `<select data-uid="${a.uid}" data-field="status" class="account-field px-2 py-1 border border-gray-200 rounded text-sm" ${isAdmin ? '' : 'disabled'}>${statuses.map(st => `<option value="${st}" ${(a.status || '啟用') === st ? 'selected' : ''}>${st}</option>`).join('')}</select>`;
+    return `<tr class="hover:bg-gray-50"><td class="px-4 py-3"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center">${a.photoURL ? `<img src="${a.photoURL}" class="w-full h-full object-cover" alt="avatar">` : '<i class="fas fa-user text-primary"></i>'}</div><div><p class="text-sm font-medium text-gray-900">${a.displayName || '未命名使用者'}</p><p class="text-xs text-gray-500">${a.email || '—'}</p></div></div></td><td class="px-4 py-3">${roleSelect}</td><td class="px-4 py-3">${statusSelect}</td><td class="px-4 py-3 text-sm text-gray-500">${tsLabel(a.lastLoginAt)}</td><td class="px-4 py-3 text-sm text-gray-500">${isAdmin ? '可編輯' : '僅管理員可編輯'}</td></tr>`;
+  }).join('');
+  document.querySelectorAll('.account-field').forEach(el => el.addEventListener('change', updateAccountField));
+}
+
+async function updateAccountField(e) {
+  if (!currentAccount || currentAccount.role !== '管理員') { showToast('只有管理員可以調整角色與狀態', 'error'); return; }
+  const uid = e.target.dataset.uid;
+  const field = e.target.dataset.field;
+  const value = e.target.value;
+  if (!uid || !field) return;
+  try {
+    await db.collection('accounts').doc(uid).update({ [field]: value, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: getCurrentUserUid() });
+    showToast('帳號已更新');
+    await loadAccountsPage();
+  } catch (err) { console.error(err); showToast('更新失敗', 'error'); }
+}
+
+document.addEventListener('DOMContentLoaded', () => onAuthReady(user => { if (user) loadAccountsPage(); }));
+</script>
+</body>
+</html>
