@@ -21,11 +21,23 @@
 <nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
   <div class="flex items-center gap-4">
     <button class="lg:hidden text-gray-600" onclick="document.getElementById('sidebar').classList.toggle('hidden')"><i class="fas fa-bars text-xl"></i></button>
-    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">R</span></div><span class="font-bold text-base lg:text-lg text-gray-900">大都會物業房務管理系統</span></div>
+    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">M</span></div><span class="font-bold text-base lg:text-lg text-gray-900">大都會物業房務管理系統</span></div>
   </div>
-  <div class="flex items-center gap-3">
-    <button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i><span class="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span></button>
-    <div class="flex items-center gap-2 cursor-pointer" onclick="handleSignOut()"><div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div><span class="text-sm text-gray-700 hidden sm:inline">登出</span></div>
+  <div class="flex items-center gap-3 relative">
+    <button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i></button>
+    <div class="relative">
+      <button id="user-menu-button" type="button" onclick="toggleUserMenu(event)" class="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-transparent hover:ring-primary/20 transition" title="帳號選單">
+        <div id="user-avatar" class="w-full h-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div>
+      </button>
+      <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-[60]">
+        <div class="px-4 py-2 border-b border-gray-100">
+          <p id="user-name" class="text-sm font-medium text-gray-900 truncate">使用者</p>
+          <p id="user-email" class="text-xs text-gray-500 truncate"></p>
+        </div>
+        <a href="settings.html" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"><i class="fas fa-user-cog w-4 text-gray-400"></i>帳號設定</a>
+        <button type="button" onclick="handleSignOut()" class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left"><i class="fas fa-sign-out-alt w-4"></i>登出</button>
+      </div>
+    </div>
   </div>
 </nav>
 <div class="flex">

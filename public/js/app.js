@@ -45,8 +45,35 @@ function updateUserInfo(user) {
     const avatarEl = document.getElementById('user-avatar');
     if (nameEl) nameEl.textContent = user.displayName || '使用者';
     if (emailEl) emailEl.textContent = user.email || '';
-    if (avatarEl) avatarEl.src = user.photoURL || 'img/profile_placeholder.png';
+    if (avatarEl) {
+        const photoURL = user.photoURL || '';
+        if (avatarEl.tagName === 'IMG') {
+            avatarEl.src = photoURL || 'img/profile_placeholder.png';
+        } else if (photoURL) {
+            avatarEl.innerHTML = `<img src="${photoURL}" alt="${user.displayName || '使用者'}" class="w-full h-full object-cover">`;
+        } else {
+            avatarEl.innerHTML = '<i class="fas fa-user text-primary text-sm"></i>';
+        }
+    }
 }
+
+function toggleUserMenu(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('user-menu');
+    if (menu) menu.classList.toggle('hidden');
+}
+
+function closeUserMenu() {
+    const menu = document.getElementById('user-menu');
+    if (menu) menu.classList.add('hidden');
+}
+
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('user-menu');
+    const button = document.getElementById('user-menu-button');
+    if (!menu || !button) return;
+    if (!menu.contains(event.target) && !button.contains(event.target)) closeUserMenu();
+});
 
 
 const ACCOUNT_ROLES = ['管理員', '員工', '房務', '工務', '租客', '訪客'];
