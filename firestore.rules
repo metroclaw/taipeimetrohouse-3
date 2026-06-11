@@ -16,11 +16,27 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.status == '啟用';
     }
 
-    // 帳號管理：登入者可讀取帳號列表；本人可建立自己的帳號資料；管理員可調整角色/狀態。
+    function selfAccountUpdateOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'uid',
+        'displayName',
+        'email',
+        'photoURL',
+        'phone',
+        'mailingAddress',
+        'tenantPaymentContractReminder',
+        'workOrderReminder',
+        'lastLoginAt',
+        'updatedAt'
+      ]);
+    }
+
+    // 帳號管理：登入者可讀取帳號列表；本人可建立自己的帳號資料；
+    // 本人只能更新聯絡資料與提醒設定，角色/建案/房號/狀態限管理員調整。
     match /accounts/{accountId} {
       allow read: if signedIn();
       allow create: if isSelf(accountId);
-      allow update: if isSelf(accountId) || isAdmin();
+      allow update: if isAdmin() || (isSelf(accountId) && selfAccountUpdateOnly());
       allow delete: if isAdmin() && request.auth.uid != accountId;
     }
 

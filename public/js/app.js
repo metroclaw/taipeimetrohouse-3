@@ -109,6 +109,15 @@ async function ensureAccountProfile(user) {
             email: user.email || accountSnap.data().email || '',
             photoURL: user.photoURL || accountSnap.data().photoURL || '',
             status: accountSnap.data().status || '啟用',
+            role: accountSnap.data().role || '訪客',
+            projectId: accountSnap.data().projectId || '',
+            projectName: accountSnap.data().projectName || '',
+            roomId: accountSnap.data().roomId || '',
+            roomNumber: accountSnap.data().roomNumber || '',
+            phone: accountSnap.data().phone || '',
+            mailingAddress: accountSnap.data().mailingAddress || '',
+            tenantPaymentContractReminder: accountSnap.data().tenantPaymentContractReminder !== false,
+            workOrderReminder: accountSnap.data().workOrderReminder !== false,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
             lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true });
@@ -127,6 +136,15 @@ async function getCurrentAccountProfile() {
 async function getAllAccounts() {
     const snapshot = await db.collection('accounts').orderBy('createdAt', 'asc').get();
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+async function updateCurrentAccountProfile(data) {
+    const uid = getCurrentUserUid();
+    if (!uid) throw new Error('使用者未登入');
+    return await db.collection('accounts').doc(uid).set({
+        ...data,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
 }
 
 // 登出

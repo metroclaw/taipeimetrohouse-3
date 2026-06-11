@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大都會物業房務管理系統 — 帳號資訊</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#2563EB',secondary:'#10B981',bg:'#F8FAFC'}}}}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="js/app.js"></script>
+<style>
+.sidebar-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .75rem!important;border-radius:.5rem;font-size:.875rem;line-height:1.25rem;min-height:2.5rem;color:#4b5563;transition:background-color .15s,color .15s}.sidebar-item i{width:1.25rem!important;text-align:center}.sidebar-item:hover{background:#f9fafb;color:#2563EB}.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}
+.form-label{display:block;font-size:.875rem;font-weight:500;color:#374151;margin-bottom:.375rem}.form-input{width:100%;padding:.625rem .75rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.875rem;background:white}.form-input:disabled{background:#f9fafb;color:#9ca3af}
+</style>
+</head>
+<body class="bg-bg min-h-screen">
+<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+  <div class="flex items-center gap-4"><button class="lg:hidden text-gray-600" onclick="document.getElementById('sidebar').classList.toggle('hidden')"><i class="fas fa-bars text-xl"></i></button><div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">M</span></div><span class="font-bold text-base lg:text-lg text-gray-900">大都會物業房務管理系統</span></div></div>
+  <div class="flex items-center gap-3 relative">
+    <button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i></button>
+    <div class="relative"><button id="user-menu-button" type="button" onclick="toggleUserMenu(event)" class="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-transparent hover:ring-primary/20 transition" title="帳號選單"><div id="user-avatar" class="w-full h-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div></button>
+      <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-[60]"><div class="px-4 py-2 border-b border-gray-100"><p id="user-name" class="text-sm font-medium text-gray-900 truncate">使用者</p><p id="user-email" class="text-xs text-gray-500 truncate"></p></div><a href="account-info.html" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"><i class="fas fa-user-cog w-4 text-gray-400"></i>帳號設定</a><button type="button" onclick="handleSignOut()" class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left"><i class="fas fa-sign-out-alt w-4"></i>登出</button></div>
+    </div>
+  </div>
+</nav>
+<div class="flex">
+  <aside id="sidebar" class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40 overflow-y-auto">
+    <nav class="space-y-1 text-sm">
+      <a href="dashboard.html" class="sidebar-item text-gray-600"><i class="fas fa-home w-5"></i>主控台</a>
+      <a href="projects.html" class="sidebar-item text-gray-600"><i class="fas fa-building w-5"></i>建案管理</a>
+      <a href="tenants.html" class="sidebar-item text-gray-600"><i class="fas fa-users w-5"></i>房客管理</a>
+      <a href="contracts.html" class="sidebar-item text-gray-600"><i class="fas fa-file-contract w-5"></i>合約管理</a>
+      <a href="rent.html" class="sidebar-item text-gray-600"><i class="fas fa-money-bill w-5"></i>租金管理</a>
+      <a href="billing.html" class="sidebar-item text-gray-600"><i class="fas fa-calculator w-5"></i>費用計算</a>
+      <a href="maintenance.html" class="sidebar-item text-gray-600"><i class="fas fa-tools w-5"></i>修繕派工</a>
+      <a href="evidence.html" class="sidebar-item text-gray-600"><i class="fas fa-camera w-5"></i>證據保存</a>
+      <a href="account-info.html" class="sidebar-item active"><i class="fas fa-id-card w-5"></i>帳號資訊</a>
+      <a href="accounts.html" class="sidebar-item text-gray-600"><i class="fas fa-user-shield w-5"></i>帳號管理</a>
+      <a href="settings.html" class="sidebar-item text-gray-600"><i class="fas fa-cog w-5"></i>設定</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-4 lg:p-6">
+    <div class="flex items-center justify-between mb-6"><div><h1 class="text-2xl font-bold text-gray-900">帳號資訊</h1><p class="text-sm text-gray-500 mt-1">管理您的個人聯絡資料與通知偏好；角色、建案、房號限管理員調整。</p></div></div>
+    <div class="grid lg:grid-cols-3 gap-6">
+      <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 lg:col-span-1">
+        <div class="flex flex-col items-center text-center"><div id="profile-photo" class="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden mb-4"><i class="fas fa-user text-primary text-3xl"></i></div><h2 id="profile-name" class="text-lg font-semibold text-gray-900">載入中...</h2><p id="profile-email" class="text-sm text-gray-500 break-all">—</p><span id="profile-role-badge" class="mt-3 inline-flex px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">—</span></div>
+        <div class="mt-6 space-y-3 text-sm"><div><p class="text-gray-400">本系統資料建立日期</p><p id="created-at" class="font-medium text-gray-700">—</p></div><div><p class="text-gray-400">最近更新日期</p><p id="updated-at" class="font-medium text-gray-700">—</p></div><div><p class="text-gray-400">最近登入日期</p><p id="last-login-at" class="font-medium text-gray-700">—</p></div></div>
+      </section>
+      <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 lg:col-span-2">
+        <form id="account-form" class="space-y-6">
+          <div class="grid md:grid-cols-3 gap-4 p-4 bg-amber-50/70 rounded-xl border border-amber-100"><div><label class="form-label">角色 <span class="text-xs text-amber-600">管理員</span></label><select id="role" class="form-input admin-only"></select></div><div><label class="form-label">建案 <span class="text-xs text-amber-600">管理員</span></label><select id="projectId" class="form-input admin-only"><option value="">未指定</option></select></div><div><label class="form-label">房號 <span class="text-xs text-amber-600">管理員</span></label><select id="roomId" class="form-input admin-only"><option value="">未指定</option></select></div><p id="admin-note" class="md:col-span-3 text-xs text-amber-700">只有管理員可以修改角色、建案、房號。一般使用者可更新聯絡電話、寄件地址與提醒設定。</p></div>
+          <div class="grid md:grid-cols-2 gap-4"><div><label class="form-label">聯絡電話</label><input id="phone" type="tel" class="form-input" placeholder="例如：0912-345-678"></div><div><label class="form-label">寄件地址</label><input id="mailingAddress" type="text" class="form-input" placeholder="請輸入收件地址"></div></div>
+          <div class="grid md:grid-cols-2 gap-4"><label class="flex items-start gap-3 p-4 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-50"><input id="tenantPaymentContractReminder" type="checkbox" class="mt-1 w-5 h-5 text-primary rounded"><span><b class="block text-gray-800">繳費／合約提醒（房客）</b><span class="text-sm text-gray-500">租金、費用、合約到期等提醒。</span></span></label><label class="flex items-start gap-3 p-4 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-50"><input id="workOrderReminder" type="checkbox" class="mt-1 w-5 h-5 text-primary rounded"><span><b class="block text-gray-800">工單提醒（房務／工務）</b><span class="text-sm text-gray-500">修繕、清潔、派工更新提醒。</span></span></label></div>
+          <div class="flex justify-end gap-3"><button type="button" onclick="loadAccountInfoPage()" class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">重新載入</button><button type="submit" class="px-5 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90"><i class="fas fa-save mr-1"></i>儲存變更</button></div>
+        </form>
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+let accountProfile = null;
+let currentUserAccount = null;
+let projectCache = [];
+let roomsByProject = {};
+const roleOptions = ['管理員','員工','房務','工務','租客','訪客'];
+function tsLabel(value) { if (!value) return '—'; const d = value.toDate ? value.toDate() : new Date(value.seconds ? value.seconds * 1000 : value); return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('zh-TW', { hour12:false }); }
+function setOptions(el, options, selected, placeholder) { el.innerHTML = `${placeholder ? `<option value="">${placeholder}</option>` : ''}${options.map(o => `<option value="${o.value}" ${String(o.value)===String(selected||'')?'selected':''}>${o.label}</option>`).join('')}`; }
+async function loadProjectsAndRooms(selectedProjectId, selectedRoomId) { projectCache = await getProjects(); setOptions(document.getElementById('projectId'), projectCache.map(p => ({ value:p.id, label:p.name || '未命名建案' })), selectedProjectId, '未指定'); await loadRoomsForProject(selectedProjectId, selectedRoomId); }
+async function loadRoomsForProject(projectId, selectedRoomId) { const roomSelect=document.getElementById('roomId'); if (!projectId) { setOptions(roomSelect, [], '', '未指定'); return; } if (!roomsByProject[projectId]) roomsByProject[projectId] = await getRooms(projectId); setOptions(roomSelect, roomsByProject[projectId].map(r => ({ value:r.id, label:r.number || r.roomNumber || r.name || r.id })), selectedRoomId, '未指定'); }
+async function loadAccountInfoPage() { const user=getCurrentUser(); if(!user) return; try { showLoading(); currentUserAccount = await ensureAccountProfile(user); accountProfile = currentUserAccount; const isAdmin = currentUserAccount.role === '管理員'; document.getElementById('profile-name').textContent = accountProfile.displayName || user.displayName || '未命名使用者'; document.getElementById('profile-email').textContent = accountProfile.email || user.email || ''; document.getElementById('profile-role-badge').textContent = accountProfile.role || '訪客'; document.getElementById('created-at').textContent = tsLabel(accountProfile.createdAt); document.getElementById('updated-at').textContent = tsLabel(accountProfile.updatedAt); document.getElementById('last-login-at').textContent = tsLabel(accountProfile.lastLoginAt); const photo=accountProfile.photoURL || user.photoURL; if(photo) document.getElementById('profile-photo').innerHTML=`<img src="${photo}" alt="avatar" class="w-full h-full object-cover">`; setOptions(document.getElementById('role'), roleOptions.map(r=>({value:r,label:r})), accountProfile.role || '訪客'); document.getElementById('phone').value = accountProfile.phone || ''; document.getElementById('mailingAddress').value = accountProfile.mailingAddress || ''; document.getElementById('tenantPaymentContractReminder').checked = accountProfile.tenantPaymentContractReminder !== false; document.getElementById('workOrderReminder').checked = accountProfile.workOrderReminder !== false; await loadProjectsAndRooms(accountProfile.projectId || '', accountProfile.roomId || ''); document.querySelectorAll('.admin-only').forEach(el => el.disabled = !isAdmin); document.getElementById('admin-note').textContent = isAdmin ? '您是管理員，可以修改角色、建案、房號。' : '只有管理員可以修改角色、建案、房號。'; } catch(e) { console.error(e); showToast('帳號資訊載入失敗','error'); } finally { hideLoading(); } }
+document.getElementById('projectId').addEventListener('change', e => loadRoomsForProject(e.target.value, ''));
+document.getElementById('account-form').addEventListener('submit', async function(e) { e.preventDefault(); const isAdmin = currentUserAccount && currentUserAccount.role === '管理員'; const projectId=document.getElementById('projectId').value; const roomId=document.getElementById('roomId').value; const project=projectCache.find(p=>p.id===projectId); const room=(roomsByProject[projectId]||[]).find(r=>r.id===roomId); const data={ phone:document.getElementById('phone').value.trim(), mailingAddress:document.getElementById('mailingAddress').value.trim(), tenantPaymentContractReminder:document.getElementById('tenantPaymentContractReminder').checked, workOrderReminder:document.getElementById('workOrderReminder').checked }; if(isAdmin) Object.assign(data, { role:document.getElementById('role').value, projectId, projectName:project ? (project.name || '') : '', roomId, roomNumber:room ? (room.number || room.roomNumber || room.name || '') : '' }); try { showLoading(); await updateCurrentAccountProfile(data); showToast('帳號資訊已更新'); await loadAccountInfoPage(); } catch(err) { console.error(err); showToast('儲存失敗','error'); } finally { hideLoading(); } });
+document.addEventListener('DOMContentLoaded', () => onAuthReady(user => { if(user) loadAccountInfoPage(); }));
+</script>
+</body>
+</html>
