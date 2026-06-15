@@ -41,12 +41,12 @@
 
 ## 二、在 RentalHub 前端設定 key
 
-目前純前端版本可在 `public/projects.html` 加入：
+目前已在 `public/projects.html` 接入使用者提供且應完成網域限制的 browser API key：
 
 ```html
 <script>
-window.GOOGLE_MAPS_STATIC_API_KEY = '你的 API key';
-window.GOOGLE_PLACES_API_KEY = '你的 API key';
+window.GOOGLE_MAPS_STATIC_API_KEY = window.GOOGLE_MAPS_STATIC_API_KEY || "AIzaSy...qKuw";
+window.GOOGLE_PLACES_API_KEY = window.GOOGLE_PLACES_API_KEY || "AIzaSy...qKuw";
 </script>
 ```
 
