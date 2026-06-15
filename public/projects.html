@@ -97,17 +97,76 @@
 
 <!-- 建案 Modal -->
 <div id="project-modal" class="fixed inset-0 bg-black/30 z-50 hidden flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-    <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h3 class="font-semibold text-gray-900" id="project-modal-title">新增建案</h3><button onclick="closeProjectModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
-    <form id="project-form" class="p-4 space-y-4">
+  <div class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[92vh] overflow-y-auto">
+    <div class="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+      <div><h3 class="font-semibold text-gray-900" id="project-modal-title">新增建案</h3><p class="text-xs text-gray-500 mt-1">建立建案基本資料、表務號碼、費用與門禁網路資訊</p></div>
+      <button onclick="closeProjectModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+    </div>
+    <form id="project-form" class="p-4 lg:p-6 space-y-6">
       <input type="hidden" id="project-id">
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">建案名稱</label><input type="text" id="project-name" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">地址</label><input type="text" id="project-address" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
-      <div class="grid grid-cols-2 gap-4">
-        <div><label class="block text-sm font-medium text-gray-700 mb-1">總樓層</label><input type="number" id="project-floors" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
-        <div><label class="block text-sm font-medium text-gray-700 mb-1">建造年份</label><input type="number" id="project-year" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
-      </div>
-      <div class="flex gap-3 pt-2"><button type="button" onclick="closeProjectModal()" class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm">取消</button><button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">儲存</button></div>
+      <input type="hidden" id="project-map-url">
+      <input type="hidden" id="project-exterior-url-1">
+      <input type="hidden" id="project-exterior-url-2">
+
+      <section class="space-y-4">
+        <div class="flex items-center gap-2 text-sm font-semibold text-gray-900"><i class="fas fa-building text-primary"></i>建案基本資料</div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">建案名稱</label><input type="text" id="project-name" required placeholder="例如：大安信義館" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">類型</label><select id="project-type" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"><option value="">請選擇類型</option><option value="Airbnb">Airbnb</option><option value="Booking">Booking</option><option value="長租">長租</option><option value="購置長租">購置長租</option><option value="長租代管">長租代管</option></select></div>
+        </div>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">地址</label><input type="text" id="project-address" required placeholder="建案所在地址，系統會依地址產生地圖預覽" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">間數 / 可出租房間數量</label><input type="number" id="project-rentable-rooms" min="0" step="1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+        </div>
+      </section>
+
+      <section class="space-y-4">
+        <div class="flex items-center gap-2 text-sm font-semibold text-gray-900"><i class="fas fa-image text-primary"></i>建案照片</div>
+        <div class="grid lg:grid-cols-3 gap-4">
+          <div class="lg:col-span-1 border border-gray-100 rounded-xl overflow-hidden bg-gray-50">
+            <div id="project-map-preview" class="h-44 flex items-center justify-center text-center text-gray-400 text-sm px-4"><div><i class="fas fa-map-location-dot text-3xl mb-2 text-primary/30"></i><p>輸入地址後自動產生地圖預覽</p></div></div>
+            <div class="p-3 bg-white border-t border-gray-100"><p class="text-xs font-medium text-gray-700">系統地圖圖片 / 預覽</p><p class="text-[11px] text-gray-400 mt-1">依「地址」自動更新，可點卡片連到 Google 地圖。</p></div>
+          </div>
+          <div class="lg:col-span-2 grid md:grid-cols-2 gap-4">
+            <div class="border border-dashed border-gray-200 rounded-xl p-3 bg-white">
+              <label class="block text-sm font-medium text-gray-700 mb-2">建築物外觀照片 1</label>
+              <div id="project-exterior-preview-1" class="h-36 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 text-sm mb-3"><span><i class="fas fa-camera mr-1"></i>尚未上傳</span></div>
+              <input type="file" id="project-exterior-file-1" accept="image/*" class="w-full text-sm text-gray-500 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:font-medium">
+            </div>
+            <div class="border border-dashed border-gray-200 rounded-xl p-3 bg-white">
+              <label class="block text-sm font-medium text-gray-700 mb-2">建築物外觀照片 2</label>
+              <div id="project-exterior-preview-2" class="h-36 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400 text-sm mb-3"><span><i class="fas fa-camera mr-1"></i>尚未上傳</span></div>
+              <input type="file" id="project-exterior-file-2" accept="image/*" class="w-full text-sm text-gray-500 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:font-medium">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="space-y-4">
+        <div class="flex items-center gap-2 text-sm font-semibold text-gray-900"><i class="fas fa-droplet text-primary"></i>水電瓦斯與固定費用</div>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">水號 / 自來水水號</label><input type="text" id="project-water-number" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">電號 / 台電供電電號</label><input type="text" id="project-electric-number" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">瓦斯 / 瓦斯號</label><input type="text" id="project-gas-number" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+        </div>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">管理費 / 大樓管理費</label><input type="number" id="project-management-fee" min="0" step="1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">第四台 / 網路業者</label><input type="text" id="project-tv-provider" placeholder="例如：中華電信 / 凱擘" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">第四台費用</label><input type="number" id="project-tv-fee" min="0" step="1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+        </div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">扣繳方式</label><input type="text" id="project-withholding-method" placeholder="例如：房東代扣、管理公司扣繳、無" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+      </section>
+
+      <section class="space-y-4">
+        <div class="flex items-center gap-2 text-sm font-semibold text-gray-900"><i class="fas fa-wifi text-primary"></i>網路與門禁資訊</div>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Wifi 名稱</label><input type="text" id="project-wifi-name" autocomplete="off" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Wifi 密碼</label><input type="text" id="project-wifi-password" autocomplete="off" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">大門密碼</label><input type="text" id="project-door-password" autocomplete="off" placeholder="大樓大門或樓層大門密碼" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+        </div>
+      </section>
+
+      <div class="flex flex-col sm:flex-row gap-3 pt-2 sticky bottom-0 bg-white border-t border-gray-100 py-4"><button type="button" onclick="closeProjectModal()" class="sm:flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm">取消</button><button type="submit" class="sm:flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium"><i class="fas fa-save mr-1"></i>儲存建案</button></div>
     </form>
   </div>
 </div>
@@ -139,6 +198,107 @@
 let selectedProjectId = null;
 let projectsData = [];
 let roomsData = [];
+
+const PROJECT_TYPES = ['Airbnb', 'Booking', '長租', '購置長租', '長租代管'];
+
+function h(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+}
+
+function getMapSearchUrl(address) {
+    return address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : '';
+}
+
+function getMapEmbedUrl(address) {
+    return address ? `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed` : '';
+}
+
+function renderMapPreview(address) {
+    const preview = document.getElementById('project-map-preview');
+    const hidden = document.getElementById('project-map-url');
+    if (!preview || !hidden) return;
+    const embedUrl = getMapEmbedUrl(address);
+    const searchUrl = getMapSearchUrl(address);
+    hidden.value = searchUrl;
+    if (!address) {
+        preview.innerHTML = '<div><i class="fas fa-map-location-dot text-3xl mb-2 text-primary/30"></i><p>輸入地址後自動產生地圖預覽</p></div>';
+        return;
+    }
+    preview.innerHTML = `<iframe title="${h(address)} 地圖" src="${embedUrl}" class="w-full h-full border-0" loading="lazy"></iframe>`;
+}
+
+function renderImagePreview(index, url) {
+    const preview = document.getElementById(`project-exterior-preview-${index}`);
+    if (!preview) return;
+    if (url) {
+        preview.innerHTML = `<img src="${h(url)}" alt="建築物外觀照片 ${index}" class="w-full h-full object-cover rounded-lg">`;
+    } else {
+        preview.innerHTML = '<span><i class="fas fa-camera mr-1"></i>尚未上傳</span>';
+    }
+}
+
+function getProjectFormData() {
+    const address = document.getElementById('project-address').value.trim();
+    return {
+        name: document.getElementById('project-name').value.trim(),
+        type: document.getElementById('project-type').value,
+        address,
+        mapUrl: getMapSearchUrl(address),
+        mapEmbedUrl: getMapEmbedUrl(address),
+        rentableRooms: parseInt(document.getElementById('project-rentable-rooms').value, 10) || 0,
+        waterNumber: document.getElementById('project-water-number').value.trim(),
+        electricNumber: document.getElementById('project-electric-number').value.trim(),
+        gasNumber: document.getElementById('project-gas-number').value.trim(),
+        managementFee: parseInt(document.getElementById('project-management-fee').value, 10) || 0,
+        tvProvider: document.getElementById('project-tv-provider').value.trim(),
+        tvFee: parseInt(document.getElementById('project-tv-fee').value, 10) || 0,
+        withholdingMethod: document.getElementById('project-withholding-method').value.trim(),
+        wifiName: document.getElementById('project-wifi-name').value.trim(),
+        wifiPassword: document.getElementById('project-wifi-password').value.trim(),
+        doorPassword: document.getElementById('project-door-password').value.trim(),
+        exteriorPhotoUrls: [
+            document.getElementById('project-exterior-url-1').value,
+            document.getElementById('project-exterior-url-2').value
+        ].filter(Boolean)
+    };
+}
+
+async function uploadProjectExteriorPhoto(uid, projectId, index) {
+    const input = document.getElementById(`project-exterior-file-${index}`);
+    if (!input || !input.files || !input.files[0]) return document.getElementById(`project-exterior-url-${index}`).value || '';
+    const file = input.files[0];
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const storagePath = `users/${uid}/projects/${projectId}/exterior-${index}-${Date.now()}.${ext}`;
+    const ref = firebase.storage().ref(storagePath);
+    await ref.put(file, { contentType: file.type || 'image/jpeg' });
+    return await ref.getDownloadURL();
+}
+
+function fillProjectForm(project) {
+    document.getElementById('project-id').value = project?.id || '';
+    document.getElementById('project-name').value = project?.name || '';
+    document.getElementById('project-type').value = project?.type || '';
+    document.getElementById('project-address').value = project?.address || '';
+    document.getElementById('project-rentable-rooms').value = project?.rentableRooms ?? project?.totalRooms ?? '';
+    document.getElementById('project-water-number').value = project?.waterNumber || '';
+    document.getElementById('project-electric-number').value = project?.electricNumber || '';
+    document.getElementById('project-gas-number').value = project?.gasNumber || '';
+    document.getElementById('project-management-fee').value = project?.managementFee || '';
+    document.getElementById('project-tv-provider').value = project?.tvProvider || '';
+    document.getElementById('project-tv-fee').value = project?.tvFee || '';
+    document.getElementById('project-withholding-method').value = project?.withholdingMethod || '';
+    document.getElementById('project-wifi-name').value = project?.wifiName || '';
+    document.getElementById('project-wifi-password').value = project?.wifiPassword || '';
+    document.getElementById('project-door-password').value = project?.doorPassword || '';
+    const photos = project?.exteriorPhotoUrls || [];
+    document.getElementById('project-exterior-url-1').value = photos[0] || '';
+    document.getElementById('project-exterior-url-2').value = photos[1] || '';
+    document.getElementById('project-exterior-file-1').value = '';
+    document.getElementById('project-exterior-file-2').value = '';
+    renderMapPreview(project?.address || '');
+    renderImagePreview(1, photos[0] || '');
+    renderImagePreview(2, photos[1] || '');
+}
 
 // 載入建案
 async function loadProjects() {
@@ -210,17 +370,31 @@ function renderProjects() {
     const container = document.getElementById('projects-container');
     container.innerHTML = projectsData.map(p => {
         const occupied = p.occupied || 0;
-        const total = p.totalRooms || 0;
+        const actualTotal = p.totalRooms || 0;
+        const total = p.rentableRooms || actualTotal;
         const rate = total > 0 ? Math.round(occupied / total * 100) : 0;
+        const firstPhoto = (p.exteriorPhotoUrls && p.exteriorPhotoUrls[0]) || '';
+        const typeLabel = p.type ? `<span class="text-[11px] px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">${h(p.type)}</span>` : '';
+        const mapLink = p.mapUrl || getMapSearchUrl(p.address || '');
         return `
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition" onclick="selectProject('${p.id}')">
-            <div class="h-24 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center"><i class="fas fa-building text-3xl text-primary/30"></i></div>
+            <div class="h-32 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden relative">
+                ${firstPhoto ? `<img src="${h(firstPhoto)}" alt="${h(p.name)} 外觀" class="w-full h-full object-cover">` : '<i class="fas fa-building text-3xl text-primary/30"></i>'}
+                <div class="absolute top-2 left-2 flex gap-2">${typeLabel}</div>
+            </div>
             <div class="p-4">
-                <div class="flex items-center justify-between mb-2"><h3 class="font-semibold text-gray-900 text-sm">${p.name}</h3><span class="text-xs status-occupied px-2 py-1 rounded-full">${rate}% 出租</span></div>
-                <p class="text-xs text-gray-500 mb-3 truncate">${p.address}</p>
-                <div class="flex items-center gap-3 text-xs mb-2"><span class="flex items-center gap-1"><span class="w-2 h-2 bg-secondary rounded-full"></span>已租 ${occupied}</span><span class="flex items-center gap-1"><span class="w-2 h-2 bg-amber-400 rounded-full"></span>空置 ${total - occupied}</span><span class="text-gray-400">共 ${total} 間</span></div>
-                <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-secondary h-1.5 rounded-full" style="width:${rate}%"></div></div>
-                <div class="mt-2 pt-2 border-t border-gray-50 flex items-center justify-between"><span class="text-xs text-gray-400">${p.floors}層 / ${p.year}年</span><span class="text-xs text-primary font-medium">查看詳情 →</span></div>
+                <div class="flex items-start justify-between gap-2 mb-2"><h3 class="font-semibold text-gray-900 text-sm leading-5">${h(p.name)}</h3><span class="text-xs status-occupied px-2 py-1 rounded-full whitespace-nowrap">${rate}% 出租</span></div>
+                <p class="text-xs text-gray-500 mb-3 line-clamp-2"><i class="fas fa-location-dot mr-1 text-gray-300"></i>${h(p.address || '未填地址')}</p>
+                <div class="grid grid-cols-3 gap-2 text-xs mb-3">
+                    <div class="rounded-lg bg-gray-50 p-2"><p class="text-gray-400">可租</p><p class="font-semibold text-gray-900">${total} 間</p></div>
+                    <div class="rounded-lg bg-emerald-50 p-2"><p class="text-gray-400">已租</p><p class="font-semibold text-emerald-600">${occupied} 間</p></div>
+                    <div class="rounded-lg bg-amber-50 p-2"><p class="text-gray-400">空置</p><p class="font-semibold text-amber-600">${Math.max(total - occupied, 0)} 間</p></div>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-secondary h-1.5 rounded-full" style="width:${Math.min(rate, 100)}%"></div></div>
+                <div class="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
+                    <a href="${mapLink}" target="_blank" onclick="event.stopPropagation()" class="text-xs text-gray-400 hover:text-primary"><i class="fas fa-map mr-1"></i>地圖</a>
+                    <button type="button" onclick="openProjectModal('${p.id}'); event.stopPropagation();" class="text-xs text-primary font-medium hover:underline"><i class="fas fa-pen mr-1"></i>編輯資料</button>
+                </div>
             </div>
         </div>`;
     }).join('');
@@ -265,22 +439,58 @@ function renderRooms() {
     }).join('');
 }
 
-function openProjectModal() { document.getElementById('project-modal').classList.remove('hidden'); document.getElementById('project-modal-title').textContent = '新增建案'; document.getElementById('project-form').reset(); document.getElementById('project-id').value = ''; }
+function openProjectModal(projectId = '') {
+    const project = projectId ? projectsData.find(p => p.id === projectId) : null;
+    document.getElementById('project-modal').classList.remove('hidden');
+    document.getElementById('project-modal-title').textContent = project ? '編輯建案資料' : '新增建案';
+    document.getElementById('project-form').reset();
+    fillProjectForm(project || null);
+}
 function closeProjectModal() { document.getElementById('project-modal').classList.add('hidden'); }
 function openRoomModal() { if (!selectedProjectId) { showToast('請先選擇建案', 'error'); return; } document.getElementById('room-modal').classList.remove('hidden'); document.getElementById('room-modal-title').textContent = '新增客房'; document.getElementById('room-form').reset(); document.getElementById('room-id').value = ''; document.getElementById('room-project-id').value = selectedProjectId; }
 function closeRoomModal() { document.getElementById('room-modal').classList.add('hidden'); }
+
+document.getElementById('project-address').addEventListener('input', (e) => renderMapPreview(e.target.value.trim()));
+[1, 2].forEach(index => {
+    document.getElementById(`project-exterior-file-${index}`).addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return renderImagePreview(index, document.getElementById(`project-exterior-url-${index}`).value);
+        const reader = new FileReader();
+        reader.onload = () => renderImagePreview(index, reader.result);
+        reader.readAsDataURL(file);
+    });
+});
 
 document.getElementById('project-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const uid = getCurrentUserUid();
     if (!uid) return;
-    const data = { name: document.getElementById('project-name').value, address: document.getElementById('project-address').value, floors: parseInt(document.getElementById('project-floors').value) || 0, year: parseInt(document.getElementById('project-year').value) || 0 };
     const id = document.getElementById('project-id').value;
+    let projectId = id;
+    const data = getProjectFormData();
+    data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
     try {
-        if (id) { await db.collection('users').doc(uid).collection('projects').doc(id).update(data); showToast('建案已更新'); } 
-        else { await db.collection('users').doc(uid).collection('projects').add(data); showToast('建案已新增'); }
-        closeProjectModal(); loadProjects();
-    } catch (e) { showToast('儲存失敗', 'error'); }
+        showLoading();
+        if (projectId) {
+            await db.collection('users').doc(uid).collection('projects').doc(projectId).set(data, { merge: true });
+        } else {
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            const ref = await db.collection('users').doc(uid).collection('projects').add(data);
+            projectId = ref.id;
+        }
+        const photo1 = await uploadProjectExteriorPhoto(uid, projectId, 1);
+        const photo2 = await uploadProjectExteriorPhoto(uid, projectId, 2);
+        const exteriorPhotoUrls = [photo1, photo2].filter(Boolean);
+        await db.collection('users').doc(uid).collection('projects').doc(projectId).set({ exteriorPhotoUrls, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        hideLoading();
+        showToast(id ? '建案已更新' : '建案已新增');
+        closeProjectModal();
+        await loadProjects();
+    } catch (e) {
+        hideLoading();
+        console.error('Error saving project:', e);
+        showToast('儲存失敗，請確認欄位或照片上傳權限', 'error');
+    }
 });
 
 document.getElementById('room-form').addEventListener('submit', async (e) => {
