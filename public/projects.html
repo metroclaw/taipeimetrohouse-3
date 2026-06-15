@@ -12,6 +12,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script src="js/app.js"></script>
+<script>window.GOOGLE_MAPS_STATIC_API_KEY = window.GOOGLE_MAPS_STATIC_API_KEY || "";</script>
 <style>
 .sidebar-item.active { background: #2563EB15; color: #2563EB; font-weight: 600; }
 .status-occupied { background: #10B98115; color: #10B981; }
@@ -106,6 +107,8 @@
     <form id="project-form" class="p-4 lg:p-6 space-y-6">
       <input type="hidden" id="project-id">
       <input type="hidden" id="project-map-url">
+      <input type="hidden" id="project-map-static-url">
+      <input type="hidden" id="project-map-image-url">
       <input type="hidden" id="project-exterior-url-1">
       <input type="hidden" id="project-exterior-url-2">
 
@@ -125,8 +128,8 @@
         <div class="flex items-center gap-2 text-sm font-semibold text-gray-900"><i class="fas fa-image text-primary"></i>建案照片</div>
         <div class="grid lg:grid-cols-3 gap-4">
           <div class="lg:col-span-1 border border-gray-100 rounded-xl overflow-hidden bg-gray-50">
-            <div id="project-map-preview" class="h-44 flex items-center justify-center text-center text-gray-400 text-sm px-4"><div><i class="fas fa-map-location-dot text-3xl mb-2 text-primary/30"></i><p>輸入地址後自動產生地圖預覽</p></div></div>
-            <div class="p-3 bg-white border-t border-gray-100"><p class="text-xs font-medium text-gray-700">系統地圖圖片 / 預覽</p><p class="text-[11px] text-gray-400 mt-1">依「地址」自動更新，可點卡片連到 Google 地圖。</p></div>
+            <div id="project-map-preview" class="h-44 flex items-center justify-center text-center text-gray-400 text-sm px-4"><div><i class="fas fa-map-location-dot text-3xl mb-2 text-primary/30"></i><p>輸入地址完成後，點下方按鈕取得地圖圖片</p></div></div>
+            <div class="p-3 bg-white border-t border-gray-100 space-y-2"><p class="text-xs font-medium text-gray-700">系統地圖圖片 / 預覽</p><p class="text-[11px] text-gray-400">不會在輸入過程中即時刷新；取得後儲存固定尺寸圖片供卡片使用。</p><button type="button" onclick="generateProjectMapPreview()" class="w-full px-3 py-2 bg-primary/10 text-primary rounded-lg text-xs font-medium hover:bg-primary/15"><i class="fas fa-map-location-dot mr-1"></i>取得地圖圖片</button></div>
           </div>
           <div class="lg:col-span-2 grid md:grid-cols-2 gap-4">
             <div class="border border-dashed border-gray-200 rounded-xl p-3 bg-white">
@@ -215,18 +218,44 @@ function getMapEmbedUrl(address) {
     return address ? `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed` : '';
 }
 
-function renderMapPreview(address) {
+function getStaticMapUrl(address) {
+    const key = window.GOOGLE_MAPS_STATIC_API_KEY || '';
+    if (!address || !key) return '';
+    const q = encodeURIComponent(address);
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${q}&zoom=17&size=600x900&scale=2&maptype=roadmap&markers=color:red%7C${q}&key=${encodeURIComponent(key)}`;
+}
+
+function renderMapPlaceholder(message = '輸入地址完成後，點下方按鈕取得地圖圖片') {
     const preview = document.getElementById('project-map-preview');
-    const hidden = document.getElementById('project-map-url');
-    if (!preview || !hidden) return;
-    const embedUrl = getMapEmbedUrl(address);
-    const searchUrl = getMapSearchUrl(address);
-    hidden.value = searchUrl;
+    if (!preview) return;
+    preview.innerHTML = `<div><i class="fas fa-map-location-dot text-3xl mb-2 text-primary/30"></i><p>${h(message)}</p></div>`;
+}
+
+function renderStoredMapPreview(url, address) {
+    const preview = document.getElementById('project-map-preview');
+    if (!preview) return;
+    if (!url) return renderMapPlaceholder();
+    preview.innerHTML = `<img src="${h(url)}" alt="${h(address || '建案地圖')}" class="w-full h-full object-contain bg-slate-100">`;
+}
+
+function generateProjectMapPreview() {
+    const address = document.getElementById('project-address').value.trim();
+    document.getElementById('project-map-url').value = getMapSearchUrl(address);
+    document.getElementById('project-map-image-url').value = '';
     if (!address) {
-        preview.innerHTML = '<div><i class="fas fa-map-location-dot text-3xl mb-2 text-primary/30"></i><p>輸入地址後自動產生地圖預覽</p></div>';
+        renderMapPlaceholder('請先輸入建案地址');
+        showToast('請先輸入建案地址', 'error');
         return;
     }
-    preview.innerHTML = `<iframe title="${h(address)} 地圖" src="${embedUrl}" class="w-full h-full border-0" loading="lazy"></iframe>`;
+    const staticUrl = getStaticMapUrl(address);
+    document.getElementById('project-map-static-url').value = staticUrl;
+    if (!staticUrl) {
+        renderMapPlaceholder('尚未設定 Google Static Maps API key，暫只儲存地圖連結');
+        showToast('尚未設定 Google Static Maps API key', 'error');
+        return;
+    }
+    renderStoredMapPreview(staticUrl, address);
+    showToast('已取得地圖預覽，儲存建案時會嘗試上傳圖片');
 }
 
 function renderImagePreview(index, url) {
@@ -245,8 +274,9 @@ function getProjectFormData() {
         name: document.getElementById('project-name').value.trim(),
         type: document.getElementById('project-type').value,
         address,
-        mapUrl: getMapSearchUrl(address),
-        mapEmbedUrl: getMapEmbedUrl(address),
+        mapUrl: document.getElementById('project-map-url').value || getMapSearchUrl(address),
+        mapStaticUrl: document.getElementById('project-map-static-url').value || getStaticMapUrl(address),
+        mapImageUrl: document.getElementById('project-map-image-url').value || '',
         rentableRooms: parseInt(document.getElementById('project-rentable-rooms').value, 10) || 0,
         waterNumber: document.getElementById('project-water-number').value.trim(),
         electricNumber: document.getElementById('project-electric-number').value.trim(),
@@ -263,6 +293,24 @@ function getProjectFormData() {
             document.getElementById('project-exterior-url-2').value
         ].filter(Boolean)
     };
+}
+
+async function uploadProjectMapImage(uid, projectId) {
+    const staticUrl = document.getElementById('project-map-static-url').value;
+    const existingUrl = document.getElementById('project-map-image-url').value;
+    if (!staticUrl || existingUrl) return existingUrl || '';
+    try {
+        const response = await fetch(staticUrl, { mode: 'cors' });
+        if (!response.ok) throw new Error(`Map image fetch failed: ${response.status}`);
+        const blob = await response.blob();
+        const storagePath = `users/${uid}/projects/${projectId}/map-${Date.now()}.jpg`;
+        const ref = firebase.storage().ref(storagePath);
+        await ref.put(blob, { contentType: blob.type || 'image/jpeg' });
+        return await ref.getDownloadURL();
+    } catch (e) {
+        console.warn('[Projects] Map image upload fallback to static URL:', e);
+        return '';
+    }
 }
 
 async function uploadProjectExteriorPhoto(uid, projectId, index) {
@@ -292,12 +340,16 @@ function fillProjectForm(project) {
     document.getElementById('project-wifi-name').value = project?.wifiName || '';
     document.getElementById('project-wifi-password').value = project?.wifiPassword || '';
     document.getElementById('project-door-password').value = project?.doorPassword || '';
+    document.getElementById('project-map-url').value = project?.mapUrl || getMapSearchUrl(project?.address || '');
+    document.getElementById('project-map-static-url').value = project?.mapStaticUrl || '';
+    document.getElementById('project-map-image-url').value = project?.mapImageUrl || '';
     const photos = project?.exteriorPhotoUrls || [];
     document.getElementById('project-exterior-url-1').value = photos[0] || '';
     document.getElementById('project-exterior-url-2').value = photos[1] || '';
     document.getElementById('project-exterior-file-1').value = '';
     document.getElementById('project-exterior-file-2').value = '';
-    renderMapPreview(project?.address || '');
+    if (project?.mapImageUrl || project?.mapStaticUrl) renderStoredMapPreview(project.mapImageUrl || project.mapStaticUrl, project?.address || '');
+    else renderMapPlaceholder();
     renderImagePreview(1, photos[0] || '');
     renderImagePreview(2, photos[1] || '');
 }
@@ -393,7 +445,8 @@ function renderProjectMedia(project) {
     if (item.type === 'image') {
         body = `<img src="${h(item.url)}" alt="${h(project.name)} ${h(item.label)}" class="w-full h-full">`;
     } else if (item.type === 'map') {
-        body = item.address ? `<iframe title="${h(project.name)} 地圖" src="${getMapEmbedUrl(item.address)}" class="w-full h-full border-0" loading="lazy"></iframe>` : '<div class="h-full flex items-center justify-center text-gray-400 text-xs text-center p-3"><i class="fas fa-map-location-dot text-2xl mb-1 text-primary/30"></i><br>尚未填寫地址</div>';
+        const mapImage = project.mapImageUrl || project.mapStaticUrl || '';
+        body = mapImage ? `<img src="${h(mapImage)}" alt="${h(project.name)} 地圖" class="w-full h-full">` : '<div class="h-full flex items-center justify-center text-gray-400 text-xs text-center p-3"><div><i class="fas fa-map-location-dot text-2xl mb-1 text-primary/30"></i><br>尚未取得地圖圖片</div></div>';
     } else {
         body = `<a href="${h(item.url)}" target="_blank" onclick="event.stopPropagation()" class="h-full flex flex-col items-center justify-center text-center text-gray-500 bg-gradient-to-br from-slate-50 to-blue-50 p-4"><i class="fas ${item.icon} text-3xl text-primary/40 mb-2"></i><span class="text-xs font-medium text-primary">${h(item.label)}</span><span class="text-[11px] mt-1">開啟 Google 地圖查看</span></a>`;
     }
@@ -497,7 +550,7 @@ function closeProjectModal() { document.getElementById('project-modal').classLis
 function openRoomModal() { if (!selectedProjectId) { showToast('請先選擇建案', 'error'); return; } document.getElementById('room-modal').classList.remove('hidden'); document.getElementById('room-modal-title').textContent = '新增客房'; document.getElementById('room-form').reset(); document.getElementById('room-id').value = ''; document.getElementById('room-project-id').value = selectedProjectId; }
 function closeRoomModal() { document.getElementById('room-modal').classList.add('hidden'); }
 
-document.getElementById('project-address').addEventListener('input', (e) => renderMapPreview(e.target.value.trim()));
+document.getElementById('project-address').addEventListener('change', () => { document.getElementById('project-map-image-url').value = ''; renderMapPlaceholder('地址已更新，請點「取得地圖圖片」重新產生'); });
 [1, 2].forEach(index => {
     document.getElementById(`project-exterior-file-${index}`).addEventListener('change', (e) => {
         const file = e.target.files && e.target.files[0];
@@ -525,10 +578,13 @@ document.getElementById('project-form').addEventListener('submit', async (e) => 
             const ref = await db.collection('users').doc(uid).collection('projects').add(data);
             projectId = ref.id;
         }
+        const mapImageUrl = await uploadProjectMapImage(uid, projectId);
         const photo1 = await uploadProjectExteriorPhoto(uid, projectId, 1);
         const photo2 = await uploadProjectExteriorPhoto(uid, projectId, 2);
         const exteriorPhotoUrls = [photo1, photo2].filter(Boolean);
-        await db.collection('users').doc(uid).collection('projects').doc(projectId).set({ exteriorPhotoUrls, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        const mediaUpdate = { exteriorPhotoUrls, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+        if (mapImageUrl) mediaUpdate.mapImageUrl = mapImageUrl;
+        await db.collection('users').doc(uid).collection('projects').doc(projectId).set(mediaUpdate, { merge: true });
         hideLoading();
         showToast(id ? '建案已更新' : '建案已新增');
         closeProjectModal();

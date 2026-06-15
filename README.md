@@ -85,6 +85,10 @@ python3 -m http.server 4173 --bind 127.0.0.1
 
 ## 部署
 
+Google Maps / Places 串接說明：
+
+- `docs/google-places-photos-setup.md`
+
 ```bash
 firebase deploy --only hosting,firestore:rules,storage --project taipeimetrohouse-2
 ```
