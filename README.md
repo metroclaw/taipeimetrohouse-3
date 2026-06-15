@@ -26,6 +26,7 @@ Firebase project：
 | `login.html` | Google 登入 |
 | `dashboard.html` | 主控台 / 總覽 |
 | `projects.html` | 建案與客房管理 |
+| `room-info.html` | 客房資訊頁 / 室內圖瀏覽 |
 | `tenants.html` | 房客管理 |
 | `contracts.html` | 合約管理 |
 | `rent.html` | 租金管理 |

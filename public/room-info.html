@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大都會物業房務管理系統 — 客房資訊</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#2563EB',secondary:'#10B981',bg:'#F8FAFC'}}}}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="js/app.js"></script>
+<style>
+.sidebar-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .75rem!important;border-radius:.5rem;font-size:.875rem;line-height:1.25rem;min-height:2.5rem;color:#4b5563;transition:background-color .15s,color .15s}.sidebar-item i{width:1.25rem!important;text-align:center}.sidebar-item:hover{background:#f9fafb;color:#2563EB}.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}
+.room-thumb{scroll-snap-align:start}.photo-strip{scroll-snap-type:x mandatory}.info-label{font-size:.75rem;color:#94a3b8}.info-value{font-size:.95rem;font-weight:600;color:#0f172a}
+</style>
+</head>
+<body class="bg-bg min-h-screen">
+<nav class="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+  <div class="flex items-center gap-4">
+    <button class="lg:hidden text-gray-600" onclick="document.getElementById('sidebar').classList.toggle('hidden')"><i class="fas fa-bars text-xl"></i></button>
+    <div class="flex items-center gap-2"><div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center"><span class="text-white font-bold text-sm">M</span></div><span class="font-bold text-base lg:text-lg text-gray-900">大都會物業房務管理系統</span></div>
+  </div>
+  <div class="flex items-center gap-3 relative">
+    <button class="relative p-2 text-gray-500 hover:bg-gray-100 rounded-lg"><i class="fas fa-bell"></i></button>
+    <div class="relative">
+      <button id="user-menu-button" type="button" onclick="toggleUserMenu(event)" class="w-9 h-9 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-transparent hover:ring-primary/20 transition" title="帳號選單"><div id="user-avatar" class="w-full h-full flex items-center justify-center"><i class="fas fa-user text-primary text-sm"></i></div></button>
+      <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-2 z-[60]"><div class="px-4 py-2 border-b border-gray-100"><p id="user-name" class="text-sm font-medium text-gray-900 truncate">使用者</p><p id="user-email" class="text-xs text-gray-500 truncate"></p></div><a href="account-info.html" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"><i class="fas fa-user-cog w-4 text-gray-400"></i>帳號設定</a><button type="button" onclick="handleSignOut()" class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left"><i class="fas fa-sign-out-alt w-4"></i>登出</button></div>
+    </div>
+  </div>
+</nav>
+<div class="flex">
+  <aside id="sidebar" class="hidden lg:block w-56 bg-white border-r border-gray-200 min-h-[calc(100vh-57px)] p-3 fixed lg:sticky top-[57px] z-40 overflow-y-auto">
+    <nav class="space-y-1 text-sm">
+      <a href="dashboard.html" class="sidebar-item"><i class="fas fa-home w-5"></i>主控台</a>
+      <a href="projects.html" class="sidebar-item active"><i class="fas fa-building w-5"></i>建案管理</a>
+      <a href="tenants.html" class="sidebar-item"><i class="fas fa-users w-5"></i>房客管理</a>
+      <a href="contracts.html" class="sidebar-item"><i class="fas fa-file-contract w-5"></i>合約管理</a>
+      <a href="rent.html" class="sidebar-item"><i class="fas fa-money-bill w-5"></i>租金管理</a>
+      <a href="billing.html" class="sidebar-item"><i class="fas fa-calculator w-5"></i>費用計算</a>
+      <a href="maintenance.html" class="sidebar-item"><i class="fas fa-tools w-5"></i>修繕派工</a>
+      <a href="evidence.html" class="sidebar-item"><i class="fas fa-camera w-5"></i>證據保存</a>
+      <a href="accounts.html" class="sidebar-item"><i class="fas fa-user-shield w-5"></i>帳號管理</a>
+      <a href="settings.html" class="sidebar-item"><i class="fas fa-cog w-5"></i>設定</a>
+    </nav>
+  </aside>
+  <main class="flex-1 p-4 lg:p-6">
+    <div class="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div><a href="projects.html" class="text-sm text-primary hover:underline"><i class="fas fa-arrow-left mr-1"></i>返回建案管理</a><h1 class="text-2xl font-bold text-gray-900 mt-2">客房資訊</h1><p id="page-subtitle" class="text-sm text-gray-500 mt-1">載入中...</p></div>
+      <a id="project-map-link" href="#" target="_blank" class="hidden px-3 py-2 text-sm border border-gray-200 rounded-lg text-primary hover:bg-primary/5"><i class="fas fa-map-location-dot mr-1"></i>地圖連結</a>
+    </div>
+    <section class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-5">
+      <div class="grid md:grid-cols-3 gap-4">
+        <div><p class="info-label">建案</p><p id="project-name" class="info-value">—</p></div>
+        <div class="md:col-span-2"><p class="info-label">地址</p><p id="project-address" class="info-value">—</p></div>
+      </div>
+    </section>
+    <section id="rooms-container" class="space-y-4"></section>
+  </main>
+</div>
+<div id="photo-viewer" class="hidden fixed inset-0 bg-black/85 z-[100] items-center justify-center p-4" onclick="closePhotoViewer()">
+  <button class="absolute top-4 right-4 text-white text-2xl"><i class="fas fa-times"></i></button>
+  <img id="photo-viewer-img" src="" alt="室內圖放大" class="max-w-full max-h-full object-contain rounded-xl shadow-2xl">
+</div>
+<script>
+let projectData = null;
+let roomsData = [];
+function h(value){return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function getParam(name){return new URLSearchParams(window.location.search).get(name) || '';}
+function getMapSearchUrl(address){return address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : '#';}
+function normalizeRoomImages(room){return (room.interiorPhotoUrls || room.roomImages || room.photos || room.imageUrls || []).filter(Boolean).slice(0,6);}
+function openPhotoViewer(url){document.getElementById('photo-viewer-img').src=url;document.getElementById('photo-viewer').classList.remove('hidden');document.getElementById('photo-viewer').classList.add('flex');}
+function closePhotoViewer(){document.getElementById('photo-viewer').classList.add('hidden');document.getElementById('photo-viewer').classList.remove('flex');document.getElementById('photo-viewer-img').src='';}
+function renderRoomPhotos(room){
+  const images = normalizeRoomImages(room);
+  if (!images.length) return '<div class="h-48 rounded-xl bg-slate-50 border border-dashed border-slate-200 flex items-center justify-center text-gray-400 text-sm"><i class="fas fa-image mr-2"></i>尚未上傳室內圖</div>';
+  return `<div class="photo-strip flex gap-3 overflow-x-auto pb-2">${images.map((url,i)=>`<button type="button" onclick="openPhotoViewer('${h(url)}')" class="room-thumb shrink-0 w-52 h-36 rounded-xl overflow-hidden border border-gray-100 bg-gray-50"><img src="${h(url)}" alt="${h(room.number || room.roomNumber || '客房')} 室內圖 ${i+1}" class="w-full h-full object-cover"></button>`).join('')}</div>`;
+}
+function renderRooms(){
+  const selectedRoomId = getParam('roomId');
+  const list = selectedRoomId ? roomsData.filter(r => r.id === selectedRoomId) : roomsData;
+  const container = document.getElementById('rooms-container');
+  if (!list.length) { container.innerHTML = '<div class="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-400">尚未找到客房資料</div>'; return; }
+  container.innerHTML = list.map(room => {
+    const roomNumber = room.number || room.roomNumber || room.name || '未命名房號';
+    const amenities = Array.isArray(room.amenities) ? room.amenities.join('、') : (room.amenities || '—');
+    const internetTv = [projectData?.tvProvider ? `第四台/網路：${projectData.tvProvider}` : '', projectData?.tvFee ? `費用：${formatCurrency(projectData.tvFee)}` : '', projectData?.wifiName ? `WiFi：${projectData.wifiName}` : ''].filter(Boolean).join('｜') || '—';
+    const other = room.note || room.otherInfo || room.description || amenities || '—';
+    return `<article class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-2"><div><p class="text-xs text-gray-400">${h(projectData?.name || '')} / ${h(projectData?.address || '')}</p><h2 class="text-xl font-bold text-gray-900 mt-1">房號 ${h(roomNumber)}</h2></div><span class="inline-flex w-fit px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">${h(room.status || '狀態未設定')}</span></div>
+      <div class="p-4 space-y-5">
+        ${renderRoomPhotos(room)}
+        <div class="grid md:grid-cols-4 gap-3">
+          <div class="rounded-xl bg-slate-50 p-3"><p class="info-label">坪數</p><p class="info-value">${h(room.area || 0)} 坪</p></div>
+          <div class="rounded-xl bg-slate-50 p-3"><p class="info-label">租金</p><p class="info-value">${formatCurrency(room.rent || room.monthlyRent || 0)}</p></div>
+          <div class="rounded-xl bg-slate-50 p-3 md:col-span-2"><p class="info-label">網路第四台</p><p class="info-value text-sm leading-6">${h(internetTv)}</p></div>
+        </div>
+        <div class="rounded-xl bg-slate-50 p-3"><p class="info-label">其他資訊</p><p class="text-sm text-gray-700 leading-6 mt-1">${h(other)}</p></div>
+      </div>
+    </article>`;
+  }).join('');
+}
+async function loadRoomInfoPage(){
+  const uid = getCurrentUserUid();
+  const projectId = getParam('projectId');
+  if (!uid || !projectId) { document.getElementById('rooms-container').innerHTML = '<div class="bg-white rounded-xl border border-gray-100 p-8 text-center text-red-400">缺少建案資訊</div>'; return; }
+  try {
+    const projectSnap = await db.collection('users').doc(uid).collection('projects').doc(projectId).get();
+    if (!projectSnap.exists) throw new Error('Project not found');
+    projectData = { id: projectSnap.id, ...projectSnap.data() };
+    document.getElementById('project-name').textContent = projectData.name || '未命名建案';
+    document.getElementById('project-address').textContent = projectData.address || '—';
+    document.getElementById('page-subtitle').textContent = `${projectData.name || '建案'} 的客房列表與室內資訊`;
+    const mapLink = document.getElementById('project-map-link');
+    if (projectData.address) { mapLink.href = projectData.mapUrl || getMapSearchUrl(projectData.address); mapLink.classList.remove('hidden'); }
+    const roomsSnap = await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').get();
+    roomsData = roomsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderRooms();
+  } catch(e) {
+    console.error('Error loading room info:', e);
+    document.getElementById('rooms-container').innerHTML = '<div class="bg-white rounded-xl border border-gray-100 p-8 text-center text-red-400">客房資訊載入失敗</div>';
+  }
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePhotoViewer(); });
+document.addEventListener('DOMContentLoaded', () => onAuthReady(user => { if (user) loadRoomInfoPage(); }));
+</script>
+</body>
+</html>

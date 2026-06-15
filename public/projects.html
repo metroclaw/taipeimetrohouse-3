@@ -21,6 +21,7 @@
 </style>
 <style>
 .sidebar-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .75rem!important;border-radius:.5rem;font-size:.875rem;line-height:1.25rem;min-height:2.5rem;color:#4b5563;transition:background-color .15s,color .15s}.sidebar-item i{width:1.25rem!important;text-align:center}.sidebar-item:hover{background:#f9fafb;color:#2563EB}.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}
+.project-card-address{font-weight:300;color:#111827}.project-media-frame{aspect-ratio:6/9}.project-media-frame img{object-fit:contain}.project-media-nav{background:rgba(15,23,42,.42);backdrop-filter:blur(4px)}.project-media-nav:hover{background:rgba(37,99,235,.82)}
 </style>
 </head>
 <body class="bg-bg min-h-screen">
@@ -73,7 +74,7 @@
     </div>
 
     <!-- 建案卡片 -->
-    <div id="projects-container" class="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mb-8">
+    <div id="projects-container" class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 mb-8">
       <!-- 由 JS 動態產生 -->
     </div>
 
@@ -198,6 +199,7 @@
 let selectedProjectId = null;
 let projectsData = [];
 let roomsData = [];
+let projectCardMediaIndex = {};
 
 const PROJECT_TYPES = ['Airbnb', 'Booking', '長租', '購置長租', '長租代管'];
 
@@ -366,6 +368,50 @@ async function seedTestData() {
     loadProjects();
 }
 
+function getGoogleFallbackPhotos(address) {
+    if (!address) return [];
+    // Google Places 照片需要 Places API key；目前先提供兩個 Google 地圖相片/街景入口作為可切換預留位。
+    return [
+        { type: 'google', label: 'Google 相片 1', url: getMapSearchUrl(address), icon: 'fa-images' },
+        { type: 'google', label: 'Google 相片 2', url: `https://www.google.com/maps/search/${encodeURIComponent(address + ' 街景')}`, icon: 'fa-street-view' }
+    ];
+}
+
+function getProjectMediaItems(project) {
+    const address = project.address || '';
+    const items = [{ type: 'map', label: '地圖', address, url: project.mapUrl || getMapSearchUrl(address) }];
+    const uploaded = (project.exteriorPhotoUrls || []).filter(Boolean).map((url, index) => ({ type: 'image', label: `外觀 ${index + 1}`, url }));
+    if (uploaded.length) return items.concat(uploaded);
+    return items.concat(getGoogleFallbackPhotos(address));
+}
+
+function renderProjectMedia(project) {
+    const items = getProjectMediaItems(project);
+    const current = Math.min(projectCardMediaIndex[project.id] || 0, items.length - 1);
+    const item = items[current] || items[0];
+    let body = '';
+    if (item.type === 'image') {
+        body = `<img src="${h(item.url)}" alt="${h(project.name)} ${h(item.label)}" class="w-full h-full">`;
+    } else if (item.type === 'map') {
+        body = item.address ? `<iframe title="${h(project.name)} 地圖" src="${getMapEmbedUrl(item.address)}" class="w-full h-full border-0" loading="lazy"></iframe>` : '<div class="h-full flex items-center justify-center text-gray-400 text-xs text-center p-3"><i class="fas fa-map-location-dot text-2xl mb-1 text-primary/30"></i><br>尚未填寫地址</div>';
+    } else {
+        body = `<a href="${h(item.url)}" target="_blank" onclick="event.stopPropagation()" class="h-full flex flex-col items-center justify-center text-center text-gray-500 bg-gradient-to-br from-slate-50 to-blue-50 p-4"><i class="fas ${item.icon} text-3xl text-primary/40 mb-2"></i><span class="text-xs font-medium text-primary">${h(item.label)}</span><span class="text-[11px] mt-1">開啟 Google 地圖查看</span></a>`;
+    }
+    const nav = items.length > 1 ? `
+        <button type="button" onclick="changeProjectMedia('${project.id}', -1); event.stopPropagation();" class="project-media-nav absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-white text-xs flex items-center justify-center"><i class="fas fa-chevron-left"></i></button>
+        <button type="button" onclick="changeProjectMedia('${project.id}', 1); event.stopPropagation();" class="project-media-nav absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-white text-xs flex items-center justify-center"><i class="fas fa-chevron-right"></i></button>
+        <div class="absolute bottom-2 left-0 right-0 flex justify-center gap-1">${items.map((_, i) => `<span class="w-1.5 h-1.5 rounded-full ${i === current ? 'bg-white' : 'bg-white/45'}"></span>`).join('')}</div>` : '';
+    return `<div class="project-media-frame relative bg-slate-100 overflow-hidden">${body}${nav}</div>`;
+}
+
+function changeProjectMedia(projectId, delta) {
+    const project = projectsData.find(p => p.id === projectId);
+    if (!project) return;
+    const count = getProjectMediaItems(project).length;
+    projectCardMediaIndex[projectId] = ((projectCardMediaIndex[projectId] || 0) + delta + count) % count;
+    renderProjects();
+}
+
 function renderProjects() {
     const container = document.getElementById('projects-container');
     container.innerHTML = projectsData.map(p => {
@@ -373,30 +419,31 @@ function renderProjects() {
         const actualTotal = p.totalRooms || 0;
         const total = p.rentableRooms || actualTotal;
         const rate = total > 0 ? Math.round(occupied / total * 100) : 0;
-        const firstPhoto = (p.exteriorPhotoUrls && p.exteriorPhotoUrls[0]) || '';
-        const typeLabel = p.type ? `<span class="text-[11px] px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">${h(p.type)}</span>` : '';
         const mapLink = p.mapUrl || getMapSearchUrl(p.address || '');
         return `
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition" onclick="selectProject('${p.id}')">
-            <div class="h-32 bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center overflow-hidden relative">
-                ${firstPhoto ? `<img src="${h(firstPhoto)}" alt="${h(p.name)} 外觀" class="w-full h-full object-cover">` : '<i class="fas fa-building text-3xl text-primary/30"></i>'}
-                <div class="absolute top-2 left-2 flex gap-2">${typeLabel}</div>
-            </div>
-            <div class="p-4">
-                <div class="flex items-start justify-between gap-2 mb-2"><h3 class="font-semibold text-gray-900 text-sm leading-5">${h(p.name)}</h3><span class="text-xs status-occupied px-2 py-1 rounded-full whitespace-nowrap">${rate}% 出租</span></div>
-                <p class="text-xs text-gray-500 mb-3 line-clamp-2"><i class="fas fa-location-dot mr-1 text-gray-300"></i>${h(p.address || '未填地址')}</p>
-                <div class="grid grid-cols-3 gap-2 text-xs mb-3">
-                    <div class="rounded-lg bg-gray-50 p-2"><p class="text-gray-400">可租</p><p class="font-semibold text-gray-900">${total} 間</p></div>
-                    <div class="rounded-lg bg-emerald-50 p-2"><p class="text-gray-400">已租</p><p class="font-semibold text-emerald-600">${occupied} 間</p></div>
-                    <div class="rounded-lg bg-amber-50 p-2"><p class="text-gray-400">空置</p><p class="font-semibold text-amber-600">${Math.max(total - occupied, 0)} 間</p></div>
+        <article class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition max-w-[270px] w-full mx-auto">
+            ${renderProjectMedia(p)}
+            <div class="p-3 space-y-2">
+                <h3 class="font-semibold text-gray-900 text-sm leading-5 line-clamp-2">${h(p.name || '未命名建案')}</h3>
+                <div class="text-xs leading-5">
+                    <span class="project-card-address">${h(p.address || '未填地址')}</span>
+                    ${mapLink ? `<a href="${mapLink}" target="_blank" class="ml-1 text-primary hover:underline">地圖連結</a>` : ''}
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-[11px] px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">${h(p.type || '未分類')}</span>
+                    <span class="text-xs text-gray-600"><i class="fas fa-door-open text-gray-300 mr-1"></i>總客房 ${total} 間</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-[11px] text-center">
+                    <div class="rounded-lg bg-emerald-50 p-1.5"><p class="text-gray-400">已租</p><p class="font-semibold text-emerald-600">${occupied}</p></div>
+                    <div class="rounded-lg bg-amber-50 p-1.5"><p class="text-gray-400">空置</p><p class="font-semibold text-amber-600">${Math.max(total - occupied, 0)}</p></div>
                 </div>
                 <div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-secondary h-1.5 rounded-full" style="width:${Math.min(rate, 100)}%"></div></div>
-                <div class="mt-3 pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
-                    <a href="${mapLink}" target="_blank" onclick="event.stopPropagation()" class="text-xs text-gray-400 hover:text-primary"><i class="fas fa-map mr-1"></i>地圖</a>
-                    <button type="button" onclick="openProjectModal('${p.id}'); event.stopPropagation();" class="text-xs text-primary font-medium hover:underline"><i class="fas fa-pen mr-1"></i>編輯資料</button>
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <a href="room-info.html?projectId=${encodeURIComponent(p.id)}" class="text-center px-2 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary/90"><i class="fas fa-list mr-1"></i>客房資訊</a>
+                    <button type="button" onclick="openProjectModal('${p.id}')" class="px-2 py-2 border border-gray-200 text-primary rounded-lg text-xs font-medium hover:bg-primary/5"><i class="fas fa-pen mr-1"></i>編輯資料</button>
                 </div>
             </div>
-        </div>`;
+        </article>`;
     }).join('');
 }
 
@@ -434,7 +481,7 @@ function renderRooms() {
             <td class="px-4 py-3"><span class="inline-flex items-center gap-1 text-xs ${statusClass} px-2 py-1 rounded-full"><span class="w-1.5 h-1.5 rounded-full" style="background:currentColor"></span>${r.status}</span></td>
             <td class="px-4 py-3 text-sm text-gray-600">${r.tenant || '—'}</td>
             <td class="px-4 py-3 text-sm font-medium text-gray-900">${formatCurrency(r.rent)}</td>
-            <td class="px-4 py-3"><button class="text-sm text-primary hover:underline">查看</button></td>
+            <td class="px-4 py-3"><a href="room-info.html?projectId=${encodeURIComponent(selectedProjectId)}&roomId=${encodeURIComponent(r.id)}" class="text-sm text-primary hover:underline">查看</a></td>
         </tr>`;
     }).join('');
 }
