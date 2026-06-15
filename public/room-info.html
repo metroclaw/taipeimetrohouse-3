@@ -91,7 +91,7 @@ function renderRooms(){
     return `<article class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-2"><div><p class="text-xs text-gray-400">${h(projectData?.name || '')} / ${h(projectData?.address || '')}</p><h2 class="text-xl font-bold text-gray-900 mt-1">房號 ${h(roomNumber)}</h2></div><span class="inline-flex w-fit px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">${h(room.status || '狀態未設定')}</span></div>
       <div class="p-4 space-y-5">
-        ${renderRoomPhotos(room)}
+        <div><div class="flex items-center justify-between mb-2"><h3 class="text-sm font-semibold text-gray-900">室內圖</h3><span class="text-xs text-gray-400">最多 6 張，可左右滑動，點擊放大</span></div>${renderRoomPhotos(room)}</div>
         <div class="grid md:grid-cols-4 gap-3">
           <div class="rounded-xl bg-slate-50 p-3"><p class="info-label">坪數</p><p class="info-value">${h(room.area || 0)} 坪</p></div>
           <div class="rounded-xl bg-slate-50 p-3"><p class="info-label">租金</p><p class="info-value">${formatCurrency(room.rent || room.monthlyRent || 0)}</p></div>
