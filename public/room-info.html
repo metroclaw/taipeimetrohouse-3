@@ -41,6 +41,7 @@
       <a href="rent.html" class="sidebar-item"><i class="fas fa-money-bill w-5"></i>租金管理</a>
       <a href="billing.html" class="sidebar-item"><i class="fas fa-calculator w-5"></i>費用計算</a>
       <a href="maintenance.html" class="sidebar-item"><i class="fas fa-tools w-5"></i>修繕派工</a>
+      <a href="calendar.html" class="sidebar-item"><i class="fas fa-calendar-days w-5"></i>行事曆</a>
       <a href="evidence.html" class="sidebar-item"><i class="fas fa-camera w-5"></i>證據保存</a>
       <a href="accounts.html" class="sidebar-item"><i class="fas fa-user-shield w-5"></i>帳號管理</a>
       <a href="settings.html" class="sidebar-item"><i class="fas fa-cog w-5"></i>設定</a>
@@ -208,7 +209,11 @@ async function loadRoomInfoPage(){
     const mapLink = document.getElementById('project-map-link');
     if (projectData.address) { mapLink.href = projectData.mapUrl || getMapSearchUrl(projectData.address); mapLink.classList.remove('hidden'); }
     const roomsSnap = await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').get();
-    roomsData = roomsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    roomsData = roomsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => {
+      const av = parseInt(String(a.number || a.roomNumber || a.name || '').match(/\d+/)?.[0] || '999999', 10);
+      const bv = parseInt(String(b.number || b.roomNumber || b.name || '').match(/\d+/)?.[0] || '999999', 10);
+      return av - bv;
+    });
     selectedRoomId = getParam('roomId') || (roomsData[0] && roomsData[0].id) || '';
     renderRoomDetail();
   } catch(e) {

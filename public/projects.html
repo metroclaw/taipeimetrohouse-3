@@ -64,6 +64,7 @@ window.GOOGLE_PLACES_API_KEY = window.GOOGLE_PLACES_API_KEY || "AIzaSyBG1LcX7rsr
       <a href="rent.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-money-bill w-5"></i>租金管理</a>
       <a href="billing.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-calculator w-5"></i>費用計算</a>
       <a href="maintenance.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-tools w-5"></i>修繕派工</a>
+      <a href="calendar.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-calendar-days w-5"></i>行事曆</a>
       <a href="evidence.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-camera w-5"></i>證據保存</a>
       <a href="accounts.html" class="sidebar-item text-gray-600"><i class="fas fa-user-shield w-5"></i>帳號管理</a>
       <a href="settings.html" class="sidebar-item flex items-center gap-3 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg"><i class="fas fa-cog w-5"></i>設定</a>
@@ -183,6 +184,11 @@ window.GOOGLE_PLACES_API_KEY = window.GOOGLE_PLACES_API_KEY || "AIzaSyBG1LcX7rsr
           <div><label class="block text-sm font-medium text-gray-700 mb-1">Wifi 密碼</label><input type="text" id="project-wifi-password" autocomplete="off" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
           <div><label class="block text-sm font-medium text-gray-700 mb-1">大門密碼</label><input type="text" id="project-door-password" autocomplete="off" placeholder="大樓大門或樓層大門密碼" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
         </div>
+      </section>
+
+      <section class="space-y-4">
+        <div class="flex items-center gap-2 text-sm font-semibold text-gray-900"><i class="fas fa-tree-city text-primary"></i>環境描述</div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">環境描述</label><textarea id="project-environment-description" rows="4" placeholder="例如：近捷運、生活機能、附近停車、垃圾集中區、採光、噪音、出入口環境等" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></textarea></div>
       </section>
 
       <div class="flex flex-col sm:flex-row gap-3 pt-2 sticky bottom-0 bg-white border-t border-gray-100 py-4"><button type="button" onclick="closeProjectModal()" class="sm:flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm">取消</button><button type="submit" class="sm:flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium"><i class="fas fa-save mr-1"></i>儲存建案</button></div>
@@ -337,9 +343,26 @@ function getGooglePlacePhotoMediaUrl(photoName, maxWidthPx = 1200) {
     return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidthPx}&key=${encodeURIComponent(key)}`;
 }
 
-async function fetchGooglePlacePhotoUrls(address) {
-    const key = window.GOOGLE_PLACES_API_KEY || '';
-    if (!address || !key) return [];
+function buildGooglePlaceDefaultPhotoQueries(address, projectName = '') {
+    const queries = [];
+    const add = (query, sourceLabel) => {
+        const normalized = String(query || '').trim();
+        if (!normalized || queries.some(item => item.query === normalized)) return;
+        queries.push({ query: normalized, sourceLabel });
+    };
+    add(address, '地址');
+    add(`${address} 附近地標`, '附近地標');
+    add(`${address} 街景`, '街景');
+    add(`${address} 大樓`, '大樓名');
+    add(`${address} 建築`, '大樓名');
+    if (projectName) {
+        add(`${projectName} ${address}`, '建案名稱');
+        add(`${projectName} 大樓`, '大樓名');
+    }
+    return queries;
+}
+
+async function searchGooglePlacePhotosByQuery(query, key) {
     const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
         method: 'POST',
         headers: {
@@ -347,25 +370,60 @@ async function fetchGooglePlacePhotoUrls(address) {
             'X-Goog-Api-Key': key,
             'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.photos'
         },
-        body: JSON.stringify({ textQuery: address, languageCode: 'zh-TW', regionCode: 'TW' })
+        body: JSON.stringify({ textQuery: query, languageCode: 'zh-TW', regionCode: 'TW' })
     });
     if (!response.ok) throw new Error(`Google Places search failed: ${response.status}`);
     const data = await response.json();
-    const place = data.places && data.places[0];
-    const photos = (place && place.photos ? place.photos : []).slice(0, 6);
-    return photos.map(photo => getGooglePlacePhotoMediaUrl(photo.name, 1200)).filter(Boolean);
+    const places = (data.places || []).slice(0, 5);
+    const photoNames = [];
+    for (const place of places) {
+        for (const photo of (place.photos || []).slice(0, 6)) {
+            if (photo && photo.name && !photoNames.includes(photo.name)) photoNames.push(photo.name);
+        }
+    }
+    return photoNames.map(photoName => getGooglePlacePhotoMediaUrl(photoName, 1200)).filter(Boolean);
+}
+
+async function fetchGooglePlacePhotoUrls(address, projectName = '') {
+    const key = window.GOOGLE_PLACES_API_KEY || '';
+    if (!address || !key) return { urls: [], sourceLabel: '' };
+    const queries = buildGooglePlaceDefaultPhotoQueries(address, projectName);
+    for (const item of queries) {
+        try {
+            const urls = await searchGooglePlacePhotosByQuery(item.query, key);
+            if (urls.length) return { urls, sourceLabel: item.sourceLabel, query: item.query };
+        } catch (e) {
+            console.warn('[Projects] Google Place photo query failed:', item.query, e);
+        }
+    }
+    return { urls: [], sourceLabel: '', query: '' };
+}
+
+function clearDefaultExteriorPhoto(index) {
+    document.getElementById(`project-exterior-default-url-${index}`).value = '';
+    document.getElementById(`project-exterior-url-${index}`).value = '';
+    document.getElementById(`project-exterior-preview-url-${index}`).value = '';
+    document.getElementById(`project-exterior-file-${index}`).value = '';
+    renderImagePreview(index, '');
 }
 
 async function useDefaultExteriorPhoto(index) {
     const address = document.getElementById('project-address').value.trim();
+    const projectName = document.getElementById('project-name').value.trim();
     if (!address) {
         showToast('請先輸入建案地址，才能從 Google Place 取得預設照片', 'error');
         return;
     }
     try {
         showLoading();
-        const urls = await fetchGooglePlacePhotoUrls(address);
-        if (!urls.length) throw new Error('No Google Place photos found');
+        const result = await fetchGooglePlacePhotoUrls(address, projectName);
+        const urls = result.urls || [];
+        if (!urls.length) {
+            clearDefaultExteriorPhoto(index);
+            hideLoading();
+            showToast('Google Place 地址、附近地標、街景與大樓名都沒有照片，已將預設建案圖片留空', 'error');
+            return;
+        }
         const url = urls[(index - 1) % urls.length];
         document.getElementById(`project-exterior-default-url-${index}`).value = url;
         document.getElementById(`project-exterior-url-${index}`).value = url;
@@ -373,11 +431,11 @@ async function useDefaultExteriorPhoto(index) {
         document.getElementById(`project-exterior-file-${index}`).value = '';
         renderImagePreview(index, url);
         hideLoading();
-        showToast(`已套用 Google Place 預設照片 ${index}，儲存時會裁切成適當大小`);
+        showToast(`已用「${result.sourceLabel || 'Google Place'}」套用預設照片 ${index}，儲存時會裁切成適當大小`);
     } catch (e) {
         hideLoading();
         console.warn('[Projects] Google Place default photo failed:', e);
-        showToast('無法取得 Google Place 預設照片，請確認地址或 Places API key', 'error');
+        showToast('無法取得 Google Place 預設照片，請確認 Places API key', 'error');
     }
 }
 
@@ -407,6 +465,7 @@ function getProjectFormData() {
         wifiName: document.getElementById('project-wifi-name').value.trim(),
         wifiPassword: document.getElementById('project-wifi-password').value.trim(),
         doorPassword: document.getElementById('project-door-password').value.trim(),
+        environmentDescription: document.getElementById('project-environment-description').value.trim(),
         exteriorPhotoUrls: [
             document.getElementById('project-exterior-url-1').value,
             document.getElementById('project-exterior-url-2').value
@@ -479,6 +538,7 @@ function fillProjectForm(project) {
     document.getElementById('project-wifi-name').value = project?.wifiName || '';
     document.getElementById('project-wifi-password').value = project?.wifiPassword || '';
     document.getElementById('project-door-password').value = project?.doorPassword || '';
+    document.getElementById('project-environment-description').value = project?.environmentDescription || '';
     document.getElementById('project-map-url').value = project?.mapUrl || getMapSearchUrl(project?.address || '');
     document.getElementById('project-map-static-url').value = project?.mapStaticUrl || '';
     document.getElementById('project-map-image-url').value = project?.mapImageUrl || '';
@@ -700,6 +760,47 @@ document.getElementById('project-address').addEventListener('change', () => { do
     });
 });
 
+
+function roomSortValue(room) {
+    const raw = String(room.number || room.roomNumber || room.name || '').trim();
+    const match = raw.match(/\d+/);
+    return match ? parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
+}
+
+async function syncProjectRoomsByRentableCount(uid, projectId, targetCount) {
+    const count = Math.max(0, parseInt(targetCount, 10) || 0);
+    if (!uid || !projectId || !count) return;
+    const roomsRef = db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms');
+    const snapshot = await roomsRef.get();
+    const existingRooms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => roomSortValue(a) - roomSortValue(b));
+    const batch = db.batch();
+    let creates = 0;
+    for (let i = existingRooms.length + 1; i <= count; i++) {
+        const padded = String(i).padStart(2, '0');
+        const ref = roomsRef.doc(`room-${padded}`);
+        batch.set(ref, {
+            number: `${i}`,
+            type: '',
+            area: 0,
+            floor: 0,
+            rent: 0,
+            acUnits: 1,
+            amenities: [],
+            internetTv: '',
+            otherInfo: '',
+            status: '空置',
+            tenant: '',
+            autoCreated: true,
+            sortOrder: i,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        creates++;
+    }
+    if (creates) await batch.commit();
+    await db.collection('users').doc(uid).collection('projects').doc(projectId).set({ totalRooms: Math.max(existingRooms.length + creates, existingRooms.length), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+}
+
 document.getElementById('project-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const uid = getCurrentUserUid();
@@ -717,6 +818,7 @@ document.getElementById('project-form').addEventListener('submit', async (e) => 
             const ref = await db.collection('users').doc(uid).collection('projects').add(data);
             projectId = ref.id;
         }
+        await syncProjectRoomsByRentableCount(uid, projectId, data.rentableRooms);
         const mapImageUrl = await uploadProjectMapImage(uid, projectId);
         const photo1 = await uploadProjectExteriorPhoto(uid, projectId, 1);
         const photo2 = await uploadProjectExteriorPhoto(uid, projectId, 2);
