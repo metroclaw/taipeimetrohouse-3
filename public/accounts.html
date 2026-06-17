@@ -75,6 +75,8 @@
           <div><p class="text-gray-400 mb-1">狀態</p><p id="current-status" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">聯絡電話</p><p id="current-phone" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">寄件地址</p><p id="current-address" class="font-medium text-gray-900">—</p></div>
+          <div><p class="text-gray-400 mb-1">建案</p><p id="current-project" class="font-medium text-gray-900">—</p></div>
+          <div><p class="text-gray-400 mb-1">房號</p><p id="current-room" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">帳號建立日期</p><p id="current-created" class="font-medium text-gray-700">—</p></div>
           <div><p class="text-gray-400 mb-1">最近登入日期</p><p id="current-lastlogin" class="font-medium text-gray-700">—</p></div>
         </div>
@@ -112,8 +114,11 @@
       </div>
       <div><label class="form-label">寄件地址</label><input id="edit-mailingAddress" type="text" class="form-input" placeholder="請輸入收件地址"></div>
       <div class="grid md:grid-cols-2 gap-4 p-4 bg-amber-50/70 rounded-xl border border-amber-100">
-        <div><label class="form-label">角色 <span class="text-xs text-amber-600">管理員</span></label><select id="edit-role" class="form-input admin-only"></select></div>
-        <div><label class="form-label">狀態</label><select id="edit-status" class="form-input admin-only"><option value="啟用">啟用</option><option value="停用">停用</option></select></div>
+        <div><label class="form-label">角色 <span class="text-xs text-amber-600">管理員</span></label><select id="edit-role" class="form-input assignment-only"></select></div>
+        <div><label class="form-label">狀態 <span class="text-xs text-amber-600">管理員</span></label><select id="edit-status" class="form-input admin-only"><option value="啟用">啟用</option><option value="停用">停用</option></select></div>
+        <div><label class="form-label">建案 <span class="text-xs text-amber-600">管理員</span></label><select id="edit-projectId" class="form-input assignment-only"><option value="">未指定</option></select></div>
+        <div><label class="form-label">房號 <span class="text-xs text-amber-600">管理員</span></label><select id="edit-roomId" class="form-input assignment-only"><option value="">未指定</option></select></div>
+        <p id="edit-admin-note" class="md:col-span-2 text-xs text-amber-700">管理員可完整操作；其他角色只能修改自己的聯絡資料與提醒設定，不能修改角色、建案、房號。</p>
       </div>
       <div class="grid md:grid-cols-2 gap-4">
         <label class="flex items-start gap-3 p-4 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-50"><input id="edit-tenantPaymentContractReminder" type="checkbox" class="mt-1 w-5 h-5 text-primary rounded"><span><b class="block text-gray-800">繳費／合約提醒</b><span class="text-sm text-gray-500">租金、費用、合約到期等提醒。</span></span></label>
@@ -132,7 +137,14 @@ let currentAccount = null;
 let accountsData = [];
 let selectedUid = null;
 let editingUid = null;
+let projectCache = [];
+let roomsByProject = {};
 const roles = ['管理員','員工','房務','工務','租客','訪客'];
+function h(value){return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function setOptions(el, options, selected, placeholder) { el.innerHTML = `${placeholder ? `<option value="">${placeholder}</option>` : ''}${options.map(o => `<option value="${h(o.value)}" ${String(o.value)===String(selected||'')?'selected':''}>${h(o.label)}</option>`).join('')}`; }
+async function loadProjectCache() { projectCache = await getProjects(); return projectCache; }
+async function loadAccountRooms(projectId, selectedRoomId = '') { const roomSelect = document.getElementById('edit-roomId'); if (!roomSelect) return; if (!projectId) { setOptions(roomSelect, [], '', '未指定'); return; } if (!roomsByProject[projectId]) roomsByProject[projectId] = await getRooms(projectId); setOptions(roomSelect, roomsByProject[projectId].map(r => ({ value: r.id, label: r.number || r.roomNumber || r.name || r.id })), selectedRoomId, '未指定'); }
+async function fillAssignmentOptions(account) { await loadProjectCache(); setOptions(document.getElementById('edit-projectId'), projectCache.map(p => ({ value:p.id, label:p.name || '未命名建案' })), account.projectId || '', '未指定'); await loadAccountRooms(account.projectId || '', account.roomId || ''); }
 
 function tsLabel(value) {
   if (!value) return '—';
@@ -147,7 +159,8 @@ async function loadAccountsPage() {
   try {
     showLoading();
     currentAccount = await ensureAccountProfile(user);
-    accountsData = await getAllAccounts();
+    const isAdmin = currentAccount && currentAccount.role === '管理員';
+    accountsData = isAdmin ? await getAllAccounts() : [currentAccount];
     selectedUid = user.uid;
     renderCurrentAccount();
     renderAccounts();
@@ -171,6 +184,8 @@ function renderCurrentAccount() {
   document.getElementById('current-status').textContent = account.status || '啟用';
   document.getElementById('current-phone').textContent = account.phone || '—';
   document.getElementById('current-address').textContent = account.mailingAddress || '—';
+  document.getElementById('current-project').textContent = account.projectName || account.projectId || '—';
+  document.getElementById('current-room').textContent = account.roomNumber || account.roomId || '—';
   document.getElementById('current-created').textContent = tsLabel(account.createdAt);
   document.getElementById('current-lastlogin').textContent = tsLabel(account.lastLoginAt);
   document.getElementById('current-role-badge').textContent = account.role || '訪客';
@@ -178,7 +193,7 @@ function renderCurrentAccount() {
   const photo = account.photoURL || '';
   const photoEl = document.getElementById('current-photo');
   if (photo) {
-    photoEl.innerHTML = `<img src="${photo}" class="w-full h-full object-cover" alt="avatar">`;
+    photoEl.innerHTML = `<img src="${h(photo)}" class="w-full h-full object-cover" alt="avatar">`;
   } else {
     photoEl.innerHTML = '<i class="fas fa-user text-primary text-2xl"></i>';
   }
@@ -186,35 +201,37 @@ function renderCurrentAccount() {
 
 function renderAccounts() {
   const tbody = document.getElementById('accounts-table-body');
-  document.getElementById('account-count').textContent = `${accountsData.length} 個帳號`;
-  if (!accountsData.length) { tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">尚無帳號</td></tr>'; return; }
   const isAdmin = currentAccount && currentAccount.role === '管理員';
   const currentUid = getCurrentUserUid();
+  const title = document.querySelector('#account-count')?.previousElementSibling;
+  if (title) title.textContent = isAdmin ? '所有帳號列表' : '自己的帳號資訊';
+  document.getElementById('account-count').textContent = isAdmin ? `${accountsData.length} 個帳號` : '非管理員僅顯示本人';
+  if (!accountsData.length) { tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">尚無帳號</td></tr>'; return; }
 
   tbody.innerHTML = accountsData.map(a => {
     const isSelected = a.uid === selectedUid;
     const isCurrentUser = a.uid === currentUid;
     const photoHtml = a.photoURL
-      ? `<img src="${a.photoURL}" class="w-full h-full object-cover" alt="avatar">`
+      ? `<img src="${h(a.photoURL)}" class="w-full h-full object-cover" alt="avatar">`
       : '<i class="fas fa-user text-primary"></i>';
     const selectedClass = isSelected ? 'bg-blue-50 ring-2 ring-primary/20' : 'hover:bg-gray-50';
-    const avatarClick = `onclick="selectAccount('${a.uid}')" style="cursor:pointer" title="點擊查看帳號資訊"`;
+    const avatarClick = `onclick="selectAccount('${h(a.uid)}')" style="cursor:pointer" title="點擊查看帳號資訊"`;
 
     return `<tr class="${selectedClass} transition-colors">
       <td class="px-4 py-3">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center" ${avatarClick}>${photoHtml}</div>
           <div>
-            <p class="text-sm font-medium text-gray-900">${a.displayName || '未命名使用者'}${isCurrentUser ? ' <span class="text-xs text-primary font-normal">（我）</span>' : ''}</p>
-            <p class="text-xs text-gray-500">${a.email || '—'}</p>
+            <p class="text-sm font-medium text-gray-900">${h(a.displayName || '未命名使用者')}${isCurrentUser ? ' <span class="text-xs text-primary font-normal">（我）</span>' : ''}</p>
+            <p class="text-xs text-gray-500">${h(a.email || '—')}</p>
           </div>
         </div>
       </td>
-      <td class="px-4 py-3 text-sm text-gray-700">${a.role || '訪客'}</td>
+      <td class="px-4 py-3 text-sm text-gray-700">${h(a.role || '訪客')}</td>
       <td class="px-4 py-3"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${(a.status || '啟用') === '啟用' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${a.status || '啟用'}</span></td>
       <td class="px-4 py-3 text-sm text-gray-500">${tsLabel(a.lastLoginAt)}</td>
       <td class="px-4 py-3">
-        <button onclick="openEditModal('${a.uid}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition" title="編輯帳號資訊">
+        <button onclick="openEditModal('${h(a.uid)}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition" title="編輯帳號資訊">
           <i class="fas fa-pen"></i>編輯
         </button>
       </td>
@@ -228,11 +245,13 @@ function selectAccount(uid) {
   renderAccounts();
 }
 
-function openEditModal(uid) {
+async function openEditModal(uid) {
+  const isAdmin = currentAccount && currentAccount.role === '管理員';
+  const currentUid = getCurrentUserUid();
+  if (!isAdmin && uid !== currentUid) { showToast('非管理員只能編輯自己的帳號資訊', 'error'); return; }
   const account = accountsData.find(a => a.uid === uid);
   if (!account) return;
   editingUid = uid;
-  const isAdmin = currentAccount && currentAccount.role === '管理員';
 
   document.getElementById('edit-name-display').textContent = account.displayName || '未命名使用者';
   document.getElementById('edit-email-display').textContent = account.email || '—';
@@ -244,11 +263,13 @@ function openEditModal(uid) {
   document.getElementById('edit-tenantPaymentContractReminder').checked = account.tenantPaymentContractReminder !== false;
   document.getElementById('edit-workOrderReminder').checked = account.workOrderReminder !== false;
 
-  // 角色下拉
-  document.getElementById('edit-role').innerHTML = roles.map(r => `<option value="${r}" ${(account.role || '訪客') === r ? 'selected' : ''}>${r}</option>`).join('');
+  // 角色 / 建案 / 房號下拉
+  document.getElementById('edit-role').innerHTML = roles.map(r => `<option value="${h(r)}" ${(account.role || '訪客') === r ? 'selected' : ''}>${h(r)}</option>`).join('');
+  await fillAssignmentOptions(account);
 
-  // 管理員才能改角色和狀態
-  document.querySelectorAll('.admin-only').forEach(el => el.disabled = !isAdmin);
+  // 管理員才能改角色、建案、房號與狀態；其他角色只能改自己的一般欄位
+  document.querySelectorAll('.assignment-only,.admin-only').forEach(el => el.disabled = !isAdmin);
+  document.getElementById('edit-admin-note').textContent = isAdmin ? '您是管理員，可以完整操作所有帳號資料。' : '非管理員只能修改自己的聯絡資料與提醒設定，不能修改角色、建案、房號。';
 
   const photo = account.photoURL || '';
   const photoEl = document.getElementById('edit-photo');
@@ -266,6 +287,8 @@ function closeEditModal() {
   editingUid = null;
 }
 
+document.getElementById('edit-projectId').addEventListener('change', e => loadAccountRooms(e.target.value, ''));
+
 document.getElementById('edit-form').addEventListener('submit', async function(e) {
   e.preventDefault();
   if (!editingUid) return;
@@ -280,8 +303,16 @@ document.getElementById('edit-form').addEventListener('submit', async function(e
     updatedBy: getCurrentUserUid()
   };
   if (isAdmin) {
+    const projectId = document.getElementById('edit-projectId').value;
+    const roomId = document.getElementById('edit-roomId').value;
+    const project = projectCache.find(p => p.id === projectId);
+    const room = (roomsByProject[projectId] || []).find(r => r.id === roomId);
     data.role = document.getElementById('edit-role').value;
     data.status = document.getElementById('edit-status').value;
+    data.projectId = projectId;
+    data.projectName = project ? (project.name || '') : '';
+    data.roomId = roomId;
+    data.roomNumber = room ? (room.number || room.roomNumber || room.name || '') : '';
   }
   try {
     showLoading();
