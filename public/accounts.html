@@ -14,6 +14,9 @@
 <script src="js/app.js"></script>
 <style>
 .sidebar-item{display:flex;align-items:center;gap:.75rem;padding:.625rem .75rem!important;border-radius:.5rem;font-size:.875rem;line-height:1.25rem;min-height:2.5rem;color:#4b5563;transition:background-color .15s,color .15s}.sidebar-item i{width:1.25rem!important;text-align:center}.sidebar-item:hover{background:#f9fafb;color:#2563EB}.sidebar-item.active{background:#2563EB15;color:#2563EB;font-weight:600}
+.form-label{display:block;font-size:.875rem;font-weight:500;color:#374151;margin-bottom:.375rem}
+.form-input{width:100%;padding:.625rem .75rem;border:1px solid #e5e7eb;border-radius:.5rem;font-size:.875rem;background:white}
+.form-input:disabled{background:#f9fafb;color:#9ca3af}
 </style>
 </head>
 <body class="bg-bg min-h-screen">
@@ -54,31 +57,33 @@
   </aside>
   <main class="flex-1 p-4 lg:p-6">
     <div class="flex items-center justify-between mb-6">
-      <div><h1 class="text-2xl font-bold text-gray-900">帳號管理</h1><p class="text-sm text-gray-500 mt-1">根據 Google 登入資料建立帳號，設定角色與啟用狀態。</p></div>
+      <div><h1 class="text-2xl font-bold text-gray-900">帳號管理</h1><p class="text-sm text-gray-500 mt-1">查看所有帳號資料，點擊頭像切換顯示，編輯按鈕修改帳號資訊。</p></div>
     </div>
 
-    <div class="grid lg:grid-cols-3 gap-4 mb-6">
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 lg:col-span-1">
-        <h2 class="font-semibold text-gray-900 mb-4">目前登入帳號</h2>
-        <div class="flex items-center gap-4">
-          <div id="current-photo" class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden"><i class="fas fa-user text-primary text-xl"></i></div>
-          <div class="min-w-0"><p id="current-name" class="font-semibold text-gray-900 truncate">載入中...</p><p id="current-email" class="text-sm text-gray-500 truncate">—</p><p id="current-role" class="text-xs text-primary mt-1">—</p></div>
+    <!-- 目前登入帳號區塊 -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-6">
+      <div class="flex items-center gap-2 mb-4"><i class="fas fa-id-card text-primary"></i><h2 class="font-semibold text-gray-900">目前登入帳號</h2><span id="viewing-label" class="text-xs text-gray-400 ml-1"></span></div>
+      <div class="flex flex-col md:flex-row gap-6">
+        <div class="flex flex-col items-center gap-3">
+          <div id="current-photo" class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden"><i class="fas fa-user text-primary text-2xl"></i></div>
+          <span id="current-role-badge" class="inline-flex px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">—</span>
         </div>
-      </div>
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 lg:col-span-2">
-        <h2 class="font-semibold text-gray-900 mb-3">角色說明</h2>
-        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-gray-600">
-          <div class="p-3 bg-gray-50 rounded-lg"><b>管理員</b><br>操作所有頁面與帳號角色。</div>
-          <div class="p-3 bg-gray-50 rounded-lg"><b>員工</b><br>瀏覽所有頁面，可新增修繕/清潔工單。</div>
-          <div class="p-3 bg-gray-50 rounded-lg"><b>房務/工務</b><br>只處理派發給自己的工單。</div>
-          <div class="p-3 bg-gray-50 rounded-lg"><b>租客</b><br>自己的租屋、繳費、報修與度數。</div>
-          <div class="p-3 bg-gray-50 rounded-lg"><b>訪客</b><br>只看未出租資訊。</div>
+        <div class="flex-1 grid sm:grid-cols-2 gap-4 text-sm">
+          <div><p class="text-gray-400 mb-1">顯示名稱</p><p id="current-name" class="font-medium text-gray-900">載入中...</p></div>
+          <div><p class="text-gray-400 mb-1">Email</p><p id="current-email" class="font-medium text-gray-900 break-all">—</p></div>
+          <div><p class="text-gray-400 mb-1">角色</p><p id="current-role" class="font-medium text-gray-900">—</p></div>
+          <div><p class="text-gray-400 mb-1">狀態</p><p id="current-status" class="font-medium text-gray-900">—</p></div>
+          <div><p class="text-gray-400 mb-1">聯絡電話</p><p id="current-phone" class="font-medium text-gray-900">—</p></div>
+          <div><p class="text-gray-400 mb-1">寄件地址</p><p id="current-address" class="font-medium text-gray-900">—</p></div>
+          <div><p class="text-gray-400 mb-1">帳號建立日期</p><p id="current-created" class="font-medium text-gray-700">—</p></div>
+          <div><p class="text-gray-400 mb-1">最近登入日期</p><p id="current-lastlogin" class="font-medium text-gray-700">—</p></div>
         </div>
       </div>
     </div>
 
+    <!-- 帳號列表 -->
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between"><h2 class="font-semibold text-gray-900">帳號列表</h2><span id="account-count" class="text-xs text-gray-400">載入中</span></div>
+      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between"><h2 class="font-semibold text-gray-900">所有帳號列表</h2><span id="account-count" class="text-xs text-gray-400">載入中</span></div>
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead><tr class="bg-gray-50 text-left"><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">帳號</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">角色</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">最近登入</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
@@ -88,11 +93,46 @@
     </div>
   </main>
 </div>
+
+<!-- 帳號編輯 Modal -->
+<div id="edit-modal" class="hidden fixed inset-0 bg-black/40 z-[9998] flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
+      <h3 class="text-lg font-semibold text-gray-900"><i class="fas fa-user-edit text-primary mr-2"></i>編輯帳號資訊</h3>
+      <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 p-1"><i class="fas fa-times text-lg"></i></button>
+    </div>
+    <form id="edit-form" class="p-6 space-y-5">
+      <div class="flex items-center gap-4 pb-4 border-b border-gray-100">
+        <div id="edit-photo" class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden"><i class="fas fa-user text-primary text-xl"></i></div>
+        <div><p id="edit-name-display" class="font-semibold text-gray-900">—</p><p id="edit-email-display" class="text-sm text-gray-500">—</p></div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div><label class="form-label">顯示名稱</label><input id="edit-displayName" type="text" class="form-input" placeholder="請輸入顯示名稱"></div>
+        <div><label class="form-label">聯絡電話</label><input id="edit-phone" type="tel" class="form-input" placeholder="例如：0912-345-678"></div>
+      </div>
+      <div><label class="form-label">寄件地址</label><input id="edit-mailingAddress" type="text" class="form-input" placeholder="請輸入收件地址"></div>
+      <div class="grid md:grid-cols-2 gap-4 p-4 bg-amber-50/70 rounded-xl border border-amber-100">
+        <div><label class="form-label">角色 <span class="text-xs text-amber-600">管理員</span></label><select id="edit-role" class="form-input admin-only"></select></div>
+        <div><label class="form-label">狀態</label><select id="edit-status" class="form-input admin-only"><option value="啟用">啟用</option><option value="停用">停用</option></select></div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <label class="flex items-start gap-3 p-4 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-50"><input id="edit-tenantPaymentContractReminder" type="checkbox" class="mt-1 w-5 h-5 text-primary rounded"><span><b class="block text-gray-800">繳費／合約提醒</b><span class="text-sm text-gray-500">租金、費用、合約到期等提醒。</span></span></label>
+        <label class="flex items-start gap-3 p-4 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-50"><input id="edit-workOrderReminder" type="checkbox" class="mt-1 w-5 h-5 text-primary rounded"><span><b class="block text-gray-800">工單提醒</b><span class="text-sm text-gray-500">修繕、清潔、派工更新提醒。</span></span></label>
+      </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">取消</button>
+        <button type="submit" class="px-5 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90"><i class="fas fa-save mr-1"></i>儲存變更</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 let currentAccount = null;
 let accountsData = [];
+let selectedUid = null;
+let editingUid = null;
 const roles = ['管理員','員工','房務','工務','租客','訪客'];
-const statuses = ['啟用','停用'];
 
 function tsLabel(value) {
   if (!value) return '—';
@@ -108,7 +148,8 @@ async function loadAccountsPage() {
     showLoading();
     currentAccount = await ensureAccountProfile(user);
     accountsData = await getAllAccounts();
-    renderCurrentAccount(user, currentAccount);
+    selectedUid = user.uid;
+    renderCurrentAccount();
     renderAccounts();
   } catch (e) {
     console.error(e);
@@ -116,12 +157,31 @@ async function loadAccountsPage() {
   } finally { hideLoading(); }
 }
 
-function renderCurrentAccount(user, account) {
-  document.getElementById('current-name').textContent = account.displayName || user.displayName || '未命名使用者';
-  document.getElementById('current-email').textContent = account.email || user.email || '';
-  document.getElementById('current-role').textContent = `角色：${account.role || '訪客'}｜狀態：${account.status || '啟用'}`;
-  const photo = account.photoURL || user.photoURL;
-  if (photo) document.getElementById('current-photo').innerHTML = `<img src="${photo}" class="w-full h-full object-cover" alt="avatar">`;
+function renderCurrentAccount() {
+  const account = accountsData.find(a => a.uid === selectedUid) || accountsData[0];
+  if (!account) return;
+
+  const isCurrentUser = selectedUid === getCurrentUserUid();
+  const label = document.getElementById('viewing-label');
+  if (label) label.textContent = isCurrentUser ? '（目前登入）' : '';
+
+  document.getElementById('current-name').textContent = account.displayName || '未命名使用者';
+  document.getElementById('current-email').textContent = account.email || '—';
+  document.getElementById('current-role').textContent = account.role || '訪客';
+  document.getElementById('current-status').textContent = account.status || '啟用';
+  document.getElementById('current-phone').textContent = account.phone || '—';
+  document.getElementById('current-address').textContent = account.mailingAddress || '—';
+  document.getElementById('current-created').textContent = tsLabel(account.createdAt);
+  document.getElementById('current-lastlogin').textContent = tsLabel(account.lastLoginAt);
+  document.getElementById('current-role-badge').textContent = account.role || '訪客';
+
+  const photo = account.photoURL || '';
+  const photoEl = document.getElementById('current-photo');
+  if (photo) {
+    photoEl.innerHTML = `<img src="${photo}" class="w-full h-full object-cover" alt="avatar">`;
+  } else {
+    photoEl.innerHTML = '<i class="fas fa-user text-primary text-2xl"></i>';
+  }
 }
 
 function renderAccounts() {
@@ -129,26 +189,116 @@ function renderAccounts() {
   document.getElementById('account-count').textContent = `${accountsData.length} 個帳號`;
   if (!accountsData.length) { tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">尚無帳號</td></tr>'; return; }
   const isAdmin = currentAccount && currentAccount.role === '管理員';
+  const currentUid = getCurrentUserUid();
+
   tbody.innerHTML = accountsData.map(a => {
-    const roleSelect = `<select data-uid="${a.uid}" data-field="role" class="account-field px-2 py-1 border border-gray-200 rounded text-sm" ${isAdmin ? '' : 'disabled'}>${roles.map(r => `<option value="${r}" ${(a.role || '訪客') === r ? 'selected' : ''}>${r}</option>`).join('')}</select>`;
-    const statusSelect = `<select data-uid="${a.uid}" data-field="status" class="account-field px-2 py-1 border border-gray-200 rounded text-sm" ${isAdmin ? '' : 'disabled'}>${statuses.map(st => `<option value="${st}" ${(a.status || '啟用') === st ? 'selected' : ''}>${st}</option>`).join('')}</select>`;
-    return `<tr class="hover:bg-gray-50"><td class="px-4 py-3"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center">${a.photoURL ? `<img src="${a.photoURL}" class="w-full h-full object-cover" alt="avatar">` : '<i class="fas fa-user text-primary"></i>'}</div><div><p class="text-sm font-medium text-gray-900">${a.displayName || '未命名使用者'}</p><p class="text-xs text-gray-500">${a.email || '—'}</p></div></div></td><td class="px-4 py-3">${roleSelect}</td><td class="px-4 py-3">${statusSelect}</td><td class="px-4 py-3 text-sm text-gray-500">${tsLabel(a.lastLoginAt)}</td><td class="px-4 py-3 text-sm text-gray-500">${isAdmin ? '可編輯' : '僅管理員可編輯'}</td></tr>`;
+    const isSelected = a.uid === selectedUid;
+    const isCurrentUser = a.uid === currentUid;
+    const photoHtml = a.photoURL
+      ? `<img src="${a.photoURL}" class="w-full h-full object-cover" alt="avatar">`
+      : '<i class="fas fa-user text-primary"></i>';
+    const selectedClass = isSelected ? 'bg-blue-50 ring-2 ring-primary/20' : 'hover:bg-gray-50';
+    const avatarClick = `onclick="selectAccount('${a.uid}')" style="cursor:pointer" title="點擊查看帳號資訊"`;
+
+    return `<tr class="${selectedClass} transition-colors">
+      <td class="px-4 py-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center" ${avatarClick}>${photoHtml}</div>
+          <div>
+            <p class="text-sm font-medium text-gray-900">${a.displayName || '未命名使用者'}${isCurrentUser ? ' <span class="text-xs text-primary font-normal">（我）</span>' : ''}</p>
+            <p class="text-xs text-gray-500">${a.email || '—'}</p>
+          </div>
+        </div>
+      </td>
+      <td class="px-4 py-3 text-sm text-gray-700">${a.role || '訪客'}</td>
+      <td class="px-4 py-3"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${(a.status || '啟用') === '啟用' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${a.status || '啟用'}</span></td>
+      <td class="px-4 py-3 text-sm text-gray-500">${tsLabel(a.lastLoginAt)}</td>
+      <td class="px-4 py-3">
+        <button onclick="openEditModal('${a.uid}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition" title="編輯帳號資訊">
+          <i class="fas fa-pen"></i>編輯
+        </button>
+      </td>
+    </tr>`;
   }).join('');
-  document.querySelectorAll('.account-field').forEach(el => el.addEventListener('change', updateAccountField));
 }
 
-async function updateAccountField(e) {
-  if (!currentAccount || currentAccount.role !== '管理員') { showToast('只有管理員可以調整角色與狀態', 'error'); return; }
-  const uid = e.target.dataset.uid;
-  const field = e.target.dataset.field;
-  const value = e.target.value;
-  if (!uid || !field) return;
-  try {
-    await db.collection('accounts').doc(uid).update({ [field]: value, updatedAt: firebase.firestore.FieldValue.serverTimestamp(), updatedBy: getCurrentUserUid() });
-    showToast('帳號已更新');
-    await loadAccountsPage();
-  } catch (err) { console.error(err); showToast('更新失敗', 'error'); }
+function selectAccount(uid) {
+  selectedUid = uid;
+  renderCurrentAccount();
+  renderAccounts();
 }
+
+function openEditModal(uid) {
+  const account = accountsData.find(a => a.uid === uid);
+  if (!account) return;
+  editingUid = uid;
+  const isAdmin = currentAccount && currentAccount.role === '管理員';
+
+  document.getElementById('edit-name-display').textContent = account.displayName || '未命名使用者';
+  document.getElementById('edit-email-display').textContent = account.email || '—';
+  document.getElementById('edit-displayName').value = account.displayName || '';
+  document.getElementById('edit-phone').value = account.phone || '';
+  document.getElementById('edit-mailingAddress').value = account.mailingAddress || '';
+  document.getElementById('edit-role').value = account.role || '訪客';
+  document.getElementById('edit-status').value = account.status || '啟用';
+  document.getElementById('edit-tenantPaymentContractReminder').checked = account.tenantPaymentContractReminder !== false;
+  document.getElementById('edit-workOrderReminder').checked = account.workOrderReminder !== false;
+
+  // 角色下拉
+  document.getElementById('edit-role').innerHTML = roles.map(r => `<option value="${r}" ${(account.role || '訪客') === r ? 'selected' : ''}>${r}</option>`).join('');
+
+  // 管理員才能改角色和狀態
+  document.querySelectorAll('.admin-only').forEach(el => el.disabled = !isAdmin);
+
+  const photo = account.photoURL || '';
+  const photoEl = document.getElementById('edit-photo');
+  if (photo) {
+    photoEl.innerHTML = `<img src="${photo}" class="w-full h-full object-cover" alt="avatar">`;
+  } else {
+    photoEl.innerHTML = '<i class="fas fa-user text-primary text-xl"></i>';
+  }
+
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.add('hidden');
+  editingUid = null;
+}
+
+document.getElementById('edit-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  if (!editingUid) return;
+  const isAdmin = currentAccount && currentAccount.role === '管理員';
+  const data = {
+    displayName: document.getElementById('edit-displayName').value.trim(),
+    phone: document.getElementById('edit-phone').value.trim(),
+    mailingAddress: document.getElementById('edit-mailingAddress').value.trim(),
+    tenantPaymentContractReminder: document.getElementById('edit-tenantPaymentContractReminder').checked,
+    workOrderReminder: document.getElementById('edit-workOrderReminder').checked,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedBy: getCurrentUserUid()
+  };
+  if (isAdmin) {
+    data.role = document.getElementById('edit-role').value;
+    data.status = document.getElementById('edit-status').value;
+  }
+  try {
+    showLoading();
+    await db.collection('accounts').doc(editingUid).set(data, { merge: true });
+    showToast('帳號資訊已更新');
+    closeEditModal();
+    await loadAccountsPage();
+  } catch (err) {
+    console.error(err);
+    showToast('儲存失敗', 'error');
+  } finally { hideLoading(); }
+});
+
+// 點擊 modal 背景關閉
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
 
 document.addEventListener('DOMContentLoaded', () => onAuthReady(user => { if (user) loadAccountsPage(); }));
 </script>
