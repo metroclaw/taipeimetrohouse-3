@@ -33,7 +33,7 @@
           <p id="user-name" class="text-sm font-medium text-gray-900 truncate">使用者</p>
           <p id="user-email" class="text-xs text-gray-500 truncate"></p>
         </div>
-        <a href="account-info.html" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"><i class="fas fa-user-cog w-4 text-gray-400"></i>帳號設定</a>
+        <a href="accounts.html?selfEdit=1" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"><i class="fas fa-user-shield w-4 text-gray-400"></i>帳號管理</a>
         <button type="button" onclick="handleSignOut()" class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left"><i class="fas fa-sign-out-alt w-4"></i>登出</button>
       </div>
     </div>
@@ -60,13 +60,12 @@
       <div><h1 class="text-2xl font-bold text-gray-900">帳號管理</h1><p class="text-sm text-gray-500 mt-1">查看所有帳號資料，點擊頭像切換顯示，編輯按鈕修改帳號資訊。</p></div>
     </div>
 
-    <!-- 目前登入帳號區塊 -->
+    <!-- 帳號資訊區塊 -->
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-6">
-      <div class="flex items-center gap-2 mb-4"><i class="fas fa-id-card text-primary"></i><h2 class="font-semibold text-gray-900">目前登入帳號</h2><span id="viewing-label" class="text-xs text-gray-400 ml-1"></span></div>
+      <div class="flex items-center gap-2 mb-4"><i class="fas fa-id-card text-primary"></i><h2 class="font-semibold text-gray-900">帳號資訊</h2><span id="viewing-label" class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full ml-1 font-medium"></span></div>
       <div class="flex flex-col md:flex-row gap-6">
         <div class="flex flex-col items-center gap-3">
           <div id="current-photo" class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden"><i class="fas fa-user text-primary text-2xl"></i></div>
-          <span id="current-role-badge" class="inline-flex px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">—</span>
         </div>
         <div class="flex-1 grid sm:grid-cols-2 gap-4 text-sm">
           <div><p class="text-gray-400 mb-1">顯示名稱</p><p id="current-name" class="font-medium text-gray-900">載入中...</p></div>
@@ -74,6 +73,8 @@
           <div><p class="text-gray-400 mb-1">角色</p><p id="current-role" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">狀態</p><p id="current-status" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">聯絡電話</p><p id="current-phone" class="font-medium text-gray-900">—</p></div>
+          <div><p class="text-gray-400 mb-1">發訊模式</p><p id="current-message-mode" class="font-medium text-gray-900">—</p></div>
+          <div><p class="text-gray-400 mb-1">Line ID</p><p id="current-line-id" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">寄件地址</p><p id="current-address" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">建案</p><p id="current-project" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">房號</p><p id="current-room" class="font-medium text-gray-900">—</p></div>
@@ -111,6 +112,10 @@
       <div class="grid md:grid-cols-2 gap-4">
         <div><label class="form-label">顯示名稱</label><input id="edit-displayName" type="text" class="form-input" placeholder="請輸入顯示名稱"></div>
         <div><label class="form-label">聯絡電話</label><input id="edit-phone" type="tel" class="form-input" placeholder="例如：0912-345-678"></div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div><label class="form-label">發訊模式</label><select id="edit-messageMode" class="form-input"><option value="電話簡訊">電話簡訊</option><option value="Line">Line</option></select></div>
+        <div><label class="form-label">Line ID</label><input id="edit-lineId" type="text" class="form-input" placeholder="請輸入 Line ID"></div>
       </div>
       <div><label class="form-label">寄件地址</label><input id="edit-mailingAddress" type="text" class="form-input" placeholder="請輸入收件地址"></div>
       <div class="grid md:grid-cols-2 gap-4 p-4 bg-amber-50/70 rounded-xl border border-amber-100">
@@ -164,6 +169,8 @@ async function loadAccountsPage() {
     selectedUid = user.uid;
     renderCurrentAccount();
     renderAccounts();
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('selfEdit') === '1') await openEditModal(user.uid);
   } catch (e) {
     console.error(e);
     showToast('帳號資料載入失敗', 'error');
@@ -183,12 +190,13 @@ function renderCurrentAccount() {
   document.getElementById('current-role').textContent = account.role || '訪客';
   document.getElementById('current-status').textContent = account.status || '啟用';
   document.getElementById('current-phone').textContent = account.phone || '—';
+  document.getElementById('current-message-mode').textContent = account.messageMode || '電話簡訊';
+  document.getElementById('current-line-id').textContent = account.lineId || '—';
   document.getElementById('current-address').textContent = account.mailingAddress || '—';
   document.getElementById('current-project').textContent = account.projectName || account.projectId || '—';
   document.getElementById('current-room').textContent = account.roomNumber || account.roomId || '—';
   document.getElementById('current-created').textContent = tsLabel(account.createdAt);
   document.getElementById('current-lastlogin').textContent = tsLabel(account.lastLoginAt);
-  document.getElementById('current-role-badge').textContent = account.role || '訪客';
 
   const photo = account.photoURL || '';
   const photoEl = document.getElementById('current-photo');
@@ -257,6 +265,8 @@ async function openEditModal(uid) {
   document.getElementById('edit-email-display').textContent = account.email || '—';
   document.getElementById('edit-displayName').value = account.displayName || '';
   document.getElementById('edit-phone').value = account.phone || '';
+  document.getElementById('edit-messageMode').value = account.messageMode || '電話簡訊';
+  document.getElementById('edit-lineId').value = account.lineId || '';
   document.getElementById('edit-mailingAddress').value = account.mailingAddress || '';
   document.getElementById('edit-role').value = account.role || '訪客';
   document.getElementById('edit-status').value = account.status || '啟用';
@@ -274,7 +284,7 @@ async function openEditModal(uid) {
   const photo = account.photoURL || '';
   const photoEl = document.getElementById('edit-photo');
   if (photo) {
-    photoEl.innerHTML = `<img src="${photo}" class="w-full h-full object-cover" alt="avatar">`;
+    photoEl.innerHTML = `<img src="${h(photo)}" class="w-full h-full object-cover" alt="avatar">`;
   } else {
     photoEl.innerHTML = '<i class="fas fa-user text-primary text-xl"></i>';
   }
@@ -296,6 +306,8 @@ document.getElementById('edit-form').addEventListener('submit', async function(e
   const data = {
     displayName: document.getElementById('edit-displayName').value.trim(),
     phone: document.getElementById('edit-phone').value.trim(),
+    messageMode: document.getElementById('edit-messageMode').value,
+    lineId: document.getElementById('edit-lineId').value.trim(),
     mailingAddress: document.getElementById('edit-mailingAddress').value.trim(),
     tenantPaymentContractReminder: document.getElementById('edit-tenantPaymentContractReminder').checked,
     workOrderReminder: document.getElementById('edit-workOrderReminder').checked,

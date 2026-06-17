@@ -46,7 +46,7 @@ window.GOOGLE_PLACES_API_KEY = window.GOOGLE_PLACES_API_KEY || "AIzaSyBG1LcX7rsr
           <p id="user-name" class="text-sm font-medium text-gray-900 truncate">使用者</p>
           <p id="user-email" class="text-xs text-gray-500 truncate"></p>
         </div>
-        <a href="account-info.html" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"><i class="fas fa-user-cog w-4 text-gray-400"></i>帳號設定</a>
+        <a href="accounts.html?selfEdit=1" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"><i class="fas fa-user-shield w-4 text-gray-400"></i>帳號管理</a>
         <button type="button" onclick="handleSignOut()" class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 text-left"><i class="fas fa-sign-out-alt w-4"></i>登出</button>
       </div>
     </div>
@@ -124,8 +124,12 @@ window.GOOGLE_PLACES_API_KEY = window.GOOGLE_PLACES_API_KEY || "AIzaSyBG1LcX7rsr
           <div><label class="block text-sm font-medium text-gray-700 mb-1">類型</label><select id="project-type" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"><option value="">請選擇類型</option><option value="Airbnb">Airbnb</option><option value="Booking">Booking</option><option value="長租">長租</option><option value="購置長租">購置長租</option><option value="長租代管">長租代管</option></select></div>
         </div>
         <div class="grid md:grid-cols-3 gap-4">
-          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">地址</label><input type="text" id="project-address" required placeholder="建案所在地址，系統會依地址產生地圖預覽" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+          <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">地址</label><input type="text" id="project-address" required placeholder="建案所在地址，系統會自動解析國家與城市" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
           <div><label class="block text-sm font-medium text-gray-700 mb-1">間數 / 可出租房間數量</label><input type="number" id="project-rentable-rooms" min="0" step="1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">國家（地址自動解析）</label><input type="text" id="project-country" placeholder="例如：台灣" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">城市（地址自動解析）</label><input type="text" id="project-city" placeholder="例如：台北市" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"></div>
         </div>
       </section>
 
@@ -231,8 +235,24 @@ const PROJECT_TYPES = ['Airbnb', 'Booking', '長租', '購置長租', '長租代
 
 function normalizeText(value) { return String(value || '').trim().toLowerCase(); }
 function parseRentRange(value) { const [min, max] = String(value || '').split('-').map(v => parseInt(v, 10)); return { min: Number.isFinite(min) ? min : 0, max: Number.isFinite(max) ? max : Number.MAX_SAFE_INTEGER }; }
-function getProjectCity(project) { return project.city || (String(project.address || '').match(/([^縣市]+[縣市])/)?.[1] || ''); }
-function getProjectCountry(project) { return project.country || (project.address ? '台灣' : ''); }
+function parseAddressLocation(address) {
+    const raw = String(address || '').trim();
+    if (!raw) return { country: '', city: '' };
+    const countries = ['台灣','臺灣','日本','韓國','美國','中國','香港','澳門','新加坡','馬來西亞','泰國','越南','菲律賓'];
+    const countryHit = countries.find(country => raw.includes(country));
+    const cityMatch = raw.match(/([一-龥A-Za-z]+?(?:市|縣|都|道|府|州|省|區))/);
+    return { country: countryHit ? (countryHit === '臺灣' ? '台灣' : countryHit) : (cityMatch ? '台灣' : ''), city: cityMatch ? cityMatch[1] : '' };
+}
+function fillLocationFieldsFromAddress(force = false) {
+    const address = document.getElementById('project-address')?.value || '';
+    const parsed = parseAddressLocation(address);
+    const countryEl = document.getElementById('project-country');
+    const cityEl = document.getElementById('project-city');
+    if (countryEl && (force || !countryEl.value.trim())) countryEl.value = parsed.country;
+    if (cityEl && (force || !cityEl.value.trim())) cityEl.value = parsed.city;
+}
+function getProjectCity(project) { return project.city || parseAddressLocation(project.address || '').city; }
+function getProjectCountry(project) { return project.country || parseAddressLocation(project.address || '').country; }
 function getProjectRentalStatus(project) { const vacant = project.vacant || 0; const occupied = project.occupied || 0; if (vacant > 0) return '可出租'; if (occupied > 0) return '滿租'; return '可出租'; }
 function getFilteredProjects() {
     const status = document.getElementById('filter-rental-status')?.value || '';
@@ -293,6 +313,13 @@ function getStaticMapUrl(address) {
         'feature:road|element:labels|visibility:on'
     ].map(style => `style=${encodeURIComponent(style)}`).join('&');
     return `https://maps.googleapis.com/maps/api/staticmap?center=${q}&zoom=18&size=640x960&scale=2&maptype=roadmap&language=zh-TW&region=TW&markers=color:red%7C${q}&${styles}&key=${encodeURIComponent(key)}`;
+}
+function getStaticMapPreviewUrl(address) {
+    const key = window.GOOGLE_MAPS_STATIC_API_KEY || '';
+    if (!address || !key) return '';
+    const q = encodeURIComponent(address);
+    const styles = ['feature:poi|visibility:off','feature:transit|visibility:simplified','feature:road|element:labels|visibility:on'].map(style => `style=${encodeURIComponent(style)}`).join('&');
+    return `https://maps.googleapis.com/maps/api/staticmap?center=${q}&zoom=18&size=240x360&scale=1&maptype=roadmap&language=zh-TW&region=TW&markers=color:red%7C${q}&${styles}&key=${encodeURIComponent(key)}`;
 }
 
 function renderMapPlaceholder(message = '輸入地址完成後，點下方按鈕取得地圖圖片') {
@@ -495,6 +522,8 @@ function getProjectFormData() {
         name: document.getElementById('project-name').value.trim(),
         type: document.getElementById('project-type').value,
         address,
+        country: document.getElementById('project-country').value.trim() || parseAddressLocation(address).country,
+        city: document.getElementById('project-city').value.trim() || parseAddressLocation(address).city,
         mapUrl: document.getElementById('project-map-url').value || getMapSearchUrl(address),
         mapStaticUrl: document.getElementById('project-map-static-url').value || getStaticMapUrl(address),
         mapImageUrl: document.getElementById('project-map-image-url').value || '',
@@ -571,6 +600,9 @@ function fillProjectForm(project) {
     document.getElementById('project-name').value = project?.name || '';
     document.getElementById('project-type').value = project?.type || '';
     document.getElementById('project-address').value = project?.address || '';
+    const parsedLocation = parseAddressLocation(project?.address || '');
+    document.getElementById('project-country').value = project?.country || parsedLocation.country || '';
+    document.getElementById('project-city').value = project?.city || parsedLocation.city || '';
     document.getElementById('project-rentable-rooms').value = project?.rentableRooms ?? project?.totalRooms ?? '';
     document.getElementById('project-water-number').value = project?.waterNumber || '';
     document.getElementById('project-electric-number').value = project?.electricNumber || '';
@@ -698,8 +730,9 @@ function renderProjectMedia(project) {
     if (item.type === 'image') {
         body = `<button type="button" onclick="openProjectPhotoViewer(decodeURIComponent('${encodeURIComponent(item.url)}')); event.stopPropagation();" class="w-full h-full cursor-zoom-in" title="點擊放大建案預覽圖"><img src="${h(item.previewUrl || item.url)}" alt="${h(project.name)} ${h(item.label)}" class="w-full h-full" loading="lazy" decoding="async"></button>`;
     } else if (item.type === 'map') {
-        const mapImage = project.mapImageUrl || project.mapStaticUrl || '';
-        body = mapImage ? `<button type="button" onclick="openProjectPhotoViewer(decodeURIComponent('${encodeURIComponent(mapImage)}')); event.stopPropagation();" class="w-full h-full cursor-zoom-in" title="點擊放大建案地圖"><img src="${h(mapImage)}" alt="${h(project.name)} 地圖" class="w-full h-full"></button>` : '<div class="h-full flex items-center justify-center text-gray-400 text-xs text-center p-3"><div><i class="fas fa-map-location-dot text-2xl mb-1 text-primary/30"></i><br>尚未取得地圖圖片</div></div>';
+        const mapFullImage = project.mapImageUrl || project.mapStaticUrl || '';
+        const mapPreviewImage = project.mapPreviewUrl || getStaticMapPreviewUrl(project.address || '') || mapFullImage;
+        body = mapPreviewImage ? `<button type="button" onclick="openProjectPhotoViewer(decodeURIComponent('${encodeURIComponent(mapFullImage || mapPreviewImage)}')); event.stopPropagation();" class="w-full h-full cursor-zoom-in" title="點擊放大建案地圖"><img src="${h(mapPreviewImage)}" alt="${h(project.name)} 地圖" class="w-full h-full" loading="lazy" decoding="async"></button>` : '<div class="h-full flex items-center justify-center text-gray-400 text-xs text-center p-3"><div><i class="fas fa-map-location-dot text-2xl mb-1 text-primary/30"></i><br>尚未取得地圖圖片</div></div>';
     } else {
         body = `<a href="${h(item.url)}" target="_blank" onclick="event.stopPropagation()" class="h-full flex flex-col items-center justify-center text-center text-gray-500 bg-gradient-to-br from-slate-50 to-blue-50 p-4"><i class="fas ${item.icon} text-3xl text-primary/40 mb-2"></i><span class="text-xs font-medium text-primary">${h(item.label)}</span><span class="text-[11px] mt-1">開啟 Google 地圖查看</span></a>`;
     }
@@ -801,7 +834,8 @@ function closeProjectModal() { document.getElementById('project-modal').classLis
 function openRoomModal() { if (!selectedProjectId) { showToast('請先選擇建案', 'error'); return; } document.getElementById('room-modal').classList.remove('hidden'); document.getElementById('room-modal-title').textContent = '新增客房'; document.getElementById('room-form').reset(); document.getElementById('room-id').value = ''; document.getElementById('room-project-id').value = selectedProjectId; }
 function closeRoomModal() { document.getElementById('room-modal').classList.add('hidden'); }
 
-document.getElementById('project-address').addEventListener('change', () => { document.getElementById('project-map-image-url').value = ''; renderMapPlaceholder('地址已更新，請點「取得地圖圖片」重新產生'); });
+document.getElementById('project-address').addEventListener('input', () => fillLocationFieldsFromAddress(true));
+document.getElementById('project-address').addEventListener('change', () => { fillLocationFieldsFromAddress(true); document.getElementById('project-map-image-url').value = ''; renderMapPlaceholder('地址已更新，請點「取得地圖圖片」重新產生'); });
 [1, 2].forEach(index => {
     document.getElementById(`project-exterior-file-${index}`).addEventListener('change', (e) => {
         const file = e.target.files && e.target.files[0];

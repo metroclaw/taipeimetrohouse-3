@@ -115,6 +115,8 @@ async function ensureAccountProfile(user) {
             roomId: accountSnap.data().roomId || '',
             roomNumber: accountSnap.data().roomNumber || '',
             phone: accountSnap.data().phone || '',
+            messageMode: accountSnap.data().messageMode || '電話簡訊',
+            lineId: accountSnap.data().lineId || '',
             mailingAddress: accountSnap.data().mailingAddress || '',
             tenantPaymentContractReminder: accountSnap.data().tenantPaymentContractReminder !== false,
             workOrderReminder: accountSnap.data().workOrderReminder !== false,

@@ -23,6 +23,8 @@ service cloud.firestore {
         'email',
         'photoURL',
         'phone',
+        'messageMode',
+        'lineId',
         'mailingAddress',
         'tenantPaymentContractReminder',
         'workOrderReminder',
