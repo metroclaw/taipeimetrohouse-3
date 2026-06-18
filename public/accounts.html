@@ -61,19 +61,19 @@
     </div>
 
     <!-- 帳號資訊區塊 -->
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-6">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-5">
       <div class="flex items-center gap-2 mb-4"><i class="fas fa-id-card text-primary"></i><h2 class="font-semibold text-gray-900">帳號資訊</h2><span id="viewing-label" class="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full ml-1 font-medium"></span></div>
-      <div class="flex flex-col md:flex-row gap-6">
-        <div class="flex flex-col items-center gap-3">
-          <div id="current-photo" class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden"><i class="fas fa-user text-primary text-2xl"></i></div>
+      <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex flex-col items-center gap-2">
+          <div id="current-photo" class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden"><i class="fas fa-user text-primary text-xl"></i></div>
         </div>
-        <div class="flex-1 grid sm:grid-cols-2 gap-4 text-sm">
+        <div class="flex-1 grid sm:grid-cols-3 gap-x-4 gap-y-2 text-sm">
           <div><p class="text-gray-400 mb-1">顯示名稱</p><p id="current-name" class="font-medium text-gray-900">載入中...</p></div>
           <div><p class="text-gray-400 mb-1">Email</p><p id="current-email" class="font-medium text-gray-900 break-all">—</p></div>
           <div><p class="text-gray-400 mb-1">角色</p><p id="current-role" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">狀態</p><p id="current-status" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">聯絡電話</p><p id="current-phone" class="font-medium text-gray-900">—</p></div>
-          <div><p class="text-gray-400 mb-1">發訊模式</p><p id="current-message-mode" class="font-medium text-gray-900">—</p></div>
+          <div><p class="text-gray-400 mb-1">發訊模式</p><div class="flex items-center gap-2"><p id="current-message-mode" class="font-medium text-gray-900">—</p><button type="button" onclick="sendTestMessageToSelectedAccount()" class="px-2 py-1 text-xs rounded bg-primary/10 text-primary hover:bg-primary/20">測試</button></div></div>
           <div><p class="text-gray-400 mb-1">Line ID</p><p id="current-line-id" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">寄件地址</p><p id="current-address" class="font-medium text-gray-900">—</p></div>
           <div><p class="text-gray-400 mb-1">建案</p><p id="current-project" class="font-medium text-gray-900">—</p></div>
@@ -89,7 +89,7 @@
       <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between"><h2 class="font-semibold text-gray-900">所有帳號列表</h2><span id="account-count" class="text-xs text-gray-400">載入中</span></div>
       <div class="overflow-x-auto">
         <table class="w-full">
-          <thead><tr class="bg-gray-50 text-left"><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">帳號</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">角色</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">最近登入</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
+          <thead><tr class="bg-gray-50 text-left"><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">帳號</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">角色</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">聯絡電話</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">最近登入</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
           <tbody id="accounts-table-body" class="divide-y divide-gray-100"><tr><td colspan="5" class="px-4 py-8 text-center text-gray-400">載入中...</td></tr></tbody>
         </table>
       </div>
@@ -236,7 +236,7 @@ function renderAccounts() {
         </div>
       </td>
       <td class="px-4 py-3 text-sm text-gray-700">${h(a.role || '訪客')}</td>
-      <td class="px-4 py-3"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${(a.status || '啟用') === '啟用' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${a.status || '啟用'}</span></td>
+      <td class="px-4 py-3 text-sm text-gray-700">${h(a.phone || '—')}</td>
       <td class="px-4 py-3 text-sm text-gray-500">${tsLabel(a.lastLoginAt)}</td>
       <td class="px-4 py-3">
         <button onclick="openEditModal('${h(a.uid)}')" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition" title="編輯帳號資訊">
@@ -251,6 +251,25 @@ function selectAccount(uid) {
   selectedUid = uid;
   renderCurrentAccount();
   renderAccounts();
+}
+
+async function sendTestMessageToSelectedAccount() {
+  const account = accountsData.find(a => a.uid === selectedUid) || accountsData[0];
+  if (!account) return;
+  const target = account.messageMode === 'Line' ? (account.lineId || account.email || account.displayName) : (account.phone || account.email || account.displayName);
+  try {
+    await db.collection('accounts').doc(account.uid).collection('messageTests').add({
+      mode: account.messageMode || '電話簡訊',
+      target: target || '',
+      message: '大都會物業房務管理系統測試訊息',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: getCurrentUserUid()
+    });
+    showToast(`已建立測試訊息：${target || '未設定收件資訊'}`);
+  } catch (e) {
+    console.error(e);
+    showToast('測試訊息建立失敗', 'error');
+  }
 }
 
 async function openEditModal(uid) {

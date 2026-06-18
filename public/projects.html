@@ -85,8 +85,8 @@ window.GOOGLE_PLACES_API_KEY = window.GOOGLE_PLACES_API_KEY || "AIzaSyBG1LcX7rsr
         <select id="filter-rental-status" class="project-filter" onchange="renderProjects()"><option value="">出租狀態：全部</option><option value="可出租">可出租</option><option value="已出租">已出租</option><option value="滿租">滿租</option></select>
         <select id="filter-rent-range" class="project-filter" onchange="renderProjects()"><option value="">租金區間：全部</option><option value="0-10000">NT$ 10,000 以下</option><option value="10000-20000">NT$ 10,000–20,000</option><option value="20000-999999999">NT$ 20,000 以上</option></select>
         <select id="filter-project-type" class="project-filter" onchange="renderProjects()"><option value="">建案類型：全部</option></select>
-        <input id="filter-country" class="project-filter" placeholder="國家" oninput="renderProjects()">
-        <input id="filter-city" class="project-filter" placeholder="城市" oninput="renderProjects()">
+        <select id="filter-country" class="project-filter" onchange="renderProjects()"><option value="">國家：全部</option></select>
+        <select id="filter-city" class="project-filter" onchange="renderProjects()"><option value="">城市：全部</option></select>
       </div>
     </section>
 
@@ -279,10 +279,20 @@ function getFilteredProjects() {
 }
 function populateProjectFilterOptions() {
     const typeEl = document.getElementById('filter-project-type');
-    if (!typeEl) return;
-    const current = typeEl.value;
+    const countryEl = document.getElementById('filter-country');
+    const cityEl = document.getElementById('filter-city');
+    const setSelect = (el, label, values) => {
+        if (!el) return;
+        const current = el.value;
+        el.innerHTML = `<option value="">${label}：全部</option>` + values.map(value => `<option value="${h(value)}" ${value === current ? 'selected' : ''}>${h(value)}</option>`).join('');
+        if (current && !values.includes(current)) el.value = '';
+    };
     const types = Array.from(new Set(projectsData.map(p => p.type).filter(Boolean).concat(PROJECT_TYPES))).sort();
-    typeEl.innerHTML = '<option value="">建案類型：全部</option>' + types.map(type => `<option value="${h(type)}" ${type === current ? 'selected' : ''}>${h(type)}</option>`).join('');
+    const countries = Array.from(new Set(projectsData.map(getProjectCountry).filter(Boolean))).sort();
+    const cities = Array.from(new Set(projectsData.map(getProjectCity).filter(Boolean))).sort();
+    setSelect(typeEl, '建案類型', types);
+    setSelect(countryEl, '國家', countries);
+    setSelect(cityEl, '城市', cities);
 }
 function resetProjectFilters() {
     ['filter-rental-status','filter-rent-range','filter-project-type','filter-country','filter-city'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
@@ -511,9 +521,17 @@ async function useDefaultExteriorPhoto(index) {
 }
 
 async function uploadImageBlob(storagePath, blob, contentType = 'image/jpeg') {
-    const ref = firebase.storage().ref(storagePath);
-    await ref.put(blob, { contentType });
-    return await ref.getDownloadURL();
+    const segments = String(storagePath || '').split('/').filter(Boolean);
+    const projectId = segments[3] || '未分類建案';
+    try {
+        const uploaded = await uploadBlobToGoogleDrive(blob, segments[segments.length - 1] || `image-${Date.now()}.jpg`, '建案管理', [projectId], contentType);
+        return uploaded.webContentLink || uploaded.webViewLink || uploaded.url;
+    } catch (driveError) {
+        console.warn('[Drive] Google Drive 上傳失敗，暫時回退 Firebase Storage:', driveError);
+        const ref = firebase.storage().ref(storagePath);
+        await ref.put(blob, { contentType });
+        return await ref.getDownloadURL();
+    }
 }
 
 function getProjectFormData() {

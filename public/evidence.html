@@ -139,9 +139,9 @@
 
 <!-- 證據詳情 Modal -->
 <div id="detail-modal" class="fixed inset-0 bg-black/40 z-50 hidden flex items-center justify-center p-4">
-  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md">
-    <div class="p-5 border-b border-gray-100 flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-gray-900">證據詳情</h3>
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[92vh] overflow-y-auto">
+    <div class="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
+      <h3 class="text-lg font-semibold text-gray-900">證據預覽 / 詳情</h3>
       <button onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
     </div>
     <div id="detail-content" class="p-5 space-y-3">
@@ -156,7 +156,7 @@
 
 <script>
 // ============================================================
-// Evidence Page — Full CRUD with Firebase Storage Upload
+// Evidence Page — Full CRUD with Google Drive workspace upload
 // ============================================================
 
 let allEvidence = [];
@@ -271,11 +271,12 @@ function renderEvidence(filter = 'all') {
     const cfg = typeConfig[ev.type] || typeConfig['屋況'];
     const dateStr = formatEvidenceDate(ev.createdAt);
     const sizeStr = ev.fileSize ? formatFileSize(ev.fileSize) : '';
+    const isImage = (ev.fileType || '').startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(ev.fileName || ev.fileUrl || '');
 
     return `
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group cursor-pointer hover:shadow-md transition" onclick="openDetailModal('${ev.id}')">
-          <div class="aspect-square bg-gradient-to-br ${cfg.color} flex items-center justify-center relative">
-              <span class="text-4xl">${cfg.icon}</span>
+          <div class="aspect-square bg-gradient-to-br ${cfg.color} flex items-center justify-center relative overflow-hidden">
+              ${isImage && ev.fileUrl ? `<img src="${escapeHtml(ev.fileUrl)}" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="${escapeHtml(ev.name)}">` : `<span class="text-4xl">${cfg.icon}</span>`}
               <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
                   <i class="fas fa-expand text-white text-xl drop-shadow-lg"></i>
               </div>
@@ -379,49 +380,28 @@ async function handleFileUpload(input) {
 }
 
 async function uploadSingleFile(file, uid, onProgress) {
-  const storage = firebase.storage();
-  const timestamp = Date.now();
-  const storagePath = 'users/' + uid + '/evidence/' + timestamp + '_' + file.name;
-  const storageRef = storage.ref().child(storagePath);
-
-  return new Promise((resolve, reject) => {
-    const uploadTask = storageRef.put(file);
-
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        onProgress(Math.round(progress));
-      },
-      (error) => {
-        console.error('上傳錯誤:', error);
-        reject(error);
-      },
-      async () => {
-        try {
-          const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-
-          // 寫入 Firestore
-          await evidenceCol().add({
-            name: file.name.replace(/\.[^/.]+$/, ''),
-            type: detectFileType(file),
-            fileName: file.name,
-            fileSize: file.size,
-            fileUrl: downloadURL,
-            storagePath: storagePath,
-            roomNumber: '',
-            tenantName: '',
-            note: '',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          });
-
-          resolve();
-        } catch (e) {
-          console.error('儲存 Firestore 失敗:', e);
-          reject(e);
-        }
-      }
-    );
+  onProgress(10);
+  const uploaded = await uploadFileToProjectDrive(file, '證據保存', [detectFileType(file)]);
+  onProgress(90);
+  await evidenceCol().add({
+    name: file.name.replace(/\.[^/.]+$/, ''),
+    type: detectFileType(file),
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type || '',
+    fileUrl: uploaded.webContentLink || uploaded.webViewLink || uploaded.url,
+    driveFileId: uploaded.driveFileId,
+    driveFolderId: uploaded.driveFolderId,
+    driveWorkspacePath: uploaded.driveWorkspacePath,
+    webViewLink: uploaded.webViewLink,
+    webContentLink: uploaded.webContentLink,
+    storagePath: '',
+    roomNumber: '',
+    tenantName: '',
+    note: '',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
   });
+  onProgress(100);
 }
 
 // ---- Detect file type from extension/name ----
@@ -486,6 +466,15 @@ document.getElementById('add-form').addEventListener('submit', async (e) => {
 });
 
 // ---- Detail Modal ----
+function renderEvidencePreview(ev, cfg) {
+  const url = ev.fileUrl || ev.webContentLink || ev.webViewLink || '';
+  const isImage = (ev.fileType || '').startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(ev.fileName || url);
+  const isPdf = (ev.fileType || '').includes('pdf') || /\.pdf$/i.test(ev.fileName || url);
+  if (url && isImage) return `<img src="${escapeHtml(url)}" class="w-full h-full object-contain rounded-xl cursor-zoom-in" onclick="window.open('${escapeHtml(url)}','_blank')" alt="${escapeHtml(ev.name)}">`;
+  if (url && isPdf) return `<iframe src="${escapeHtml(url)}" class="w-full h-[70vh] rounded-xl bg-white"></iframe>`;
+  return `<div class="text-center"><span class="text-6xl">${cfg.icon}</span><div class="text-sm text-gray-500 mt-3">${url ? '此檔案可用下方按鈕另開預覽/下載' : '無檔案預覽'}</div></div>`;
+}
+
 function openDetailModal(id) {
   const ev = allEvidence.find(e => e.id === id);
   if (!ev) return;
@@ -498,7 +487,7 @@ function openDetailModal(id) {
   const content = document.getElementById('detail-content');
   content.innerHTML = `
     <div class="aspect-video bg-gradient-to-br ${cfg.color} rounded-xl flex items-center justify-center mb-4">
-      ${ev.fileUrl && (ev.fileType || '').startsWith('image/') ? `<img src="${escapeHtml(ev.fileUrl)}" class="w-full h-full object-contain rounded-xl" alt="${escapeHtml(ev.name)}">` : `<div class="text-center"><span class="text-6xl">${cfg.icon}</span><div class="text-sm text-gray-500 mt-3">${ev.fileUrl ? '此檔案可用下方按鈕開啟/下載' : '無檔案預覽'}</div></div>`}
+      ${renderEvidencePreview(ev, cfg)}
     </div>
     <div class="space-y-2 text-sm">
       <div class="flex items-start gap-2"><span class="text-gray-400 w-16 flex-shrink-0">名稱</span><span class="text-gray-900 font-medium">${escapeHtml(ev.name)}</span></div>
@@ -515,7 +504,7 @@ function openDetailModal(id) {
   const downloadBtn = document.getElementById('detail-download-btn');
   if (ev.fileUrl) {
     downloadBtn.classList.remove('hidden');
-    downloadBtn.onclick = () => window.open(ev.fileUrl, '_blank');
+    downloadBtn.onclick = () => window.open(ev.webViewLink || ev.fileUrl, '_blank');
   } else {
     downloadBtn.classList.add('hidden');
   }

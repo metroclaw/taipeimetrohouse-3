@@ -80,9 +80,10 @@
     <div class="p-4 border-b border-gray-100 flex items-center justify-between"><h3 class="font-semibold text-gray-900" id="contract-modal-title">新增合約</h3><button onclick="closeContractModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button></div>
     <form id="contract-form" class="p-4 space-y-4">
       <input type="hidden" id="contract-id">
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">房客 *</label><select id="contract-tenant" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="">選擇房客</option></select></div>
       <div class="grid grid-cols-2 gap-4">
-        <div><label class="block text-sm font-medium text-gray-700 mb-1">房客 *</label><select id="contract-tenant" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="">選擇房客</option></select></div>
-        <div><label class="block text-sm font-medium text-gray-700 mb-1">客房 *</label><select id="contract-room" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="">選擇客房</option></select></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">建案 *</label><select id="contract-project" required onchange="populateContractRoomOptions()" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="">選擇建案</option></select></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">房號 *</label><select id="contract-room" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><option value="">請先選擇建案</option></select></div>
       </div>
       <div class="grid grid-cols-2 gap-4">
         <div><label class="block text-sm font-medium text-gray-700 mb-1">開始日期 *</label><input type="date" id="contract-start" required class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
@@ -92,14 +93,22 @@
         <div><label class="block text-sm font-medium text-gray-700 mb-1">月租金 (NT$)</label><input type="number" id="contract-rent" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
         <div><label class="block text-sm font-medium text-gray-700 mb-1">押金 (NT$)</label><input type="number" id="contract-deposit" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
       </div>
-      <div><label class="block text-sm font-medium text-gray-700 mb-1">費用分攤方式</label><div class="grid grid-cols-2 gap-2 text-sm"><div><span class="text-gray-500">水費：</span><select id="contract-water-split" class="px-2 py-1 border border-gray-200 rounded text-sm"><option value="area">依坪數</option><option value="people">依人數</option></select></div><div><span class="text-gray-500">電費：</span><select id="contract-elec-split" class="px-2 py-1 border border-gray-200 rounded text-sm"><option value="ac">依台數</option><option value="people">依人數</option></select></div></div></div>
+      <div class="space-y-3"><label class="block text-sm font-medium text-gray-700">費用計費方式</label>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+          <div class="border border-gray-100 rounded-lg p-3"><span class="text-gray-500 block mb-1">水費</span><select id="contract-water-split" class="w-full px-2 py-1 border border-gray-200 rounded text-sm"><option value="area">依坪數</option><option value="people">依人數</option><option value="usage">依照度數</option></select><label class="text-xs text-gray-400 mt-2 block">基本計費 NT$</label><input type="number" id="contract-water-base" min="0" step="1" class="w-full px-2 py-1 border border-gray-200 rounded text-sm"></div>
+          <div class="border border-gray-100 rounded-lg p-3"><span class="text-gray-500 block mb-1">電費</span><select id="contract-elec-split" class="w-full px-2 py-1 border border-gray-200 rounded text-sm"><option value="ac">依台數</option><option value="people">依人數</option><option value="usage">依照度數</option></select><label class="text-xs text-gray-400 mt-2 block">基本計費 NT$</label><input type="number" id="contract-elec-base" min="0" step="1" class="w-full px-2 py-1 border border-gray-200 rounded text-sm"></div>
+          <div class="border border-gray-100 rounded-lg p-3"><span class="text-gray-500 block mb-1">瓦斯費</span><select id="contract-gas-split" class="w-full px-2 py-1 border border-gray-200 rounded text-sm"><option value="people">依人數</option><option value="area">依坪數</option><option value="usage">依照度數</option></select><label class="text-xs text-gray-400 mt-2 block">基本計費 NT$</label><input type="number" id="contract-gas-base" min="0" step="1" class="w-full px-2 py-1 border border-gray-200 rounded text-sm"></div>
+        </div>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">網路／第四台費用 (NT$)</label><input type="number" id="contract-internet-tv-fee" min="0" step="1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">室內狀況照片（張數不定，存到 Google Drive）</label><input type="file" id="contract-interior-photos" multiple accept="image/*" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><div id="contract-existing-photos" class="mt-2 flex flex-wrap gap-2"></div></div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">備註</label><textarea id="contract-notes" rows="2" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></textarea></div>
       <div class="flex gap-3 pt-2"><button type="button" onclick="closeContractModal()" class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm">取消</button><button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">儲存</button></div>
     </form>
   </div>
 </div>
 <script>
-let contractsData = [], tenantsData = [], roomsData = [];
+let contractsData = [], tenantsData = [], roomsData = [], projectsData = [];
 async function loadContracts() {
     const uid = getCurrentUserUid(); if (!uid) return;
     try {
@@ -110,6 +119,7 @@ async function loadContracts() {
         ]);
         contractsData = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         tenantsData = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        projectsData = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         roomsData = [];
         for (const projectDoc of pSnap.docs) {
             const project = { id: projectDoc.id, ...projectDoc.data() };
@@ -119,7 +129,14 @@ async function loadContracts() {
         renderContracts();
     } catch (e) { console.error(e); showToast('載入合約失敗', 'error'); }
 }
-function contractRoomLabel(c) { return c.roomNumber || c.room || '—'; }
+function contractRoomLabel(c) { return [c.projectName, c.roomNumber || c.room].filter(Boolean).join(' / ') || '—'; }
+function populateContractRoomOptions(selectedRoomId = '') {
+    const projectId = document.getElementById('contract-project')?.value || '';
+    const roomSel = document.getElementById('contract-room');
+    if (!roomSel) return;
+    const rooms = roomsData.filter(r => r.projectId === projectId);
+    roomSel.innerHTML = '<option value="">選擇房號</option>' + rooms.map(r => `<option value="${r.id}" ${r.id === selectedRoomId ? 'selected' : ''}>${r.number || r.roomNumber || r.id}</option>`).join('');
+}
 function renderContracts() {
     const tbody = document.getElementById('contracts-table-body');
     if (contractsData.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">尚無合約，請先新增房客與客房後建立合約</td></tr>'; document.getElementById('expiring-contracts').innerHTML = '無即將到期的合約'; return; }
@@ -146,8 +163,10 @@ function openContractModal() {
     document.getElementById('contract-id').value = '';
     const tSel = document.getElementById('contract-tenant');
     tSel.innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-    const rSel = document.getElementById('contract-room');
-    rSel.innerHTML = '<option value="">選擇客房</option>' + roomsData.map(r => `<option value="${r.id}" data-project-id="${r.projectId}">${r.projectName ? r.projectName + ' / ' : ''}${r.number}</option>`).join('');
+    const pSel = document.getElementById('contract-project');
+    pSel.innerHTML = '<option value="">選擇建案</option>' + projectsData.map(p => `<option value="${p.id}">${p.name || p.address || '未命名建案'}</option>`).join('');
+    populateContractRoomOptions();
+    document.getElementById('contract-existing-photos').innerHTML = '';
 }
 function closeContractModal() { document.getElementById('contract-modal').classList.add('hidden'); }
 function editContract(id) {
@@ -156,14 +175,22 @@ function editContract(id) {
     document.getElementById('contract-modal-title').textContent = '編輯合約';
     document.getElementById('contract-id').value = id;
     document.getElementById('contract-tenant').value = c.tenantId || '';
-    document.getElementById('contract-room').value = c.roomId || '';
+    document.getElementById('contract-project').value = c.projectId || '';
+    populateContractRoomOptions(c.roomId || '');
     document.getElementById('contract-start').value = c.start || '';
     document.getElementById('contract-end').value = c.end || '';
     document.getElementById('contract-rent').value = c.rent || '';
     document.getElementById('contract-deposit').value = c.deposit || '';
     document.getElementById('contract-water-split').value = c.waterSplit || 'area';
     document.getElementById('contract-elec-split').value = c.elecSplit || 'ac';
+    document.getElementById('contract-gas-split').value = c.gasSplit || 'people';
+    document.getElementById('contract-water-base').value = c.waterBaseFee || '';
+    document.getElementById('contract-elec-base').value = c.elecBaseFee || '';
+    document.getElementById('contract-gas-base').value = c.gasBaseFee || '';
+    document.getElementById('contract-internet-tv-fee').value = c.internetTvFee || '';
     document.getElementById('contract-notes').value = c.notes || '';
+    const photos = c.interiorConditionPhotos || [];
+    document.getElementById('contract-existing-photos').innerHTML = photos.map(photo => `<a href="${photo.webViewLink || photo.url}" target="_blank" class="text-xs px-2 py-1 bg-blue-50 text-primary rounded"><i class="fas fa-image mr-1"></i>${photo.driveFileName || '室內照片'}</a>`).join('');
 }
 async function renewContract(id) {
     const c = contractsData.find(x => x.id === id); if (!c) return;
@@ -183,10 +210,20 @@ document.getElementById('contract-form').addEventListener('submit', async (e) =>
     e.preventDefault();
     const uid = getCurrentUserUid(); if (!uid) return;
     const tenantSelect = document.getElementById('contract-tenant');
+    const projectSelect = document.getElementById('contract-project');
     const roomSelect = document.getElementById('contract-room');
     const selectedTenant = tenantsData.find(t => t.id === tenantSelect.value);
-    const selectedRoom = roomsData.find(r => r.id === roomSelect.value && r.projectId === roomSelect.options[roomSelect.selectedIndex]?.dataset.projectId);
-    if (!selectedTenant || !selectedRoom) { showToast('請選擇房客與客房', 'error'); return; }
+    const selectedRoom = roomsData.find(r => r.id === roomSelect.value && r.projectId === projectSelect.value);
+    if (!selectedTenant || !selectedRoom) { showToast('請選擇房客、建案與房號', 'error'); return; }
+    const existingContract = contractsData.find(x => x.id === document.getElementById('contract-id').value);
+    const interiorConditionPhotos = existingContract?.interiorConditionPhotos ? [...existingContract.interiorConditionPhotos] : [];
+    const photoInput = document.getElementById('contract-interior-photos');
+    if (photoInput?.files?.length) {
+        for (const file of Array.from(photoInput.files)) {
+            const uploaded = await uploadFileToProjectDrive(file, '合約管理', [selectedRoom.projectName || selectedRoom.projectId, selectedRoom.number || selectedRoom.id, '室內狀況照片']);
+            interiorConditionPhotos.push({ ...uploaded, fileName: file.name, fileType: file.type, fileSize: file.size, uploadedAt: Date.now() });
+        }
+    }
     const data = {
         tenantId: selectedTenant.id,
         tenantName: selectedTenant.name || '',
@@ -201,6 +238,13 @@ document.getElementById('contract-form').addEventListener('submit', async (e) =>
         deposit: parseInt(document.getElementById('contract-deposit').value) || 0,
         waterSplit: document.getElementById('contract-water-split').value,
         elecSplit: document.getElementById('contract-elec-split').value,
+        gasSplit: document.getElementById('contract-gas-split').value,
+        waterBaseFee: parseInt(document.getElementById('contract-water-base').value, 10) || 0,
+        elecBaseFee: parseInt(document.getElementById('contract-elec-base').value, 10) || 0,
+        gasBaseFee: parseInt(document.getElementById('contract-gas-base').value, 10) || 0,
+        internetTvFee: parseInt(document.getElementById('contract-internet-tv-fee').value, 10) || 0,
+        interiorConditionPhotos,
+        driveWorkspacePath: getDriveWorkspacePath('合約管理', [selectedRoom.projectName || selectedRoom.projectId, selectedRoom.number || selectedRoom.id]),
         notes: document.getElementById('contract-notes').value,
         status: '進行中',
         updatedAt: Date.now()
