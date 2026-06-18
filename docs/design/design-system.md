@@ -169,17 +169,24 @@
 - 帳號資訊卡標題使用「帳號資訊」；「目前登入」提示需使用醒目的綠色膠囊標籤；頭像下方不顯示角色 label。
 - 帳號資訊需顯示並可編輯「發訊模式」（電話簡訊 / Line）與「Line ID」。
 
-
 ## Google Drive 工作區與本次 UI 調整（2026-06-18）
 
+### 系統 Drive 工作區原則
+- Web App 登入帳號只用於 Firebase Auth 身份與角色權限；檔案儲存帳號固定為系統指定 Google Drive 帳號或 Shared Drive，兩者不直接綁定。
+- 一般使用者在新增建案圖片、合約照片、證據檔案或任何附件時，不得出現 Google Drive 選帳號或授權畫面。
+- Google Drive 授權只在系統管理/後端設定階段完成一次；前端透過 `/api/drive/upload` 後端代理取得 resumable upload session。
+- 大型檔案與附件一律存 Google Drive：jpg、png、mp4、wav、pdf、doc/docx、sheet/xls/xlsx/csv、ppt 等；Firestore 只保存 Drive metadata。
+- 正式上傳流程不自動回退 Firebase Storage；Drive 未設定時需提示管理員完成系統 Drive 憑證設定。
+
 ### Google Drive 檔案工作區
-- 應用首次需要上傳檔案時取得 Google Drive 授權，於使用者 Drive 根目錄建立 `taipeimetrohouse` 專案工作區。
+- 系統 Drive 根目錄建立 `taipeimetrohouse` 專案工作區。
 - 子資料夾依功能建立：`建案管理`、`合約管理`、`證據保存`；功能內可再依建案、房號、類型分層。
-- Firestore 文件只保存 Drive metadata：`driveFileId`、`driveFolderId`、`driveWorkspacePath`、`webViewLink`、`webContentLink`、檔名、大小、MIME type。
+- Firestore 文件只保存 Drive metadata：`storageOwner=systemDrive`、`driveFileId`、`driveFolderId`、`driveWorkspacePath`、`webViewLink`、`webContentLink`、`thumbnailLink`、檔名、大小、MIME type、上傳者 uid/email。
+- 詳細架構見 `docs/design/system-drive-workspace.md`。
 
 ### 建案管理
 - 篩選列「國家」「城市」使用 select，下拉選項從現有建案 `country/city` 或地址解析結果彙整，不再要求手打關鍵字。
-- 建案圖片、地圖截圖與外觀圖優先存放於 `taipeimetrohouse/建案管理/{建案ID}`。
+- 建案圖片、地圖截圖與外觀圖透過後端代理存放於 `taipeimetrohouse/建案管理/{建案ID}`。
 
 ### 合約管理
 - 新增/編輯合約的客房欄位拆為「建案」與「房號」，先選建案再篩出該建案房號。

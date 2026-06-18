@@ -1,7 +1,7 @@
 # 📋 專案提案書：RentalHub — 個人房東租賃管理系統 v3
 
 > **一句話描述**：個人房東的一站式租賃管理工具
-> **技術棧**：Firebase 靜態前端 + Firestore/Auth，檔案工作區以 Google Drive「taipeimetrohouse」為主
+> **技術棧**：Firebase Hosting + Firestore/Auth + Firebase Functions 檔案代理；大型檔案統一寫入系統 Google Drive「taipeimetrohouse」工作區
 > **提案日期**：2026年5月18日
 > **狀態**：Phase 1 完成 ✅ → Phase 2 進行中
 
@@ -19,7 +19,7 @@
 - 每間客房有獨立合約、租金、費用計算
 - 水電瓦斯用手動輸入度數，系統自動結算
 - 修繕清潔派工追蹤
-- 應用會在 Google Drive 根目錄建立 `taipeimetrohouse` 專案工作區，並依建案管理、合約管理、證據保存等功能建立子資料夾保存檔案
+- 系統後端會使用指定 Google Drive 帳號或 Shared Drive 建立 `taipeimetrohouse` 專案工作區，並依建案管理、合約管理、證據保存等功能建立子資料夾保存檔案；Web App 使用者登入帳號只用於身份與權限，不會決定 Drive 儲存帳號，也不會看到 Google Drive 選帳號/授權畫面
 
 ---
 
@@ -61,7 +61,7 @@
 
 #### M1：建案與客房管理
 - 建案基本資料（名稱、地址、類型、可出租間數、國家、城市、水號、電號、瓦斯號、管理費、第四台/網路、扣繳方式、Wifi、門禁密碼、環境描述；地址輸入後自動解析國家與城市欄位）
-- 建案照片（所有圖片優先存到 Google Drive `taipeimetrohouse/建案管理/...`；地址輸入完成後產生並儲存固定尺寸 Google Static Maps 清晰地圖圖片；地圖使用較小顯示範圍讓街道名更清楚；管理員可上傳建築物外觀照片，或使用系統從 Google Place 取得的預設照片；預設圖先查地址 Place，若沒有 photos 再查附近地標／街景／大樓名，仍沒有才存空值；外觀照需裁切為適當比例並同時儲存預覽小圖與放大大圖，建案卡片只讀小圖加速更新）
+- 建案照片（所有圖片透過後端檔案代理存到系統 Google Drive `taipeimetrohouse/建案管理/...`；地址輸入完成後產生並儲存固定尺寸 Google Static Maps 清晰地圖圖片；地圖使用較小顯示範圍讓街道名更清楚；管理員可上傳建築物外觀照片，或使用系統從 Google Place 取得的預設照片；預設圖先查地址 Place，若沒有 photos 再查附近地標／街景／大樓名，仍沒有才存空值；外觀照需裁切為適當比例並同時儲存預覽小圖與放大大圖，建案卡片只讀小圖加速更新）
 - 建案卡片採窄版 6:9 圖片輪播設計，提供地圖連結、客房資訊按鈕、編輯資料按鈕，不顯示已租/空置/百分比進度；Title 下方提供出租狀態、租金區間、建案類型、國家、城市篩選，篩選變更後建案預覽卡片即時依條件顯示；列表預覽優先讀低解析圖片以提升切換效率，點擊後使用高解析圖放大；建案頁下方不再顯示客房列表
 - 客房基本資料（房號、類型、坪數、樓層、租金、設備清單、網路／第四台資訊、其他資訊）
 - 客房資訊頁（修改建案房間數量後自動建立缺少的客房資料欄位；頁面開啟預設顯示第一間客房；顯示建案名稱、地址、出租狀態篩選與房號選擇；選擇房號後下方資訊即時切換，管理員可直接修改每個主要欄位；可將目前房間資料套用到同建案其他房間且保留各房房號；室內圖最多 6 張，儲存預覽小圖與放大大圖，支援左右滑動與點擊放大）
@@ -79,7 +79,7 @@
 
 #### M3：合約管理
 - 合約建立（模板 + 自訂條款）
-- 合約內容：租期、租金、押金、費用分攤方式；新增合約時客房拆為「建案」與「房號」；水費、電費、瓦斯費可選依坪數/人數/台數或「依照度數」，並可填基本計費 NT$；另記錄網路／第四台費用與不限張數室內狀況照片，照片存至 Google Drive `taipeimetrohouse/合約管理/...`
+- 合約內容：租期、租金、押金、費用分攤方式；新增合約時客房拆為「建案」與「房號」；水費、電費、瓦斯費可選依坪數/人數/台數或「依照度數」，並可填基本計費 NT$；另記錄網路／第四台費用與不限張數室內狀況照片，照片透過後端檔案代理存至系統 Google Drive `taipeimetrohouse/合約管理/...`
 - 合約到期提醒（30天/7天/1天前，LINE + Email）
 - 一鍵續約
 - 合約版本管理
@@ -120,7 +120,7 @@
 - 收據/發票掃描
 - 合約文件
 - 分類標籤 + 時間戳
-- 雲端儲存（Google Drive `taipeimetrohouse/證據保存/...` 工作區，Firestore 保存 Drive fileId、預覽/開啟連結與分類 metadata）
+- 雲端儲存（jpg/png/mp4/wav/pdf/doc/sheet 等大型檔案一律透過後端代理儲存到系統 Google Drive `taipeimetrohouse/證據保存/...` 工作區，Firestore 只保存 Drive fileId、預覽/開啟連結與分類 metadata）
 - 快速搜尋
 
 ### V1（Should Have）— 4 個功能
@@ -175,7 +175,8 @@
 |------|------|------|
 | **Firestore** | 主要資料庫 | 所有資料儲存（建案、客房、房客、合約、租金、費用、修繕） |
 | **Firebase Authentication** | 登入認證 | Email/Phone 登入，支援多裝置 |
-| **Google Drive** | 圖片/文件工作區 | 根目錄建立 `taipeimetrohouse`，依功能建立子資料夾保存建案照片、合約室內狀況照片、證據檔案；Firestore 保存 metadata |
+| **Firebase Functions** | 檔案上傳代理 | 驗證 Firebase ID token 與角色，使用系統 Drive 憑證建立 Google Drive resumable upload session，避免前端出現 Drive 選帳號/授權畫面 |
+| **Google Drive** | 大型檔案工作區 | 系統指定 Drive 帳號或 Shared Drive 建立 `taipeimetrohouse`，依功能建立子資料夾保存建案照片、合約室內狀況照片、證據檔案；Firestore 保存 metadata |
 
 > ⚠️ **不使用 Cloud Functions**：所有後端邏輯放在 Next.js API Routes 中處理（費用計算、通知觸發等）
 

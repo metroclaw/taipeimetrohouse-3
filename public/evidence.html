@@ -60,7 +60,7 @@
         <button onclick="openAddModal()" class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition"><i class="fas fa-plus"></i>手動新增</button>
         <label class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium cursor-pointer hover:bg-primary/90 transition">
           <i class="fas fa-upload"></i>上傳檔案
-          <input type="file" id="file-upload" multiple accept="image/*,.pdf,.doc,.docx" class="hidden" onchange="handleFileUpload(this)">
+          <input type="file" id="file-upload" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.numbers,.pages,.key,.ppt,.pptx,.txt" class="hidden" onchange="handleFileUpload(this)">
         </label>
       </div>
     </div>
@@ -294,7 +294,7 @@ function renderEvidence(filter = 'all') {
     <label class="border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center aspect-square cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition">
         <i class="fas fa-plus text-2xl text-gray-300 mb-2"></i>
         <span class="text-sm text-gray-400">上傳檔案</span>
-        <input type="file" multiple accept="image/*,.pdf,.doc,.docx" class="hidden" onchange="handleFileUpload(this)">
+        <input type="file" multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.numbers,.pages,.key,.ppt,.pptx,.txt" class="hidden" onchange="handleFileUpload(this)">
     </label>`;
 }
 
@@ -381,7 +381,7 @@ async function handleFileUpload(input) {
 
 async function uploadSingleFile(file, uid, onProgress) {
   onProgress(10);
-  const uploaded = await uploadFileToProjectDrive(file, '證據保存', [detectFileType(file)]);
+  const uploaded = await uploadFileToProjectDrive(file, '證據保存', [detectFileType(file)], onProgress);
   onProgress(90);
   await evidenceCol().add({
     name: file.name.replace(/\.[^/.]+$/, ''),

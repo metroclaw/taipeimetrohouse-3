@@ -357,107 +357,74 @@ async function deleteDoc(collection, id) {
 
 
 // ============================================================
-// Module 4A: Google Drive Workspace Helpers
+// Module 4A: System Google Drive Workspace Upload API
 // ============================================================
 const DRIVE_WORKSPACE_ROOT = 'taipeimetrohouse';
+const DRIVE_UPLOAD_ENDPOINT = '/api/drive/upload';
 window.RENTALHUB_DRIVE_WORKSPACE_ROOT = DRIVE_WORKSPACE_ROOT;
-let __driveAccessToken = null;
-let __driveFolderCache = {};
 
 function getDriveWorkspacePath(feature, parts = []) {
-    return [DRIVE_WORKSPACE_ROOT, feature].concat(parts.filter(Boolean)).join('/');
+    return [DRIVE_WORKSPACE_ROOT, feature].concat((parts || []).filter(Boolean)).join('/');
 }
 
-async function ensureGoogleDriveAccessToken() {
-    if (__driveAccessToken) return __driveAccessToken;
+async function callSystemDriveUploadApi(payload) {
     const user = firebase.auth().currentUser;
-    if (!user) throw new Error('使用者未登入，無法存取 Google Drive');
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.addScope('https://www.googleapis.com/auth/drive.file');
-    provider.addScope('https://www.googleapis.com/auth/drive.metadata');
-    provider.setCustomParameters({ prompt: 'consent select_account' });
-    const result = await user.reauthenticateWithPopup(provider);
-    const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
-    if (!credential || !credential.accessToken) throw new Error('無法取得 Google Drive 授權');
-    __driveAccessToken = credential.accessToken;
-    return __driveAccessToken;
-}
-
-async function driveFetch(url, options = {}) {
-    const token = await ensureGoogleDriveAccessToken();
-    const headers = Object.assign({}, options.headers || {}, { Authorization: `Bearer ${token}` });
-    const response = await fetch(url, Object.assign({}, options, { headers }));
-    if (response.status === 401 || response.status === 403) {
-        __driveAccessToken = null;
-        const retryToken = await ensureGoogleDriveAccessToken();
-        const retryHeaders = Object.assign({}, options.headers || {}, { Authorization: `Bearer ${retryToken}` });
-        const retry = await fetch(url, Object.assign({}, options, { headers: retryHeaders }));
-        if (!retry.ok) throw new Error(`Google Drive API failed: ${retry.status}`);
-        return retry;
-    }
-    if (!response.ok) throw new Error(`Google Drive API failed: ${response.status}`);
-    return response;
-}
-
-async function findDriveFolder(name, parentId) {
-    const escapedName = String(name).replace(/'/g, "\\'");
-    const parentQuery = parentId ? ` and '${parentId}' in parents` : " and 'root' in parents";
-    const q = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${escapedName}'${parentQuery}`;
-    const url = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) + '&fields=files(id,name,webViewLink)&spaces=drive';
-    const response = await driveFetch(url);
-    const data = await response.json();
-    return (data.files || [])[0] || null;
-}
-
-async function createDriveFolder(name, parentId) {
-    const metadata = { name, mimeType: 'application/vnd.google-apps.folder' };
-    if (parentId) metadata.parents = [parentId];
-    const response = await driveFetch('https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink', {
+    if (!user) throw new Error('使用者未登入，無法上傳檔案');
+    const idToken = await user.getIdToken();
+    const response = await fetch(DRIVE_UPLOAD_ENDPOINT, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(metadata)
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify(payload)
     });
-    return await response.json();
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `系統 Google Drive 上傳 API 失敗 (${response.status})`);
+    return data;
 }
 
-async function ensureDriveFolderPath(parts) {
-    let parentId = '';
-    let current = null;
-    for (const part of parts.filter(Boolean)) {
-        const key = `${parentId || 'root'}::${part}`;
-        if (__driveFolderCache[key]) { current = __driveFolderCache[key]; parentId = current.id; continue; }
-        current = await findDriveFolder(part, parentId) || await createDriveFolder(part, parentId || undefined);
-        __driveFolderCache[key] = current;
-        parentId = current.id;
+async function uploadBlobToGoogleDrive(blob, fileName, feature, parts = [], mimeType = 'application/octet-stream', onProgress) {
+    if (!blob) throw new Error('缺少要上傳的檔案');
+    const safeFileName = fileName || blob.name || `upload-${Date.now()}`;
+    const safeMimeType = mimeType || blob.type || 'application/octet-stream';
+    const session = await callSystemDriveUploadApi({
+        action: 'createSession',
+        fileName: safeFileName,
+        fileType: safeMimeType,
+        fileSize: blob.size || 0,
+        feature,
+        parts
+    });
+    if (typeof onProgress === 'function') onProgress(5);
+    const uploadResponse = await fetch(session.uploadUrl, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': safeMimeType,
+            'Content-Length': String(blob.size || 0)
+        },
+        body: blob
+    });
+    if (!uploadResponse.ok) {
+        const text = await uploadResponse.text().catch(() => '');
+        throw new Error(`Google Drive 大型檔案上傳失敗 (${uploadResponse.status}) ${text}`);
     }
-    return current;
-}
-
-async function uploadBlobToGoogleDrive(blob, fileName, feature, parts = [], mimeType = 'application/octet-stream') {
-    const folder = await ensureDriveFolderPath([DRIVE_WORKSPACE_ROOT, feature].concat(parts));
-    const metadata = { name: fileName, parents: [folder.id] };
-    const form = new FormData();
-    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', blob, fileName);
-    const response = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink,webContentLink,mimeType,size', {
-        method: 'POST',
-        body: form
+    if (typeof onProgress === 'function') onProgress(90);
+    const uploadedFile = await uploadResponse.json();
+    const finalized = await callSystemDriveUploadApi({
+        action: 'finalize',
+        driveFileId: uploadedFile.id,
+        driveFolderId: session.driveFolderId,
+        driveWorkspacePath: session.driveWorkspacePath,
+        fileType: safeMimeType,
+        fileSize: blob.size || 0
     });
-    const file = await response.json();
-    return {
-        provider: 'googleDrive',
-        driveFileId: file.id,
-        driveFileName: file.name,
-        driveFolderId: folder.id,
-        driveWorkspacePath: getDriveWorkspacePath(feature, parts),
-        webViewLink: file.webViewLink,
-        webContentLink: file.webContentLink || (`https://drive.google.com/uc?export=download&id=${file.id}`),
-        url: file.webContentLink || file.webViewLink
-    };
+    if (typeof onProgress === 'function') onProgress(100);
+    return finalized;
 }
 
-async function uploadFileToProjectDrive(file, feature, parts = []) {
-    return await uploadBlobToGoogleDrive(file, file.name || `file-${Date.now()}`, feature, parts, file.type || 'application/octet-stream');
+async function uploadFileToProjectDrive(file, feature, parts = [], onProgress) {
+    return await uploadBlobToGoogleDrive(file, file.name || `file-${Date.now()}`, feature, parts, file.type || 'application/octet-stream', onProgress);
 }
 
 // ============================================================

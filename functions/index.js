@@ -1,0 +1,229 @@
+'use strict';
+
+const { onRequest } = require('firebase-functions/v2/https');
+const admin = require('firebase-admin');
+const { google } = require('googleapis');
+
+admin.initializeApp();
+
+const DRIVE_WORKSPACE_ROOT = process.env.DRIVE_WORKSPACE_ROOT || 'taipeimetrohouse';
+const DRIVE_PUBLIC_READ = String(process.env.DRIVE_PUBLIC_READ || 'false').toLowerCase() === 'true';
+const DRIVE_UPLOAD_FIELDS = 'id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,iconLink';
+const ALLOWED_UPLOAD_ROLES = new Set(['管理員', '員工', '房務', '工務']);
+const folderCache = new Map();
+
+function sendCors(res) {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.set('Access-Control-Max-Age', '3600');
+}
+
+function sendJson(res, status, data) {
+  sendCors(res);
+  res.status(status).json(data);
+}
+
+function cleanSegment(value) {
+  return String(value || '')
+    .replace(/[\\/\u0000-\u001f]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120) || '未分類';
+}
+
+function normalizeParts(parts) {
+  if (!Array.isArray(parts)) return [];
+  return parts.map(cleanSegment).filter(Boolean);
+}
+
+async function verifyFirebaseUser(req) {
+  const header = req.get('Authorization') || '';
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  if (!match) throw Object.assign(new Error('Missing Firebase ID token'), { status: 401 });
+  const decoded = await admin.auth().verifyIdToken(match[1]);
+  const snap = await admin.firestore().collection('accounts').doc(decoded.uid).get();
+  const account = snap.exists ? snap.data() : {};
+  const role = account.role || (decoded.email === process.env.SYSTEM_OWNER_EMAIL ? '管理員' : '訪客');
+  if (!ALLOWED_UPLOAD_ROLES.has(role)) {
+    throw Object.assign(new Error('此角色目前沒有上傳大型檔案權限'), { status: 403 });
+  }
+  return { uid: decoded.uid, email: decoded.email || '', name: decoded.name || account.displayName || '', role };
+}
+
+function getDriveAuth() {
+  const scopes = ['https://www.googleapis.com/auth/drive'];
+  const clientEmail = process.env.SYSTEM_DRIVE_CLIENT_EMAIL;
+  const privateKey = (process.env.SYSTEM_DRIVE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+  const impersonate = process.env.SYSTEM_DRIVE_IMPERSONATE_EMAIL;
+  if (clientEmail && privateKey) {
+    return new google.auth.JWT({
+      email: clientEmail,
+      key: privateKey,
+      scopes,
+      subject: impersonate || undefined
+    });
+  }
+
+  const clientId = process.env.SYSTEM_DRIVE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.SYSTEM_DRIVE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.SYSTEM_DRIVE_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN;
+  if (clientId && clientSecret && refreshToken) {
+    const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+    oauth2.setCredentials({ refresh_token: refreshToken });
+    return oauth2;
+  }
+
+  throw Object.assign(new Error('系統 Google Drive 憑證尚未設定；請在 Firebase Functions 設定 SYSTEM_DRIVE_* 環境變數'), { status: 503 });
+}
+
+function getDriveClient(auth) {
+  return google.drive({ version: 'v3', auth });
+}
+
+async function findDriveFolder(drive, name, parentId) {
+  const escapedName = String(name).replace(/'/g, "\\'");
+  const parentQuery = parentId ? ` and '${parentId}' in parents` : " and 'root' in parents";
+  const q = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${escapedName}'${parentQuery}`;
+  const result = await drive.files.list({ q, spaces: 'drive', fields: 'files(id,name,webViewLink)', pageSize: 1, supportsAllDrives: true, includeItemsFromAllDrives: true });
+  return (result.data.files || [])[0] || null;
+}
+
+async function createDriveFolder(drive, name, parentId) {
+  const requestBody = { name, mimeType: 'application/vnd.google-apps.folder' };
+  if (parentId) requestBody.parents = [parentId];
+  const result = await drive.files.create({ requestBody, fields: 'id,name,webViewLink', supportsAllDrives: true });
+  return result.data;
+}
+
+async function ensureDriveFolderPath(drive, parts) {
+  let parentId = '';
+  let current = null;
+  for (const raw of parts.filter(Boolean)) {
+    const part = cleanSegment(raw);
+    const key = `${parentId || 'root'}::${part}`;
+    if (folderCache.has(key)) {
+      current = folderCache.get(key);
+      parentId = current.id;
+      continue;
+    }
+    current = await findDriveFolder(drive, part, parentId) || await createDriveFolder(drive, part, parentId || undefined);
+    folderCache.set(key, current);
+    parentId = current.id;
+  }
+  return current;
+}
+
+async function createResumableSession(auth, drive, payload, actor) {
+  const feature = cleanSegment(payload.feature || '未分類');
+  const parts = normalizeParts(payload.parts || []);
+  const fileName = cleanSegment(payload.fileName || `upload-${Date.now()}`);
+  const mimeType = String(payload.fileType || payload.mimeType || 'application/octet-stream');
+  const fileSize = Number(payload.fileSize || 0);
+  const folder = await ensureDriveFolderPath(drive, [DRIVE_WORKSPACE_ROOT, feature].concat(parts));
+  const driveWorkspacePath = [DRIVE_WORKSPACE_ROOT, feature].concat(parts).map(cleanSegment).join('/');
+  const metadata = {
+    name: fileName,
+    parents: [folder.id],
+    appProperties: {
+      app: 'RentalHub',
+      uploadedByUid: actor.uid,
+      uploadedByEmail: actor.email,
+      driveWorkspacePath
+    }
+  };
+  const headers = await auth.getRequestHeaders();
+  const response = await fetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=${encodeURIComponent(DRIVE_UPLOAD_FIELDS)}&supportsAllDrives=true`, {
+    method: 'POST',
+    headers: Object.assign({}, headers, {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'X-Upload-Content-Type': mimeType,
+      'X-Upload-Content-Length': String(fileSize || '')
+    }),
+    body: JSON.stringify(metadata)
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw Object.assign(new Error(`Google Drive 建立上傳工作階段失敗：${response.status} ${text}`), { status: 502 });
+  }
+  return {
+    provider: 'googleDrive',
+    storageOwner: 'systemDrive',
+    uploadUrl: response.headers.get('location'),
+    driveFolderId: folder.id,
+    driveWorkspacePath,
+    fileName,
+    fileType: mimeType,
+    fileSize,
+    uploadedByUid: actor.uid,
+    uploadedByName: actor.name,
+    uploadedByEmail: actor.email,
+    publicRead: DRIVE_PUBLIC_READ
+  };
+}
+
+async function finalizeDriveFile(drive, payload, actor) {
+  const driveFileId = String(payload.driveFileId || payload.id || '').trim();
+  if (!driveFileId) throw Object.assign(new Error('Missing driveFileId'), { status: 400 });
+  if (DRIVE_PUBLIC_READ) {
+    try {
+      await drive.permissions.create({ fileId: driveFileId, requestBody: { role: 'reader', type: 'anyone' }, supportsAllDrives: true });
+    } catch (err) {
+      console.warn('[Drive] Failed to set anyone-with-link permission:', err.message);
+    }
+  }
+  const file = await drive.files.get({ fileId: driveFileId, fields: DRIVE_UPLOAD_FIELDS, supportsAllDrives: true });
+  return {
+    provider: 'googleDrive',
+    storageOwner: 'systemDrive',
+    driveFileId: file.data.id,
+    driveFileName: file.data.name,
+    driveFolderId: payload.driveFolderId || '',
+    driveWorkspacePath: payload.driveWorkspacePath || '',
+    fileName: file.data.name,
+    fileType: file.data.mimeType || payload.fileType || '',
+    fileSize: Number(file.data.size || payload.fileSize || 0),
+    webViewLink: file.data.webViewLink || '',
+    webContentLink: file.data.webContentLink || '',
+    thumbnailLink: file.data.thumbnailLink || '',
+    iconLink: file.data.iconLink || '',
+    url: file.data.webContentLink || file.data.webViewLink || '',
+    uploadedByUid: actor.uid,
+    uploadedByName: actor.name,
+    uploadedByEmail: actor.email,
+    publicRead: DRIVE_PUBLIC_READ
+  };
+}
+
+exports.driveUpload = onRequest({ region: 'asia-east1', timeoutSeconds: 540, memory: '1GiB', cors: true }, async (req, res) => {
+  sendCors(res);
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+  if (req.method !== 'POST') {
+    sendJson(res, 405, { error: 'Method not allowed' });
+    return;
+  }
+  try {
+    const actor = await verifyFirebaseUser(req);
+    const auth = getDriveAuth();
+    const drive = getDriveClient(auth);
+    const body = req.body || {};
+    const action = body.action || 'createSession';
+    if (action === 'createSession') {
+      const session = await createResumableSession(auth, drive, body, actor);
+      sendJson(res, 200, session);
+      return;
+    }
+    if (action === 'finalize') {
+      const file = await finalizeDriveFile(drive, body, actor);
+      sendJson(res, 200, file);
+      return;
+    }
+    sendJson(res, 400, { error: 'Unknown action' });
+  } catch (err) {
+    console.error('[driveUpload]', err);
+    sendJson(res, err.status || 500, { error: err.message || 'Drive upload failed' });
+  }
+});

@@ -52,6 +52,13 @@
         "destination": "/settings.html"
       },
       {
+        "source": "/api/drive/upload",
+        "function": {
+          "functionId": "driveUpload",
+          "region": "asia-east1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
@@ -63,5 +70,9 @@
   },
   "storage": {
     "rules": "storage.rules"
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20"
   }
 }

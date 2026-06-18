@@ -523,15 +523,8 @@ async function useDefaultExteriorPhoto(index) {
 async function uploadImageBlob(storagePath, blob, contentType = 'image/jpeg') {
     const segments = String(storagePath || '').split('/').filter(Boolean);
     const projectId = segments[3] || '未分類建案';
-    try {
-        const uploaded = await uploadBlobToGoogleDrive(blob, segments[segments.length - 1] || `image-${Date.now()}.jpg`, '建案管理', [projectId], contentType);
-        return uploaded.webContentLink || uploaded.webViewLink || uploaded.url;
-    } catch (driveError) {
-        console.warn('[Drive] Google Drive 上傳失敗，暫時回退 Firebase Storage:', driveError);
-        const ref = firebase.storage().ref(storagePath);
-        await ref.put(blob, { contentType });
-        return await ref.getDownloadURL();
-    }
+    const uploaded = await uploadBlobToGoogleDrive(blob, segments[segments.length - 1] || `image-${Date.now()}.jpg`, '建案管理', [projectId], contentType);
+    return uploaded.webContentLink || uploaded.webViewLink || uploaded.url;
 }
 
 function getProjectFormData() {
