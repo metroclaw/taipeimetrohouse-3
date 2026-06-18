@@ -657,11 +657,9 @@ async function loadProjects() {
     const uid = getCurrentUserUid();
     if (!uid) return;
     try {
-        const snapshot = await db.collection('users').doc(uid).collection('projects').get();
-        projectsData = await Promise.all(snapshot.docs.map(async (doc) => {
-            const project = { id: doc.id, ...doc.data() };
-            const roomsSnapshot = await db.collection('users').doc(uid).collection('projects').doc(doc.id).collection('rooms').get();
-            const rooms = roomsSnapshot.docs.map(roomDoc => ({ id: roomDoc.id, ...roomDoc.data() }));
+        const projects = await getProjects();
+        projectsData = await Promise.all(projects.map(async (project) => {
+            const rooms = await getRooms(project.id);
             project.totalRooms = rooms.length;
             project.occupied = rooms.filter(room => room.status === '已出租' || !!room.tenant).length;
             project.vacant = rooms.filter(room => room.status === '空置' || room.status === '可出租' || (!room.tenant && room.status !== '已出租')).length;
@@ -809,11 +807,10 @@ async function selectProject(projectId) {
     document.getElementById('rooms-subtitle').textContent = '共 ' + (project ? project.totalRooms || 0 : 0) + ' 間客房';
     document.getElementById('room-project-id').value = projectId;
     
-    const uid = getCurrentUserUid();
+    const uid = getProjectOwnerUid(projectId);
     if (!uid) return;
     try {
-        const snapshot = await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').get();
-        roomsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        roomsData = await getRooms(projectId);
         renderRooms();
     } catch (e) {
         console.error('Error loading rooms:', e);
@@ -908,9 +905,11 @@ async function syncProjectRoomsByRentableCount(uid, projectId, targetCount) {
 
 document.getElementById('project-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const uid = getCurrentUserUid();
-    if (!uid) return;
+    const currentUid = getCurrentUserUid();
+    if (!currentUid) return;
     const id = document.getElementById('project-id').value;
+    const existingProject = id ? projectsData.find(p => p.id === id) : null;
+    const uid = existingProject?.__ownerUid || currentUid;
     let projectId = id;
     const data = getProjectFormData();
     data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -945,12 +944,13 @@ document.getElementById('project-form').addEventListener('submit', async (e) => 
 
 document.getElementById('room-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const uid = getCurrentUserUid();
-    if (!uid) return;
+    const currentUid = getCurrentUserUid();
+    if (!currentUid) return;
     const amenities = Array.from(document.querySelectorAll('.room-amenity:checked')).map(cb => cb.value);
     const data = { number: document.getElementById('room-number').value, type: document.getElementById('room-type').value, area: parseFloat(document.getElementById('room-area').value) || 0, floor: parseInt(document.getElementById('room-floor').value) || 0, rent: parseInt(document.getElementById('room-rent').value) || 0, acUnits: parseInt(document.getElementById('room-ac').value) || 1, amenities, status: '空置', tenant: '' };
     const id = document.getElementById('room-id').value;
     const projectId = document.getElementById('room-project-id').value;
+    const uid = getProjectOwnerUid(projectId) || currentUid;
     try {
         if (id) { await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').doc(id).update(data); showToast('客房已更新'); }
         else { await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').add(data); showToast('客房已新增'); }

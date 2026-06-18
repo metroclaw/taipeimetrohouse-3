@@ -42,17 +42,18 @@ service cloud.firestore {
       allow delete: if isAdmin() && request.auth.uid != accountId;
     }
 
-    // 使用者只能讀取/寫入自己的資料根節點
+    // 使用者可讀寫自己的資料；管理員可跨帳號讀寫租賃資料，
+    // 讓被切換為「管理員」的帳號重新登入後仍能看到既有建案/房客/租金等資料。
     match /users/{userId} {
-      allow read, write: if isSelf(userId);
+      allow read, write: if isSelf(userId) || isAdmin();
 
       // 系統會使用多層子集合，例如：
       // /users/{uid}/projects/{projectId}/rooms/{roomId}
       // /users/{uid}/rentRecords/{recordId}
       // /users/{uid}/utilityBills/{billId}
-      // 因此需要遞迴允許使用者自己名下的所有文件。
+      // 因此需要遞迴允許本人與管理員存取所有文件。
       match /{document=**} {
-        allow read, write: if isSelf(userId);
+        allow read, write: if isSelf(userId) || isAdmin();
       }
     }
   }

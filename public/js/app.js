@@ -140,6 +140,66 @@ async function getAllAccounts() {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
+let __readableUserIdsCache = null;
+let __readableUserIdsCacheAt = 0;
+const __DATA_SCOPE_CACHE_MS = 15000;
+const __projectOwnerUidById = {};
+
+function isEnabledAdminAccount(account) {
+    return !!account && account.role === '管理員' && (account.status || '啟用') === '啟用';
+}
+
+async function getReadableUserIds(options = {}) {
+    const currentUid = getCurrentUserUid();
+    if (!currentUid) return [];
+    const now = Date.now();
+    if (!options.force && __readableUserIdsCache && now - __readableUserIdsCacheAt < __DATA_SCOPE_CACHE_MS) {
+        return __readableUserIdsCache.slice();
+    }
+
+    let ids = [currentUid];
+    try {
+        const currentAccount = await getCurrentAccountProfile();
+        if (isEnabledAdminAccount(currentAccount)) {
+            const accounts = await getAllAccounts();
+            ids = accounts
+                .filter(a => (a.uid || a.id) && (a.status || '啟用') === '啟用')
+                .map(a => a.uid || a.id);
+            if (!ids.includes(currentUid)) ids.unshift(currentUid);
+        }
+    } catch (e) {
+        console.warn('[DataScope] Failed to resolve readable users; fallback to current user:', e);
+        ids = [currentUid];
+    }
+
+    __readableUserIdsCache = Array.from(new Set(ids.filter(Boolean)));
+    __readableUserIdsCacheAt = now;
+    return __readableUserIdsCache.slice();
+}
+
+function getProjectOwnerUid(projectId) {
+    return __projectOwnerUidById[projectId] || getCurrentUserUid();
+}
+
+async function getUserCollectionDocs(collectionName, orderByFields = []) {
+    const userIds = await getReadableUserIds();
+    const batches = await Promise.all(userIds.map(async (ownerUid) => {
+        let ref = db.collection('users').doc(ownerUid).collection(collectionName);
+        orderByFields.forEach(order => {
+            if (Array.isArray(order)) ref = ref.orderBy(order[0], order[1]);
+            else ref = ref.orderBy(order);
+        });
+        try {
+            const snapshot = await ref.get();
+            return snapshot.docs.map(doc => ({ id: doc.id, __ownerUid: ownerUid, ...doc.data() }));
+        } catch (e) {
+            console.warn(`[DataScope] Failed to read ${collectionName} for ${ownerUid}:`, e);
+            return [];
+        }
+    }));
+    return batches.flat();
+}
+
 async function updateCurrentAccountProfile(data) {
     const uid = getCurrentUserUid();
     if (!uid) throw new Error('使用者未登入');
@@ -212,76 +272,66 @@ function hideLoading() {
 
 const db = firebase.firestore();
 
-// 取得使用者的所有建案
+// 取得目前帳號可讀取的所有建案。管理員可跨已啟用帳號讀取，避免切換為管理員後只看到自己空白資料夾。
 async function getProjects() {
-    const uid = getCurrentUserUid();
-    if (!uid) return [];
-    const snapshot = await db.collection('users').doc(uid).collection('projects').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const projects = await getUserCollectionDocs('projects');
+    projects.forEach(project => { __projectOwnerUidById[project.id] = project.__ownerUid; });
+    return projects;
 }
 
 // 取得建案的所有客房
 async function getRooms(projectId) {
-    const uid = getCurrentUserUid();
+    const uid = getProjectOwnerUid(projectId);
     if (!uid) return [];
     const snapshot = await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return snapshot.docs.map(doc => ({ id: doc.id, __ownerUid: uid, projectId, ...doc.data() }));
 }
 
-// 取得使用者的所有房客
+// 取得目前帳號可讀取的所有房客
 async function getTenants() {
-    const uid = getCurrentUserUid();
-    if (!uid) return [];
-    const snapshot = await db.collection('users').doc(uid).collection('tenants').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return await getUserCollectionDocs('tenants');
 }
 
-// 取得使用者的所有合約
+// 取得目前帳號可讀取的所有合約
 async function getContracts() {
-    const uid = getCurrentUserUid();
-    if (!uid) return [];
-    const snapshot = await db.collection('users').doc(uid).collection('contracts').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return await getUserCollectionDocs('contracts');
 }
 
 // 取得租金紀錄
 async function getRentRecords() {
-    const uid = getCurrentUserUid();
-    if (!uid) return [];
-    const snapshot = await db.collection('users').doc(uid).collection('rentRecords').orderBy('year', 'desc').orderBy('month', 'desc').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const records = await getUserCollectionDocs('rentRecords', [['year', 'desc'], ['month', 'desc']]);
+    return records.sort((a, b) => (Number(b.year) - Number(a.year)) || (Number(b.month) - Number(a.month)));
 }
 
 // 取得費用紀錄
 async function getUtilityBills() {
-    const uid = getCurrentUserUid();
-    if (!uid) return [];
-    const snapshot = await db.collection('users').doc(uid).collection('utilityBills').orderBy('year', 'desc').orderBy('month', 'desc').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const bills = await getUserCollectionDocs('utilityBills', [['year', 'desc'], ['month', 'desc']]);
+    return bills.sort((a, b) => (Number(b.year) - Number(a.year)) || (Number(b.month) - Number(a.month)));
 }
 
 // 取得修繕派工
 async function getMaintenanceTasks() {
-    const uid = getCurrentUserUid();
-    if (!uid) return [];
-    const snapshot = await db.collection('users').doc(uid).collection('maintenanceTasks').orderBy('createdAt', 'desc').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const tasks = await getUserCollectionDocs('maintenanceTasks', [['createdAt', 'desc']]);
+    return tasks.sort((a, b) => toComparableMillis(b.createdAt) - toComparableMillis(a.createdAt));
 }
 
 // 取得證據檔案
 async function getEvidenceFiles() {
-    const uid = getCurrentUserUid();
-    if (!uid) return [];
-    const snapshot = await db.collection('users').doc(uid).collection('evidenceFiles').orderBy('createdAt', 'desc').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const files = await getUserCollectionDocs('evidenceFiles', [['createdAt', 'desc']]);
+    return files.sort((a, b) => toComparableMillis(b.createdAt) - toComparableMillis(a.createdAt));
 }
 
 // 取得清潔排程
 async function getCleaningSchedules() {
-    const uid = getCurrentUserUid();
-    if (!uid) return [];
-    const snapshot = await db.collection('users').doc(uid).collection('cleaningSchedules').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return await getUserCollectionDocs('cleaningSchedules');
+}
+
+function toComparableMillis(value) {
+    if (!value) return 0;
+    if (value.toMillis) return value.toMillis();
+    if (value.seconds) return value.seconds * 1000;
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
 }
 
 // 通用新增文件
