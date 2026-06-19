@@ -19,7 +19,7 @@
 - 每間客房有獨立合約、租金、費用計算
 - 水電瓦斯用手動輸入度數，系統自動結算
 - 修繕清潔派工追蹤
-- 系統後端會使用指定 Google Drive 帳號或 Shared Drive 建立 `taipeimetrohouse` 專案工作區，並依建案管理、合約管理、證據保存等功能建立子資料夾保存檔案；Web App 使用者登入帳號只用於身份與權限，不會決定 Drive 儲存帳號，也不會看到 Google Drive 選帳號/授權畫面
+- 系統後端會使用指定 Google Drive 管理帳號或 Shared Drive 建立 `taipeimetrohouse` 專案工作區，並依建案管理、合約管理、證據保存等功能建立子資料夾保存檔案；目前正式採管理帳號 OAuth refresh token + Firebase Secret Manager，Web App 使用者登入帳號只用於身份與權限，不會決定 Drive 儲存帳號，也不會看到 Google Drive 選帳號/授權畫面
 
 ---
 
@@ -120,7 +120,7 @@
 - 收據/發票掃描
 - 合約文件
 - 分類標籤 + 時間戳
-- 雲端儲存（jpg/png/mp4/wav/pdf/doc/sheet 等大型檔案一律透過後端代理儲存到系統 Google Drive `taipeimetrohouse/證據保存/...` 工作區，Firestore 只保存 Drive fileId、預覽/開啟連結與分類 metadata）
+- 雲端儲存（jpg/png/mp4/wav/pdf/doc/sheet 等大型檔案一律透過後端代理儲存到系統 Google Drive `taipeimetrohouse/證據保存/...` 工作區，Firestore 只保存 Drive fileId、預覽/開啟連結與分類 metadata；若 Drive 已成功寫入但瀏覽器讀不到 upload response，後端 finalize 會依資料夾、檔名與上傳者找回檔案 ID，避免 Web App 誤顯示上傳失敗）
 - 快速搜尋
 
 ### V1（Should Have）— 4 個功能
@@ -144,7 +144,7 @@
 
 ## 🛠️ 技術方案
 
-### Firebase 架構（不使用 Cloud Functions）
+### Firebase 架構（靜態前端 + Functions 檔案代理）
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -178,7 +178,7 @@
 | **Firebase Functions** | 檔案上傳代理 | 驗證 Firebase ID token 與角色，使用系統 Drive 憑證建立 Google Drive resumable upload session，避免前端出現 Drive 選帳號/授權畫面 |
 | **Google Drive** | 大型檔案工作區 | 系統指定 Drive 帳號或 Shared Drive 建立 `taipeimetrohouse`，依功能建立子資料夾保存建案照片、合約室內狀況照片、證據檔案；Firestore 保存 metadata |
 
-> ⚠️ **不使用 Cloud Functions**：所有後端邏輯放在 Next.js API Routes 中處理（費用計算、通知觸發等）
+> ⚠️ **Functions 使用邊界**：一般業務邏輯仍維持在前端 / Firestore 流程；Cloud Functions 目前專用於 `/api/drive/upload` 檔案上傳代理，負責驗證 Firebase ID token、讀取 Firebase Secret Manager 內的系統 Drive 憑證、建立 Google Drive resumable upload session 與 finalize metadata。
 
 ### Firestore 資料結構
 

@@ -177,12 +177,14 @@
 - Google Drive 授權只在系統管理/後端設定階段完成一次；前端透過 `/api/drive/upload` 後端代理取得 resumable upload session。
 - 大型檔案與附件一律存 Google Drive：jpg、png、mp4、wav、pdf、doc/docx、sheet/xls/xlsx/csv、ppt 等；Firestore 只保存 Drive metadata。
 - 正式上傳流程不自動回退 Firebase Storage；Drive 未設定時需提示管理員完成系統 Drive 憑證設定。
+- 2026-06-19 實測確認：目前正式採用管理帳號 OAuth refresh token 寫入管理帳號 Google Drive；Service Account impersonation 只適用已設定 Workspace domain-wide delegation 的 Shared Drive / Workspace，否則會出現 `unauthorized_client`。
 
 ### Google Drive 檔案工作區
 - 系統 Drive 根目錄建立 `taipeimetrohouse` 專案工作區。
 - 子資料夾依功能建立：`建案管理`、`合約管理`、`證據保存`；功能內可再依建案、房號、類型分層。
 - Firestore 文件只保存 Drive metadata：`storageOwner=systemDrive`、`driveFileId`、`driveFolderId`、`driveWorkspacePath`、`webViewLink`、`webContentLink`、`thumbnailLink`、檔名、大小、MIME type、上傳者 uid/email。
 - 詳細架構見 `docs/design/system-drive-workspace.md`。
+- 上傳完成判斷以 Drive metadata finalize 為準：若檔案已寫入 Drive 但瀏覽器讀不到 Google resumable upload 的最終 response，前端需呼叫後端 finalize，由後端依資料夾、檔名與上傳者找回檔案 ID，避免 UI 誤顯示上傳失敗。
 
 ### 建案管理
 - 篩選列「國家」「城市」使用 select，下拉選項從現有建案 `country/city` 或地址解析結果彙整，不再要求手打關鍵字。

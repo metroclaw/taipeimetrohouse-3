@@ -1,6 +1,6 @@
 # 系統 Google Drive 工作區設計
 
-更新日期：2026-06-18
+更新日期：2026-06-19
 
 ## 核心結論
 
@@ -88,8 +88,21 @@ API 動作：
    - 適合較大型檔案，避免檔案本體經過 Firebase Function 記憶體。
 
 3. `finalize`
-   - 驗證上傳後的 Drive fileId。
-   - 回傳標準 metadata。
+   - 優先使用前端從 Google Drive upload response 取得的 `driveFileId` 驗證檔案。
+   - 若瀏覽器因 Google Drive resumable upload 回應 / CORS / JSON body 限制無法讀取最終 response，但檔案其實已上傳成功，前端不可直接判定失敗；改呼叫後端 `finalize`，由後端依 `driveFolderId`、`fileName`、`uploadedByUid` 到 Drive 找回剛上傳的檔案。
+   - 回傳標準 metadata，前端再將 metadata 寫入 Firestore 或業務文件。
+
+### 上傳成功但前端顯示失敗的處理規則（2026-06-19 實測修正）
+
+已確認情境：Google Drive 已正確建立 `taipeimetrohouse` 資料夾與檔案，但 Web App 顯示上傳失敗。原因通常不是 Drive 寫入失敗，而是瀏覽器無法讀取 Google resumable upload 的最終回應，或回應格式不是前端預期 JSON。
+
+固定處理方式：
+
+1. 前端 `PUT` 到 `session.uploadUrl` 後，若讀取 response 失敗，先記錄 warning，不立即顯示上傳失敗。
+2. 前端仍呼叫 `/api/drive/upload` 的 `finalize`，並帶上 `driveFolderId`、`driveWorkspacePath`、`fileName`、`fileType`、`fileSize`。
+3. 後端若沒有收到 `driveFileId`，用 `driveFolderId + fileName + uploadedByUid` 查找最近上傳的檔案。
+4. 找到檔案後以 Drive `files.get` 取回 `webViewLink`、`webContentLink`、`thumbnailLink` 等 metadata。
+5. 只有在 Drive 查找也失敗時，才回報上傳失敗或要求使用者重試。
 
 ## 後端憑證設定
 
@@ -112,6 +125,8 @@ DRIVE_PUBLIC_READ=false 或 true
 
 管理員只在系統設定階段授權一次。一般 Web App 使用者不會看到授權畫面。
 
+目前 RentalHub 正式採用此模式：以管理帳號 OAuth refresh token 寫入管理帳號的 Google Drive。設定或更新 Secret 後必須重新部署 `driveUpload`，讓 Cloud Functions/Cloud Run 新 revision 掛載最新 Secret。
+
 ### 模式 B：Service Account（適合 Shared Drive / Workspace）
 
 Secret 名稱：
@@ -125,7 +140,16 @@ DRIVE_WORKSPACE_ROOT=taipeimetrohouse
 DRIVE_PUBLIC_READ=false 或 true
 ```
 
-若使用 Shared Drive，建議將 service account 加入該 Shared Drive 或使用 Workspace 委派。
+若使用 Shared Drive，建議將 service account 加入該 Shared Drive 或使用 Workspace 委派。`SYSTEM_DRIVE_IMPERSONATE_EMAIL` 只有在 Google Workspace Admin Console 已設定 domain-wide delegation 且授權 Drive scopes 時才可填；一般 Gmail 或未設定委派時不可填，否則 Google 會回傳 `GaxiosError: unauthorized_client: Client is unauthorized to retrieve access tokens using this method`。
+
+### Secret 設定注意事項
+
+- 正式值以 Firebase Secret Manager 為準；`.env.example` 只作為填寫範例與交接用，不提交真實金鑰。
+- 若同時存在 OAuth refresh token 與 Service Account，程式優先使用 OAuth refresh token，避免一般 Gmail 誤走 service account impersonation。
+- 空值或暫停使用的 Secret 可設為 `__unset__`；程式會視為未設定，不會誤觸發錯誤的驗證路徑。
+- 更新任何 Secret 後需執行 `firebase deploy --only functions:driveUpload --project taipeimetrohouse-2`，否則已部署 revision 仍可能使用舊版本 Secret。
+- 驗證 OAuth 模式時，可先用相同 `client_id/client_secret/refresh_token` 呼叫 Google Drive `about.get`；成功時應能看到管理帳號 email。
+- 驗證上傳時以實際 Web App 小檔案測試為準：Google Drive 應建立資料夾與檔案，Web App 也應顯示成功並保存 metadata。
 
 ## 權限規則
 
@@ -175,3 +199,14 @@ Drive 只作為儲存層，不負責 App 內權限。App 權限由 Firebase Auth
 ## 不可回退規則
 
 因產品要求大型檔案堅持儲存在 Google Drive，正式上傳流程不應在 Drive 失敗時自動回退 Firebase Storage。Drive 尚未設定或上傳失敗時，應提示管理員完成系統 Drive 設定或重試。
+
+## 2026-06-19 功能變更總結
+
+本次實測完成並確認正常：
+
+- 系統 Google Drive 工作區由管理帳號建立並持有，Web App 使用者不需也不會進行 Google Drive OAuth。
+- Firebase Functions `driveUpload` 已改用 Firebase Secret Manager 讀取 Drive 憑證。
+- 驗證失敗教訓：一般 Gmail 不可使用 service account impersonation；若未設定 Workspace domain-wide delegation，填入 `SYSTEM_DRIVE_IMPERSONATE_EMAIL` 會導致 `unauthorized_client`。
+- 正式採用 OAuth refresh token 模式寫入管理帳號 Google Drive；Service Account 模式只保留給未來 Shared Drive / Workspace。
+- 前端 Google Drive resumable upload 已加入「成功寫入但讀不到最終 response」的 fallback；後端會用資料夾、檔名與上傳者 metadata 找回檔案 ID，避免 Drive 已有檔案但 Web App 誤顯示失敗。
+- 驗證標準：必須同時確認 Google Drive 看到正確資料夾/檔案結構，且 Web App 顯示上傳成功。
