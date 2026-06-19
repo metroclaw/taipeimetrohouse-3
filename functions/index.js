@@ -1,16 +1,35 @@
 'use strict';
 
 const { onRequest } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 const { google } = require('googleapis');
 
 admin.initializeApp();
 
-const DRIVE_WORKSPACE_ROOT = process.env.DRIVE_WORKSPACE_ROOT || 'taipeimetrohouse';
-const DRIVE_PUBLIC_READ = String(process.env.DRIVE_PUBLIC_READ || 'false').toLowerCase() === 'true';
+const DRIVE_WORKSPACE_ROOT_SECRET = defineSecret('DRIVE_WORKSPACE_ROOT');
+const DRIVE_PUBLIC_READ_SECRET = defineSecret('DRIVE_PUBLIC_READ');
+const SYSTEM_OWNER_EMAIL_SECRET = defineSecret('SYSTEM_OWNER_EMAIL');
+const SYSTEM_DRIVE_CLIENT_EMAIL_SECRET = defineSecret('SYSTEM_DRIVE_CLIENT_EMAIL');
+const SYSTEM_DRIVE_PRIVATE_KEY_SECRET = defineSecret('SYSTEM_DRIVE_PRIVATE_KEY');
+const SYSTEM_DRIVE_IMPERSONATE_EMAIL_SECRET = defineSecret('SYSTEM_DRIVE_IMPERSONATE_EMAIL');
+const SYSTEM_DRIVE_CLIENT_ID_SECRET = defineSecret('SYSTEM_DRIVE_CLIENT_ID');
+const SYSTEM_DRIVE_CLIENT_SECRET_SECRET = defineSecret('SYSTEM_DRIVE_CLIENT_SECRET');
+const SYSTEM_DRIVE_REFRESH_TOKEN_SECRET = defineSecret('SYSTEM_DRIVE_REFRESH_TOKEN');
 const DRIVE_UPLOAD_FIELDS = 'id,name,mimeType,size,webViewLink,webContentLink,thumbnailLink,iconLink';
 const ALLOWED_UPLOAD_ROLES = new Set(['管理員', '員工', '房務', '工務']);
 const folderCache = new Map();
+const DRIVE_SECRETS = [
+  DRIVE_WORKSPACE_ROOT_SECRET, DRIVE_PUBLIC_READ_SECRET, SYSTEM_OWNER_EMAIL_SECRET,
+  SYSTEM_DRIVE_CLIENT_EMAIL_SECRET, SYSTEM_DRIVE_PRIVATE_KEY_SECRET, SYSTEM_DRIVE_IMPERSONATE_EMAIL_SECRET,
+  SYSTEM_DRIVE_CLIENT_ID_SECRET, SYSTEM_DRIVE_CLIENT_SECRET_SECRET, SYSTEM_DRIVE_REFRESH_TOKEN_SECRET
+];
+
+function secretValue(secret, fallback = '') {
+  try { return secret.value() || fallback; } catch (e) { return fallback; }
+}
+function getWorkspaceRoot() { return secretValue(DRIVE_WORKSPACE_ROOT_SECRET, 'taipeimetrohouse'); }
+function getDrivePublicRead() { return String(secretValue(DRIVE_PUBLIC_READ_SECRET, 'false')).toLowerCase() === 'true'; }
 
 function sendCors(res) {
   res.set('Access-Control-Allow-Origin', '*');
@@ -44,7 +63,7 @@ async function verifyFirebaseUser(req) {
   const decoded = await admin.auth().verifyIdToken(match[1]);
   const snap = await admin.firestore().collection('accounts').doc(decoded.uid).get();
   const account = snap.exists ? snap.data() : {};
-  const role = account.role || (decoded.email === process.env.SYSTEM_OWNER_EMAIL ? '管理員' : '訪客');
+  const role = account.role || (decoded.email === secretValue(SYSTEM_OWNER_EMAIL_SECRET) ? '管理員' : '訪客');
   if (!ALLOWED_UPLOAD_ROLES.has(role)) {
     throw Object.assign(new Error('此角色目前沒有上傳大型檔案權限'), { status: 403 });
   }
@@ -53,9 +72,9 @@ async function verifyFirebaseUser(req) {
 
 function getDriveAuth() {
   const scopes = ['https://www.googleapis.com/auth/drive'];
-  const clientEmail = process.env.SYSTEM_DRIVE_CLIENT_EMAIL;
-  const privateKey = (process.env.SYSTEM_DRIVE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
-  const impersonate = process.env.SYSTEM_DRIVE_IMPERSONATE_EMAIL;
+  const clientEmail = secretValue(SYSTEM_DRIVE_CLIENT_EMAIL_SECRET);
+  const privateKey = secretValue(SYSTEM_DRIVE_PRIVATE_KEY_SECRET).replace(/\\n/g, '\n');
+  const impersonate = secretValue(SYSTEM_DRIVE_IMPERSONATE_EMAIL_SECRET);
   if (clientEmail && privateKey) {
     return new google.auth.JWT({
       email: clientEmail,
@@ -65,9 +84,9 @@ function getDriveAuth() {
     });
   }
 
-  const clientId = process.env.SYSTEM_DRIVE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.SYSTEM_DRIVE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.SYSTEM_DRIVE_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN;
+  const clientId = secretValue(SYSTEM_DRIVE_CLIENT_ID_SECRET);
+  const clientSecret = secretValue(SYSTEM_DRIVE_CLIENT_SECRET_SECRET);
+  const refreshToken = secretValue(SYSTEM_DRIVE_REFRESH_TOKEN_SECRET);
   if (clientId && clientSecret && refreshToken) {
     const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
     oauth2.setCredentials({ refresh_token: refreshToken });
@@ -120,8 +139,9 @@ async function createResumableSession(auth, drive, payload, actor) {
   const fileName = cleanSegment(payload.fileName || `upload-${Date.now()}`);
   const mimeType = String(payload.fileType || payload.mimeType || 'application/octet-stream');
   const fileSize = Number(payload.fileSize || 0);
-  const folder = await ensureDriveFolderPath(drive, [DRIVE_WORKSPACE_ROOT, feature].concat(parts));
-  const driveWorkspacePath = [DRIVE_WORKSPACE_ROOT, feature].concat(parts).map(cleanSegment).join('/');
+  const workspaceRoot = getWorkspaceRoot();
+  const folder = await ensureDriveFolderPath(drive, [workspaceRoot, feature].concat(parts));
+  const driveWorkspacePath = [workspaceRoot, feature].concat(parts).map(cleanSegment).join('/');
   const metadata = {
     name: fileName,
     parents: [folder.id],
@@ -158,14 +178,14 @@ async function createResumableSession(auth, drive, payload, actor) {
     uploadedByUid: actor.uid,
     uploadedByName: actor.name,
     uploadedByEmail: actor.email,
-    publicRead: DRIVE_PUBLIC_READ
+    publicRead: getDrivePublicRead()
   };
 }
 
 async function finalizeDriveFile(drive, payload, actor) {
   const driveFileId = String(payload.driveFileId || payload.id || '').trim();
   if (!driveFileId) throw Object.assign(new Error('Missing driveFileId'), { status: 400 });
-  if (DRIVE_PUBLIC_READ) {
+  if (getDrivePublicRead()) {
     try {
       await drive.permissions.create({ fileId: driveFileId, requestBody: { role: 'reader', type: 'anyone' }, supportsAllDrives: true });
     } catch (err) {
@@ -191,11 +211,11 @@ async function finalizeDriveFile(drive, payload, actor) {
     uploadedByUid: actor.uid,
     uploadedByName: actor.name,
     uploadedByEmail: actor.email,
-    publicRead: DRIVE_PUBLIC_READ
+    publicRead: getDrivePublicRead()
   };
 }
 
-exports.driveUpload = onRequest({ region: 'asia-east1', timeoutSeconds: 540, memory: '1GiB', cors: true }, async (req, res) => {
+exports.driveUpload = onRequest({ region: 'asia-east1', timeoutSeconds: 540, memory: '1GiB', cors: true, secrets: DRIVE_SECRETS }, async (req, res) => {
   sendCors(res);
   if (req.method === 'OPTIONS') {
     res.status(204).send('');

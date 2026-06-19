@@ -93,11 +93,13 @@ API 動作：
 
 ## 後端憑證設定
 
+正式部署使用 Firebase Secret Manager 注入 `functions/index.js` 的 `defineSecret()`；本機範例值可參考 `functions/.env.example`，但不要提交真實密鑰。
+
 支援兩種模式：
 
 ### 模式 A：OAuth refresh token（適合個人 Gmail）
 
-環境變數：
+Secret 名稱：
 
 ```text
 SYSTEM_DRIVE_CLIENT_ID
@@ -112,7 +114,7 @@ DRIVE_PUBLIC_READ=false 或 true
 
 ### 模式 B：Service Account（適合 Shared Drive / Workspace）
 
-環境變數：
+Secret 名稱：
 
 ```text
 SYSTEM_DRIVE_CLIENT_EMAIL
