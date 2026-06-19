@@ -193,9 +193,29 @@ async function createResumableSession(auth, drive, payload, actor) {
   };
 }
 
+async function findRecentlyUploadedFile(drive, payload, actor) {
+  const folderId = String(payload.driveFolderId || '').trim();
+  const fileName = String(payload.fileName || '').replace(/'/g, "\'");
+  if (!folderId || !fileName) return '';
+  const q = `name='${fileName}' and '${folderId}' in parents and trashed=false`;
+  const result = await drive.files.list({
+    q,
+    spaces: 'drive',
+    fields: 'files(id,name,createdTime,appProperties)',
+    orderBy: 'createdTime desc',
+    pageSize: 10,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true
+  });
+  const files = result.data.files || [];
+  const exact = files.find(file => file.appProperties && file.appProperties.uploadedByUid === actor.uid) || files[0];
+  return exact ? exact.id : '';
+}
+
 async function finalizeDriveFile(drive, payload, actor) {
-  const driveFileId = String(payload.driveFileId || payload.id || '').trim();
-  if (!driveFileId) throw Object.assign(new Error('Missing driveFileId'), { status: 400 });
+  let driveFileId = String(payload.driveFileId || payload.id || '').trim();
+  if (!driveFileId) driveFileId = await findRecentlyUploadedFile(drive, payload, actor);
+  if (!driveFileId) throw Object.assign(new Error('Google Drive 已建立上傳工作階段，但無法確認檔案 ID；請重新整理檔案列表或再試一次'), { status: 409 });
   if (getDrivePublicRead()) {
     try {
       await drive.permissions.create({ fileId: driveFileId, requestBody: { role: 'reader', type: 'anyone' }, supportsAllDrives: true });

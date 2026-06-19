@@ -397,27 +397,37 @@ async function uploadBlobToGoogleDrive(blob, fileName, feature, parts = [], mime
         parts
     });
     if (typeof onProgress === 'function') onProgress(5);
-    const uploadResponse = await fetch(session.uploadUrl, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': safeMimeType,
-            'Content-Length': String(blob.size || 0)
-        },
-        body: blob
-    });
-    if (!uploadResponse.ok) {
-        const text = await uploadResponse.text().catch(() => '');
-        throw new Error(`Google Drive 大型檔案上傳失敗 (${uploadResponse.status}) ${text}`);
+    let uploadedFile = {};
+    let uploadReadError = null;
+    try {
+        const uploadResponse = await fetch(session.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': safeMimeType },
+            body: blob
+        });
+        if (!uploadResponse.ok) {
+            const text = await uploadResponse.text().catch(() => '');
+            throw new Error(`Google Drive 大型檔案上傳失敗 (${uploadResponse.status}) ${text}`);
+        }
+        uploadedFile = await uploadResponse.json().catch(() => ({}));
+    } catch (error) {
+        // Google Drive resumable upload can create the file while the browser cannot
+        // read the final response because of CORS/response-body restrictions. Do not
+        // immediately fail; ask the backend to locate the just-uploaded file in the
+        // known folder by file name and uploaded-by metadata.
+        uploadReadError = error;
+        console.warn('[Drive] Upload response could not be read; attempting backend finalize lookup:', error);
     }
     if (typeof onProgress === 'function') onProgress(90);
-    const uploadedFile = await uploadResponse.json();
     const finalized = await callSystemDriveUploadApi({
         action: 'finalize',
-        driveFileId: uploadedFile.id,
+        driveFileId: uploadedFile.id || '',
         driveFolderId: session.driveFolderId,
         driveWorkspacePath: session.driveWorkspacePath,
+        fileName: session.fileName || safeFileName,
         fileType: safeMimeType,
-        fileSize: blob.size || 0
+        fileSize: blob.size || 0,
+        uploadReadWarning: uploadReadError ? String(uploadReadError.message || uploadReadError) : ''
     });
     if (typeof onProgress === 'function') onProgress(100);
     return finalized;
