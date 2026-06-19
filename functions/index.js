@@ -26,7 +26,13 @@ const DRIVE_SECRETS = [
 ];
 
 function secretValue(secret, fallback = '') {
-  try { return secret.value() || fallback; } catch (e) { return fallback; }
+  try {
+    const value = secret.value();
+    if (!value || value === '__unset__') return fallback;
+    return value;
+  } catch (e) {
+    return fallback;
+  }
 }
 function getWorkspaceRoot() { return secretValue(DRIVE_WORKSPACE_ROOT_SECRET, 'taipeimetrohouse'); }
 function getDrivePublicRead() { return String(secretValue(DRIVE_PUBLIC_READ_SECRET, 'false')).toLowerCase() === 'true'; }
@@ -71,6 +77,20 @@ async function verifyFirebaseUser(req) {
 }
 
 function getDriveAuth() {
+  // Personal Gmail / admin-authorized system Drive mode. Prefer this when present,
+  // because it does not require Workspace domain-wide delegation and writes to the
+  // Google Drive account that granted the refresh token.
+  const clientId = secretValue(SYSTEM_DRIVE_CLIENT_ID_SECRET);
+  const clientSecret = secretValue(SYSTEM_DRIVE_CLIENT_SECRET_SECRET);
+  const refreshToken = secretValue(SYSTEM_DRIVE_REFRESH_TOKEN_SECRET);
+  if (clientId && clientSecret && refreshToken) {
+    const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
+    oauth2.setCredentials({ refresh_token: refreshToken });
+    return oauth2;
+  }
+
+  // Service account mode. Only set SYSTEM_DRIVE_IMPERSONATE_EMAIL when Google
+  // Workspace domain-wide delegation is configured; consumer Gmail cannot use it.
   const scopes = ['https://www.googleapis.com/auth/drive'];
   const clientEmail = secretValue(SYSTEM_DRIVE_CLIENT_EMAIL_SECRET);
   const privateKey = secretValue(SYSTEM_DRIVE_PRIVATE_KEY_SECRET).replace(/\\n/g, '\n');
@@ -84,16 +104,7 @@ function getDriveAuth() {
     });
   }
 
-  const clientId = secretValue(SYSTEM_DRIVE_CLIENT_ID_SECRET);
-  const clientSecret = secretValue(SYSTEM_DRIVE_CLIENT_SECRET_SECRET);
-  const refreshToken = secretValue(SYSTEM_DRIVE_REFRESH_TOKEN_SECRET);
-  if (clientId && clientSecret && refreshToken) {
-    const oauth2 = new google.auth.OAuth2(clientId, clientSecret);
-    oauth2.setCredentials({ refresh_token: refreshToken });
-    return oauth2;
-  }
-
-  throw Object.assign(new Error('系統 Google Drive 憑證尚未設定；請在 Firebase Functions 設定 SYSTEM_DRIVE_* 環境變數'), { status: 503 });
+  throw Object.assign(new Error('系統 Google Drive 憑證尚未設定；請在 Firebase Functions 設定 SYSTEM_DRIVE_* secrets'), { status: 503 });
 }
 
 function getDriveClient(auth) {
