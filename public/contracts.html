@@ -67,8 +67,8 @@
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
       <div class="overflow-x-auto">
         <table class="w-full">
-          <thead><tr class="bg-gray-50 text-left"><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">房客</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">客房</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">租期</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">租金</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">押金</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
-          <tbody id="contracts-table-body" class="divide-y divide-gray-100"><tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">載入中...</td></tr></tbody>
+          <thead><tr class="bg-gray-50 text-left"><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">房客</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">客房</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">租期</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">租金</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">押金</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">檔案</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">狀態</th><th class="px-4 py-3 text-xs font-medium text-gray-500 uppercase">操作</th></tr></thead>
+          <tbody id="contracts-table-body" class="divide-y divide-gray-100"><tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">載入中...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -102,6 +102,11 @@
       </div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">網路／第四台費用 (NT$)</label><input type="number" id="contract-internet-tv-fee" min="0" step="1" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">室內狀況照片（張數不定，存到 Google Drive）</label><input type="file" id="contract-interior-photos" multiple accept="image/*" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><div id="contract-existing-photos" class="mt-2 flex flex-wrap gap-2"></div></div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">暫時簽約 PDF</label><input type="file" id="contract-signing-pdf" accept="application/pdf,.pdf" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><p class="mt-1 text-[11px] text-gray-400">簽約流程中先保存草稿/待簽 PDF。</p></div>
+        <div><label class="block text-sm font-medium text-gray-700 mb-1">正式簽約檔案 PDF</label><input type="file" id="contract-signed-pdf" accept="application/pdf,.pdf" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"><p class="mt-1 text-[11px] text-gray-400">上傳後會成為目前合約主檔，覆蓋暫時檔案顯示。</p></div>
+      </div>
+      <div id="contract-existing-files" class="hidden rounded-lg border border-blue-100 bg-blue-50/60 p-3 text-xs text-blue-700 space-y-1"></div>
       <div><label class="block text-sm font-medium text-gray-700 mb-1">備註</label><textarea id="contract-notes" rows="2" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></textarea></div>
       <div class="flex gap-3 pt-2"><button type="button" onclick="closeContractModal()" class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm">取消</button><button type="submit" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">儲存</button></div>
     </form>
@@ -129,7 +134,37 @@ async function loadContracts() {
         renderContracts();
     } catch (e) { console.error(e); showToast('載入合約失敗', 'error'); }
 }
+function h(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
 function contractRoomLabel(c) { return [c.projectName, c.roomNumber || c.room].filter(Boolean).join(' / ') || '—'; }
+function getContractFileLink(file, label) {
+    if (!file) return '';
+    const url = file.webViewLink || file.webContentLink || file.url || '';
+    if (!url) return '';
+    return `<a href="${h(url)}" target="_blank" class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-blue-50 text-primary hover:bg-blue-100"><i class="fas fa-file-pdf"></i>${h(label || file.driveFileName || file.fileName || 'PDF')}</a>`;
+}
+function renderContractFileLinks(contract) {
+    const active = contract.signedContractFile || contract.contractFile || contract.signingPdfFile || null;
+    const links = [];
+    if (contract.signedContractFile) links.push(getContractFileLink(contract.signedContractFile, '正式檔案'));
+    if (!contract.signedContractFile && contract.signingPdfFile) links.push(getContractFileLink(contract.signingPdfFile, '暫時 PDF'));
+    if (!links.length && active) links.push(getContractFileLink(active, active.fileStage === 'signed' ? '正式檔案' : '暫時 PDF'));
+    return links.filter(Boolean).join(' ');
+}
+function renderExistingContractFiles(contract) {
+    const box = document.getElementById('contract-existing-files');
+    if (!box) return;
+    const lines = [
+        getContractFileLink(contract.signingPdfFile, '目前暫時簽約 PDF'),
+        getContractFileLink(contract.signedContractFile, '目前正式簽約檔案')
+    ].filter(Boolean);
+    if (!lines.length) {
+        box.classList.add('hidden');
+        box.innerHTML = '';
+        return;
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = '<div class="font-medium text-blue-800 mb-1">已保存合約檔案</div>' + lines.map(line => `<div>${line}</div>`).join('');
+}
 function populateContractRoomOptions(selectedRoomId = '') {
     const projectId = document.getElementById('contract-project')?.value || '';
     const roomSel = document.getElementById('contract-room');
@@ -139,7 +174,7 @@ function populateContractRoomOptions(selectedRoomId = '') {
 }
 function renderContracts() {
     const tbody = document.getElementById('contracts-table-body');
-    if (contractsData.length === 0) { tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">尚無合約，請先新增房客與客房後建立合約</td></tr>'; document.getElementById('expiring-contracts').innerHTML = '無即將到期的合約'; return; }
+    if (contractsData.length === 0) { tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-400">尚無合約，請先新增房客與客房後建立合約</td></tr>'; document.getElementById('expiring-contracts').innerHTML = '無即將到期的合約'; return; }
     tbody.innerHTML = contractsData.map(c => {
         const statusColor = c.status === '進行中' ? 'bg-secondary/10 text-secondary' : c.status === '即將到期' ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500';
         return `<tr class="hover:bg-gray-50">
@@ -148,6 +183,7 @@ function renderContracts() {
             <td class="px-4 py-3 text-sm text-gray-600">${c.start || '—'} ~ ${c.end || '—'}</td>
             <td class="px-4 py-3 text-sm font-medium text-gray-900">${formatCurrency(c.rent)}</td>
             <td class="px-4 py-3 text-sm text-gray-600">${formatCurrency(c.deposit)}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${renderContractFileLinks(c) || '<span class="text-gray-400">—</span>'}</td>
             <td class="px-4 py-3"><span class="text-xs ${statusColor} px-2 py-1 rounded-full">${c.status || '進行中'}</span></td>
             <td class="px-4 py-3"><button onclick="editContract('${c.id}')" class="text-sm text-primary hover:underline mr-2">編輯</button><button onclick="renewContract('${c.id}')" class="text-sm text-secondary hover:underline mr-2">續約</button></td>
         </tr>`;
@@ -167,6 +203,8 @@ function openContractModal() {
     pSel.innerHTML = '<option value="">選擇建案</option>' + projectsData.map(p => `<option value="${p.id}">${p.name || p.address || '未命名建案'}</option>`).join('');
     populateContractRoomOptions();
     document.getElementById('contract-existing-photos').innerHTML = '';
+    document.getElementById('contract-existing-files').classList.add('hidden');
+    document.getElementById('contract-existing-files').innerHTML = '';
 }
 function closeContractModal() { document.getElementById('contract-modal').classList.add('hidden'); }
 function editContract(id) {
@@ -191,6 +229,7 @@ function editContract(id) {
     document.getElementById('contract-notes').value = c.notes || '';
     const photos = c.interiorConditionPhotos || [];
     document.getElementById('contract-existing-photos').innerHTML = photos.map(photo => `<a href="${photo.webViewLink || photo.url}" target="_blank" class="text-xs px-2 py-1 bg-blue-50 text-primary rounded"><i class="fas fa-image mr-1"></i>${photo.driveFileName || '室內照片'}</a>`).join('');
+    renderExistingContractFiles(c);
 }
 async function renewContract(id) {
     const c = contractsData.find(x => x.id === id); if (!c) return;
@@ -217,12 +256,29 @@ document.getElementById('contract-form').addEventListener('submit', async (e) =>
     if (!selectedTenant || !selectedRoom) { showToast('請選擇房客、建案與房號', 'error'); return; }
     const existingContract = contractsData.find(x => x.id === document.getElementById('contract-id').value);
     const interiorConditionPhotos = existingContract?.interiorConditionPhotos ? [...existingContract.interiorConditionPhotos] : [];
+    let signingPdfFile = existingContract?.signingPdfFile || null;
+    let signedContractFile = existingContract?.signedContractFile || null;
+    let contractFile = existingContract?.contractFile || signedContractFile || signingPdfFile || null;
     const photoInput = document.getElementById('contract-interior-photos');
     if (photoInput?.files?.length) {
         for (const file of Array.from(photoInput.files)) {
             const uploaded = await uploadFileToProjectDrive(file, '合約管理', [selectedRoom.projectName || selectedRoom.projectId, selectedRoom.number || selectedRoom.id, '室內狀況照片']);
             interiorConditionPhotos.push({ ...uploaded, fileName: file.name, fileType: file.type, fileSize: file.size, uploadedAt: Date.now() });
         }
+    }
+    const signingInput = document.getElementById('contract-signing-pdf');
+    if (signingInput?.files?.[0]) {
+        const file = signingInput.files[0];
+        const uploaded = await uploadFileToProjectDrive(file, '合約管理', [selectedRoom.projectName || selectedRoom.projectId, selectedRoom.number || selectedRoom.id, '簽約PDF', '暫時檔案']);
+        signingPdfFile = { ...uploaded, fileName: file.name, fileType: file.type, fileSize: file.size, fileStage: 'temporary', uploadedAt: Date.now() };
+        if (!signedContractFile) contractFile = signingPdfFile;
+    }
+    const signedInput = document.getElementById('contract-signed-pdf');
+    if (signedInput?.files?.[0]) {
+        const file = signedInput.files[0];
+        const uploaded = await uploadFileToProjectDrive(file, '合約管理', [selectedRoom.projectName || selectedRoom.projectId, selectedRoom.number || selectedRoom.id, '簽約PDF', '正式檔案']);
+        signedContractFile = { ...uploaded, fileName: file.name, fileType: file.type, fileSize: file.size, fileStage: 'signed', uploadedAt: Date.now() };
+        contractFile = signedContractFile;
     }
     const data = {
         tenantId: selectedTenant.id,
@@ -244,6 +300,10 @@ document.getElementById('contract-form').addEventListener('submit', async (e) =>
         gasBaseFee: parseInt(document.getElementById('contract-gas-base').value, 10) || 0,
         internetTvFee: parseInt(document.getElementById('contract-internet-tv-fee').value, 10) || 0,
         interiorConditionPhotos,
+        signingPdfFile,
+        signedContractFile,
+        contractFile,
+        contractFileStage: signedContractFile ? 'signed' : (signingPdfFile ? 'temporary' : ''),
         driveWorkspacePath: getDriveWorkspacePath('合約管理', [selectedRoom.projectName || selectedRoom.projectId, selectedRoom.number || selectedRoom.id]),
         notes: document.getElementById('contract-notes').value,
         status: '進行中',

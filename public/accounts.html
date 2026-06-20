@@ -253,22 +253,56 @@ function selectAccount(uid) {
   renderAccounts();
 }
 
+function buildTestMessage(account) {
+  return `大都會物業房務管理系統測試訊息：${account.displayName || account.email || '使用者'} 您好，這是發訊方式確認。`;
+}
+function openMessageProtocol(account, target, message) {
+  const mode = account.messageMode || '電話簡訊';
+  if (mode === 'Line') {
+    // LINE 個人 ID 無法由瀏覽器直接指定收件人；先開啟 LINE 分享/傳送視窗，讓使用者選擇或貼給該 Line ID。
+    window.open(`https://line.me/R/share?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
+    return '已開啟 LINE 傳送視窗';
+  }
+  const cleanPhone = String(target || '').replace(/[^+\d]/g, '');
+  if (!cleanPhone) throw new Error('請先填寫聯絡電話，才能測試電話簡訊');
+  window.location.href = `sms:${cleanPhone}?&body=${encodeURIComponent(message)}`;
+  return '已開啟簡訊 App';
+}
+async function logMessageTest(account, target, message, result) {
+  const uid = getCurrentUserUid();
+  if (!uid) return;
+  const payload = {
+    accountUid: account.uid || account.id || '',
+    accountName: account.displayName || '',
+    mode: account.messageMode || '電話簡訊',
+    target: target || '',
+    message,
+    result,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    createdBy: uid
+  };
+  try {
+    await db.collection('accounts').doc(account.uid || account.id).collection('messageTests').add(payload);
+  } catch (e) {
+    console.warn('[Accounts] top-level messageTests log failed, fallback to user log:', e);
+    await db.collection('users').doc(uid).collection('messageTests').add(payload);
+  }
+}
+
 async function sendTestMessageToSelectedAccount() {
   const account = accountsData.find(a => a.uid === selectedUid) || accountsData[0];
   if (!account) return;
-  const target = account.messageMode === 'Line' ? (account.lineId || account.email || account.displayName) : (account.phone || account.email || account.displayName);
+  const mode = account.messageMode || '電話簡訊';
+  const target = mode === 'Line' ? (account.lineId || account.displayName || account.email) : account.phone;
   try {
-    await db.collection('accounts').doc(account.uid).collection('messageTests').add({
-      mode: account.messageMode || '電話簡訊',
-      target: target || '',
-      message: '大都會物業房務管理系統測試訊息',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdBy: getCurrentUserUid()
-    });
-    showToast(`已建立測試訊息：${target || '未設定收件資訊'}`);
+    if (mode === 'Line' && !account.lineId) showToast('尚未填寫 Line ID，將先開啟 LINE 分享測試', 'error');
+    const message = buildTestMessage(account);
+    const result = openMessageProtocol(account, target, message);
+    await logMessageTest(account, target, message, result);
+    showToast(`${result}：${target || '未指定收件人'}`);
   } catch (e) {
     console.error(e);
-    showToast('測試訊息建立失敗', 'error');
+    showToast(e.message || '測試訊息發送失敗', 'error');
   }
 }
 
