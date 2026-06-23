@@ -212,6 +212,19 @@ async function deleteUserCollection(uid, collectionName) {
   return await deleteCollectionRef(collectionRef);
 }
 
+async function resolveClearTargetUids(currentUid) {
+  try {
+    if (typeof getReadableUserIds === 'function') {
+      const ids = await getReadableUserIds({ force: true });
+      const uniqueIds = Array.from(new Set((ids || []).filter(Boolean)));
+      if (uniqueIds.length) return uniqueIds;
+    }
+  } catch (e) {
+    console.warn('解析可清除帳號範圍失敗，改清除目前使用者資料:', e);
+  }
+  return [currentUid];
+}
+
 function removeLocalAppStorage() {
   const keepKeys = new Set(['tmh2-session']);
   try {
@@ -325,12 +338,15 @@ async function clearAllData() {
   let deletedCount = 0;
 
   try {
-    for (const col of USER_DATA_COLLECTIONS) {
-      try {
-        deletedCount += await deleteUserCollection(uid, col);
-      } catch (err) {
-        console.warn(`刪除 ${col} 時發生錯誤:`, err);
-        failures.push(col);
+    const targetUids = await resolveClearTargetUids(uid);
+    for (const targetUid of targetUids) {
+      for (const col of USER_DATA_COLLECTIONS) {
+        try {
+          deletedCount += await deleteUserCollection(targetUid, col);
+        } catch (err) {
+          console.warn(`刪除 ${targetUid}/${col} 時發生錯誤:`, err);
+          failures.push(`${targetUid}/${col}`);
+        }
       }
     }
 

@@ -205,7 +205,7 @@
 
 ### 設定頁與資料管理
 - 設定頁只保留資料管理與關於資訊；移除「使用者資訊」「通知設定」「預設費用設定」卡片，帳號/個人資料統一由右上角選單進入「帳號管理」維護。
-- 「清除所有資料」需刪除目前使用者 `/users/{uid}` 底下的業務集合與設定集合；建案刪除前需先清除 `projects/{projectId}/rooms` 子集合，避免只刪建案文件而殘留客房資料。
+- 「清除所有資料」需刪除目前帳號可讀取範圍內（管理員為所有已啟用帳號；非管理員為自己）`/users/{uid}` 底下的業務集合與設定集合；建案刪除前需先清除 `projects/{projectId}/rooms` 子集合，避免只刪建案文件而殘留客房資料。
 - 清除完成後需同步清本機快取：app local/session storage、Cache Storage、Firestore persistence 與 Firebase/Firestore 相關 IndexedDB；重新導向時加上 cache-busting query，避免畫面讀到舊快取。
 
 ### 證據保存
