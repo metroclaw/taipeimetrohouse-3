@@ -72,6 +72,7 @@ let projectData = null;
 let roomsData = [];
 let selectedRoomId = '';
 let currentRoomImages = [];
+let resolvedProjectOwnerUid = '';
 function h(value){return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function getParam(name){return new URLSearchParams(window.location.search).get(name) || '';}
 function getMapSearchUrl(address){return address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` : '#';}
@@ -97,6 +98,7 @@ async function resizeImageFile(file, maxWidth, maxHeight, quality = 0.82){
   return blob || file;
 }
 async function uploadImageBlob(storagePath, blob){const ref=firebase.storage().ref(storagePath); await ref.put(blob,{contentType:'image/jpeg'}); return await ref.getDownloadURL();}
+function getRoomInfoOwnerUid(){return resolvedProjectOwnerUid || (projectData && projectData.__ownerUid) || getProjectOwnerUid(getParam('projectId')) || getCurrentUserUid();}
 function getSelectedRoom(){return roomsData.find(r => r.id === selectedRoomId) || getFilteredRooms()[0] || roomsData[0] || null;}
 function isRoomRentable(room){return room.status === '可出租' || room.status === '空置' || (!room.tenant && room.status !== '已出租');}
 function getFilteredRooms(){const filter=document.getElementById('room-status-filter')?.value || ''; if(!filter) return roomsData; return roomsData.filter(room => filter === '可出租' ? isRoomRentable(room) : room.status === '已出租' || !!room.tenant);}
@@ -189,7 +191,7 @@ function buildRoomTemplateData(sourceRoom, formData) {
   return data;
 }
 async function applySelectedRoomInfoToOtherRooms(){
-  const uid = getCurrentUserUid();
+  const uid = getRoomInfoOwnerUid();
   const projectId = getParam('projectId');
   const room = getSelectedRoom();
   if (!uid || !projectId || !room) return;
@@ -215,13 +217,13 @@ async function applySelectedRoomInfoToOtherRooms(){
 }
 async function saveSelectedRoomInfo(event){
   event.preventDefault();
-  const uid = getCurrentUserUid();
+  const uid = getRoomInfoOwnerUid();
   const projectId = getParam('projectId');
   const room = getSelectedRoom();
   if (!uid || !projectId || !room) return;
   try {
     showLoading();
-const data = collectRoomDetailFormData();
+    const data = collectRoomDetailFormData();
     const interiorPhotos = await uploadRoomInteriorPhotos(uid, projectId, room.id);
     if (interiorPhotos) {
       data.interiorPhotos = interiorPhotos;
@@ -239,25 +241,66 @@ const data = collectRoomDetailFormData();
     showToast('儲存失敗，請確認照片上傳權限', 'error');
   }
 }
+function roomSortValue(room) {
+  const raw = String(room.number || room.roomNumber || room.name || '').trim();
+  const match = raw.match(/\d+/);
+  return match ? parseInt(match[0], 10) : Number.MAX_SAFE_INTEGER;
+}
+async function ensureProjectRoomsByDeclaredCount(uid, projectId, project) {
+  const targetCount = Math.max(0, parseInt(project?.rentableRooms ?? project?.totalRooms ?? 0, 10) || 0);
+  if (!uid || !projectId || !targetCount) return 0;
+  const roomsRef = db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms');
+  const snapshot = await roomsRef.get();
+  const existingRooms = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => roomSortValue(a) - roomSortValue(b));
+  const batch = db.batch();
+  let creates = 0;
+  for (let i = existingRooms.length + 1; i <= targetCount; i++) {
+    const padded = String(i).padStart(2, '0');
+    batch.set(roomsRef.doc(`room-${padded}`), {
+      number: `${i}`,
+      type: '',
+      area: 0,
+      floor: 0,
+      rent: 0,
+      acUnits: 1,
+      amenities: [],
+      internetTv: '',
+      otherInfo: '',
+      status: '空置',
+      tenant: '',
+      autoCreated: true,
+      sortOrder: i,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    creates++;
+  }
+  if (creates) {
+    await batch.commit();
+    await db.collection('users').doc(uid).collection('projects').doc(projectId).set({ totalRooms: existingRooms.length + creates, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  }
+  return creates;
+}
 async function loadRoomInfoPage(){
   const uid = getCurrentUserUid();
   const projectId = getParam('projectId');
   if (!uid || !projectId) { document.getElementById('room-detail-container').innerHTML = '<div class="bg-white rounded-xl border border-gray-100 p-8 text-center text-red-400">缺少建案資訊</div>'; return; }
   try {
-    const projectSnap = await db.collection('users').doc(uid).collection('projects').doc(projectId).get();
-    if (!projectSnap.exists) throw new Error('Project not found');
-    projectData = { id: projectSnap.id, ...projectSnap.data() };
+    const projects = await getProjects();
+    projectData = projects.find(project => project.id === projectId) || null;
+    if (!projectData) {
+      const projectSnap = await db.collection('users').doc(uid).collection('projects').doc(projectId).get();
+      if (!projectSnap.exists) throw new Error('Project not found in readable owner scopes');
+      projectData = { id: projectSnap.id, __ownerUid: uid, ...projectSnap.data() };
+    }
+    resolvedProjectOwnerUid = projectData.__ownerUid || getProjectOwnerUid(projectId) || uid;
     document.getElementById('project-name').textContent = projectData.name || '未命名建案';
     document.getElementById('project-address').textContent = projectData.address || '—';
     document.getElementById('page-subtitle').textContent = `${projectData.name || '建案'} 的客房資訊，可選房號後直接修改欄位`;
     const mapLink = document.getElementById('project-map-link');
     if (projectData.address) { mapLink.href = projectData.mapUrl || getMapSearchUrl(projectData.address); mapLink.classList.remove('hidden'); }
-    const roomsSnap = await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').get();
-    roomsData = roomsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => {
-      const av = parseInt(String(a.number || a.roomNumber || a.name || '').match(/\d+/)?.[0] || '999999', 10);
-      const bv = parseInt(String(b.number || b.roomNumber || b.name || '').match(/\d+/)?.[0] || '999999', 10);
-      return av - bv;
-    });
+    await ensureProjectRoomsByDeclaredCount(resolvedProjectOwnerUid, projectId, projectData);
+    roomsData = (await getRooms(projectId)).sort((a,b) => roomSortValue(a) - roomSortValue(b));
     selectedRoomId = getParam('roomId') || (roomsData[0] && roomsData[0].id) || '';
     renderRoomDetail();
   } catch(e) {
