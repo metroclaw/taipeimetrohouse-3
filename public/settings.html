@@ -56,57 +56,7 @@
   <main class="flex-1 p-4 lg:p-6">
     <h1 class="text-2xl font-bold text-gray-900 mb-6">設定</h1>
     <div class="max-w-2xl space-y-6">
-      <!-- 使用者資訊 -->
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-        <h2 class="font-semibold text-gray-900 mb-4">👤 使用者資訊</h2>
-        <div class="flex items-center gap-4">
-          <div id="settings-avatar-container" class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden">
-            <i id="settings-avatar-icon" class="fas fa-user text-primary text-2xl"></i>
-            <img id="settings-avatar-img" src="" alt="avatar" class="w-full h-full object-cover hidden">
-          </div>
-          <div>
-            <p class="font-medium text-gray-900" id="settings-user-name">載入中...</p>
-            <p class="text-sm text-gray-500" id="settings-user-email">...</p>
-          </div>
-        </div>
-      </div>
-      <!-- 通知設定 -->
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-        <h2 class="font-semibold text-gray-900 mb-4">🔔 通知設定</h2>
-        <div class="space-y-3">
-          <label class="flex items-center justify-between cursor-pointer">
-            <span class="text-sm text-gray-700">租金逾期提醒</span>
-            <input type="checkbox" id="notif-rentOverdue" class="w-5 h-5 text-primary rounded">
-          </label>
-          <label class="flex items-center justify-between cursor-pointer">
-            <span class="text-sm text-gray-700">合約到期提醒</span>
-            <input type="checkbox" id="notif-contractExpiry" class="w-5 h-5 text-primary rounded">
-          </label>
-          <label class="flex items-center justify-between cursor-pointer">
-            <span class="text-sm text-gray-700">修繕完成通知</span>
-            <input type="checkbox" id="notif-maintenanceComplete" class="w-5 h-5 text-primary rounded">
-          </label>
-          <label class="flex items-center justify-between cursor-pointer">
-            <span class="text-sm text-gray-700">清潔排程提醒</span>
-            <input type="checkbox" id="notif-cleaningSchedule" class="w-5 h-5 text-primary rounded">
-          </label>
-        </div>
-      </div>
-      <!-- 費用設定 -->
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-        <h2 class="font-semibold text-gray-900 mb-4">💰 預設費用設定</h2>
-        <div class="grid grid-cols-2 gap-4">
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">預設電費單價 (NT$/kWh)</label><input type="number" id="default-elecRate" value="5.5" step="0.1" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">預設水費單價 (NT$/度)</label><input type="number" id="default-waterRate" value="12" step="0.1" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">預設瓦斯單價 (NT$/度)</label><input type="number" id="default-gasRate" value="25" step="0.1" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">第四台費用 (NT$/月)</label><input type="number" id="default-tvFee" value="550" step="1" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">WiFi 費用 (NT$/月)</label><input type="number" id="default-wifiFee" value="600" step="1" min="0" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"></div>
-        </div>
-        <div class="mt-4 flex items-center gap-3">
-          <button id="btn-save-settings" onclick="saveSettings()" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">儲存設定</button>
-          <span id="save-status" class="text-sm hidden"></span>
-        </div>
-      </div>
+      <p class="text-sm text-gray-500 -mt-2 mb-2">此頁保留資料匯出、匯入與清除功能；帳號資料請由右上角選單進入「帳號管理」維護。</p>
       <!-- 資料管理 -->
       <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
         <h2 class="font-semibold text-gray-900 mb-4">📦 資料管理</h2>
@@ -134,132 +84,34 @@
 // Settings Page Logic
 // ============================================================
 
-const SETTINGS_DEFAULTS = {
-  notifications: {
-    rentOverdue: true,
-    contractExpiry: true,
-    maintenanceComplete: true,
-    cleaningSchedule: true
-  },
-  defaults: {
-    elecRate: 5.5,
-    waterRate: 12,
-    gasRate: 25,
-    tvFee: 550,
-    wifiFee: 600
-  }
+const USER_DATA_COLLECTIONS = [
+  'settings',
+  'projects',
+  'tenants',
+  'contracts',
+  'rentRecords',
+  'utilityBills',
+  'maintenanceTasks',
+  'evidenceFiles',
+  'cleaningSchedules',
+  'messageTests'
+];
+
+const COLLECTION_SUBCOLLECTIONS = {
+  projects: ['rooms']
 };
 
-// 載入設定
-async function loadSettings() {
-  const user = getCurrentUser();
-  if (!user) return;
-
-  // 顯示使用者資訊
-  const nameEl = document.getElementById('settings-user-name');
-  const emailEl = document.getElementById('settings-user-email');
-  const avatarIcon = document.getElementById('settings-avatar-icon');
-  const avatarImg = document.getElementById('settings-avatar-img');
-
-  nameEl.textContent = user.displayName || '使用者';
-  emailEl.textContent = user.email || '';
-
-  if (user.photoURL) {
-    avatarIcon.classList.add('hidden');
-    avatarImg.src = user.photoURL;
-    avatarImg.classList.remove('hidden');
-  }
-
-  // 從 Firestore 讀取設定
-  try {
-    const uid = getCurrentUserUid();
-    const docRef = db.collection('users').doc(uid).collection('settings').doc('preferences');
-    const docSnap = await docRef.get();
-
-    let settings;
-    if (docSnap.exists) {
-      settings = docSnap.data();
-    } else {
-      // 使用預設值
-      settings = SETTINGS_DEFAULTS;
-    }
-
-    // 填入通知設定
-    const notifs = settings.notifications || SETTINGS_DEFAULTS.notifications;
-    document.getElementById('notif-rentOverdue').checked = notifs.rentOverdue ?? true;
-    document.getElementById('notif-contractExpiry').checked = notifs.contractExpiry ?? true;
-    document.getElementById('notif-maintenanceComplete').checked = notifs.maintenanceComplete ?? true;
-    document.getElementById('notif-cleaningSchedule').checked = notifs.cleaningSchedule ?? true;
-
-    // 填入預設費用
-    const defaults = settings.defaults || SETTINGS_DEFAULTS.defaults;
-    document.getElementById('default-elecRate').value = defaults.elecRate ?? 5.5;
-    document.getElementById('default-waterRate').value = defaults.waterRate ?? 12;
-    document.getElementById('default-gasRate').value = defaults.gasRate ?? 25;
-    document.getElementById('default-tvFee').value = defaults.tvFee ?? 550;
-    document.getElementById('default-wifiFee').value = defaults.wifiFee ?? 600;
-
-  } catch (error) {
-    console.error('載入設定失敗:', error);
-    showToast('載入設定失敗: ' + error.message, 'error');
-  }
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// 儲存設定
-async function saveSettings() {
-  const uid = getCurrentUserUid();
-  if (!uid) {
-    showToast('使用者未登入', 'error');
-    return;
+function escapeCSVValue(val) {
+  if (val === null || val === undefined) return '';
+  const str = String(val);
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return '"' + str.replace(/"/g, '""') + '"';
   }
-
-  const btn = document.getElementById('btn-save-settings');
-  const status = document.getElementById('save-status');
-  const originalText = btn.textContent;
-
-  try {
-    btn.disabled = true;
-    btn.textContent = '儲存中...';
-    status.classList.add('hidden');
-
-    const data = {
-      notifications: {
-        rentOverdue: document.getElementById('notif-rentOverdue').checked,
-        contractExpiry: document.getElementById('notif-contractExpiry').checked,
-        maintenanceComplete: document.getElementById('notif-maintenanceComplete').checked,
-        cleaningSchedule: document.getElementById('notif-cleaningSchedule').checked
-      },
-      defaults: {
-        elecRate: parseFloat(document.getElementById('default-elecRate').value) || 0,
-        waterRate: parseFloat(document.getElementById('default-waterRate').value) || 0,
-        gasRate: parseFloat(document.getElementById('default-gasRate').value) || 0,
-        tvFee: parseFloat(document.getElementById('default-tvFee').value) || 0,
-        wifiFee: parseFloat(document.getElementById('default-wifiFee').value) || 0
-      },
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-
-    await db.collection('users').doc(uid).collection('settings').doc('preferences').set(data, { merge: true });
-
-    showToast('設定已儲存', 'success');
-
-    // 顯示狀態
-    status.textContent = '✓ 已儲存';
-    status.className = 'text-sm text-emerald-600';
-    status.classList.remove('hidden');
-    setTimeout(() => status.classList.add('hidden'), 3000);
-
-  } catch (error) {
-    console.error('儲存設定失敗:', error);
-    showToast('儲存失敗: ' + error.message, 'error');
-
-    status.textContent = '✗ 儲存失敗';
-    status.className = 'text-sm text-red-600';
-    status.classList.remove('hidden');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = originalText;
-  }
+  return str;
 }
 
 // 匯出資料為 CSV
@@ -272,16 +124,14 @@ async function exportData() {
 
   showLoading();
   try {
-    // 讀取 rentRecords
+    // 目前匯出租金紀錄，後續可擴充多集合備份。
     const rentRecords = await getRentRecords();
 
     if (rentRecords.length === 0) {
       showToast('沒有可匯出的資料', 'info');
-      hideLoading();
       return;
     }
 
-    // 取得所有欄位名稱（union of all keys）
     const allKeys = new Set();
     rentRecords.forEach(record => {
       Object.keys(record).forEach(key => {
@@ -289,30 +139,15 @@ async function exportData() {
       });
     });
 
-    // 固定欄位順序
     const preferredOrder = ['year', 'month', 'tenantName', 'roomNumber', 'rentAmount', 'elecFee', 'waterFee', 'gasFee', 'tvFee', 'wifiFee', 'totalAmount', 'paid', 'paidDate', 'note'];
     const columns = [];
     preferredOrder.forEach(k => { if (allKeys.has(k)) columns.push(k); });
     allKeys.forEach(k => { if (!columns.includes(k)) columns.push(k); });
 
-    // 產生 CSV
-    const escapeCSV = (val) => {
-      if (val === null || val === undefined) return '';
-      const str = String(val);
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return '"' + str.replace(/"/g, '""') + '"';
-      }
-      return str;
-    };
-
     const header = columns.join(',');
-    const rows = rentRecords.map(record =>
-      columns.map(col => escapeCSV(record[col])).join(',')
-    );
-
+    const rows = rentRecords.map(record => columns.map(col => escapeCSVValue(record[col])).join(','));
     const csvContent = '\uFEFF' + [header, ...rows].join('\n');
 
-    // 下載
     const today = new Date();
     const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     const filename = `rent-records-${dateStr}.csv`;
@@ -321,11 +156,12 @@ async function exportData() {
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = filename;
+    document.body.appendChild(link);
     link.click();
+    link.remove();
     URL.revokeObjectURL(link.href);
 
     showToast(`已匯出 ${rentRecords.length} 筆資料`, 'success');
-
   } catch (error) {
     console.error('匯出失敗:', error);
     showToast('匯出失敗: ' + error.message, 'error');
@@ -334,52 +170,148 @@ async function exportData() {
   }
 }
 
-// 批次刪除集合中的所有文件
-async function deleteCollection(collectionPath, batchSize = 500) {
-  const uid = getCurrentUserUid();
-  if (!uid) throw new Error('使用者未登入');
+async function deleteQueryBatch(query, batchSize = 450) {
+  const snapshot = await query.get();
+  if (snapshot.empty) return 0;
 
-  const collectionRef = db.collection('users').doc(uid).collection(collectionPath);
-  let query = collectionRef.limit(batchSize);
+  const batch = db.batch();
+  snapshot.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
 
-  return new Promise((resolve, reject) => {
-    deleteBatch(query, resolve, reject, batchSize);
+  if (snapshot.size >= batchSize) {
+    await delay(0);
+    return snapshot.size + await deleteQueryBatch(query, batchSize);
+  }
+  return snapshot.size;
+}
+
+async function deleteCollectionRef(collectionRef, batchSize = 450) {
+  return await deleteQueryBatch(collectionRef.limit(batchSize), batchSize);
+}
+
+async function deleteProjectRooms(uid, projectDoc) {
+  const roomsRef = db.collection('users').doc(uid).collection('projects').doc(projectDoc.id).collection('rooms');
+  return await deleteCollectionRef(roomsRef);
+}
+
+async function deleteUserCollection(uid, collectionName) {
+  const collectionRef = db.collection('users').doc(uid).collection(collectionName);
+  const subcollections = COLLECTION_SUBCOLLECTIONS[collectionName] || [];
+
+  if (subcollections.length) {
+    const docsSnapshot = await collectionRef.get();
+    for (const docSnap of docsSnapshot.docs) {
+      for (const sub of subcollections) {
+        if (collectionName === 'projects' && sub === 'rooms') {
+          await deleteProjectRooms(uid, docSnap);
+        }
+      }
+    }
+  }
+
+  return await deleteCollectionRef(collectionRef);
+}
+
+function removeLocalAppStorage() {
+  const keepKeys = new Set(['tmh2-session']);
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (!key || keepKeys.has(key)) continue;
+      // Firebase Auth session is managed by IndexedDB; keep explicit app login marker so user stays on the page until reload.
+      if (key.startsWith('firebase:authUser:')) continue;
+      localStorage.removeItem(key);
+    }
+  } catch (e) {
+    console.warn('清除 localStorage 快取失敗:', e);
+  }
+
+  try {
+    sessionStorage.clear();
+  } catch (e) {
+    console.warn('清除 sessionStorage 快取失敗:', e);
+  }
+}
+
+async function clearBrowserCaches() {
+  if ('caches' in window) {
+    try {
+      const cacheNames = await caches.keys();
+      await Promise.all(cacheNames.map(name => caches.delete(name)));
+    } catch (e) {
+      console.warn('清除 Cache Storage 失敗:', e);
+    }
+  }
+}
+
+async function clearFirestoreLocalCache() {
+  try {
+    if (db.disableNetwork) await db.disableNetwork();
+  } catch (e) {
+    console.warn('停用 Firestore network 失敗:', e);
+  }
+
+  try {
+    if (db.terminate) await db.terminate();
+    if (firebase.firestore().clearPersistence) await firebase.firestore().clearPersistence();
+  } catch (e) {
+    // clearPersistence 在 Firestore 已啟動時可能回傳 failed-precondition；下方再盡力刪 IndexedDB。
+    console.warn('清除 Firestore persistence 失敗，改以 IndexedDB 清理:', e);
+  }
+}
+
+async function deleteIndexedDbByName(name) {
+  return await new Promise(resolve => {
+    try {
+      const req = indexedDB.deleteDatabase(name);
+      req.onsuccess = () => resolve(true);
+      req.onerror = () => resolve(false);
+      req.onblocked = () => resolve(false);
+    } catch (e) {
+      console.warn(`刪除 IndexedDB ${name} 失敗:`, e);
+      resolve(false);
+    }
   });
 }
 
-function deleteBatch(query, resolve, reject, batchSize) {
-  query.get()
-    .then((snapshot) => {
-      if (snapshot.size === 0) {
-        resolve();
-        return;
-      }
+async function clearIndexedDbCaches() {
+  if (!window.indexedDB) return;
 
-      const batch = db.batch();
-      snapshot.docs.forEach((doc) => {
-        batch.delete(doc.ref);
-      });
+  try {
+    if (indexedDB.databases) {
+      const dbs = await indexedDB.databases();
+      const targets = dbs
+        .map(item => item && item.name)
+        .filter(Boolean)
+        // 只清資料/Firestore 快取，不刪 Firebase Auth 的 firebaseLocalStorageDb，避免清資料等同強制登出。
+        .filter(name => /firestore|rental|tmh|taipeimetrohouse/i.test(name) && name !== 'firebaseLocalStorageDb');
+      await Promise.all(targets.map(deleteIndexedDbByName));
+      return;
+    }
+  } catch (e) {
+    console.warn('列出 IndexedDB 失敗:', e);
+  }
 
-      batch.commit().then(() => {
-        // 如果這批是滿的，可能還有更多
-        if (snapshot.size === batchSize) {
-          let newQuery = query;
-          deleteBatch(newQuery, resolve, reject, batchSize);
-        } else {
-          resolve();
-        }
-      }).catch(reject);
-    })
-    .catch(reject);
+  // Safari/舊瀏覽器沒有 indexedDB.databases() 時，嘗試 Firestore 常見命名；保留 Firebase Auth DB。
+  await Promise.all([
+    'firestore/[DEFAULT]/taipeimetrohouse-2/main',
+    'firestore/taipeimetrohouse-2/main'
+  ].map(deleteIndexedDbByName));
+}
+
+async function clearAllLocalCaches() {
+  removeLocalAppStorage();
+  await clearBrowserCaches();
+  await clearFirestoreLocalCache();
+  await clearIndexedDbCaches();
 }
 
 // 清除所有資料
 async function clearAllData() {
-  // 雙重確認
-  const confirm1 = confirm('⚠️ 確定要清除所有資料？\n\n此動作將刪除所有建案、房客、合約、租金紀錄等資料，且無法復原！');
+  const confirm1 = confirm('⚠️ 確定要清除所有資料？\n\n此動作將刪除所有建案、客房、房客、合約、租金紀錄、費用、修繕、清潔、證據與設定資料，且無法復原！');
   if (!confirm1) return;
 
-  const confirm2 = confirm('🔴 請再次確認\n\n您確定要永久刪除所有資料？\n\n此動作無法復原！');
+  const confirm2 = confirm('🔴 請再次確認\n\n您確定要永久刪除所有資料並清除本機快取？\n\n此動作無法復原！');
   if (!confirm2) return;
 
   const uid = getCurrentUserUid();
@@ -389,25 +321,30 @@ async function clearAllData() {
   }
 
   showLoading();
-  try {
-    const collections = ['projects', 'tenants', 'contracts', 'rentRecords', 'utilityBills', 'maintenanceTasks', 'evidenceFiles', 'cleaningSchedules'];
+  const failures = [];
+  let deletedCount = 0;
 
-    for (const col of collections) {
+  try {
+    for (const col of USER_DATA_COLLECTIONS) {
       try {
-        await deleteCollection(col, 500);
+        deletedCount += await deleteUserCollection(uid, col);
       } catch (err) {
         console.warn(`刪除 ${col} 時發生錯誤:`, err);
-        // 繼續刪除其他集合
+        failures.push(col);
       }
     }
 
-    showToast('所有資料已清除', 'success');
+    await clearAllLocalCaches();
 
-    // 重新載入頁面
+    if (failures.length) {
+      showToast(`已清除 ${deletedCount} 筆資料，但 ${failures.join('、')} 需稍後重試`, 'error');
+    } else {
+      showToast(`所有資料與本機快取已清除（${deletedCount} 筆）`, 'success');
+    }
+
     setTimeout(() => {
-      window.location.reload();
-    }, 1500);
-
+      window.location.replace('dashboard.html?cacheCleared=' + Date.now());
+    }, 1800);
   } catch (error) {
     console.error('清除資料失敗:', error);
     showToast('清除失敗: ' + error.message, 'error');
@@ -416,7 +353,9 @@ async function clearAllData() {
   }
 }
 
-// DOMContentLoaded
+// 設定頁目前不再載入使用者資訊、通知設定與預設費用設定；保留 hook 供 app.js auth ready 後安全呼叫。
+async function loadSettings() {}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadSettings();
 });

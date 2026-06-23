@@ -203,6 +203,11 @@
 - 發訊模式旁提供「測試」按鈕：電話簡訊模式需開啟裝置簡訊 App 並帶入測試文字；Line 模式需開啟 LINE 傳送/分享視窗並記錄測試結果。Firestore 測試紀錄寫入失敗時需回退到目前使用者 `/users/{uid}/messageTests`，不可只顯示「已建立紀錄」而沒有實際發訊動作。
 - 所有帳號列表欄位改為：帳號、角色、聯絡電話、最近登入、操作；不顯示狀態欄。
 
+### 設定頁與資料管理
+- 設定頁只保留資料管理與關於資訊；移除「使用者資訊」「通知設定」「預設費用設定」卡片，帳號/個人資料統一由右上角選單進入「帳號管理」維護。
+- 「清除所有資料」需刪除目前使用者 `/users/{uid}` 底下的業務集合與設定集合；建案刪除前需先清除 `projects/{projectId}/rooms` 子集合，避免只刪建案文件而殘留客房資料。
+- 清除完成後需同步清本機快取：app local/session storage、Cache Storage、Firestore persistence 與 Firebase/Firestore 相關 IndexedDB；重新導向時加上 cache-busting query，避免畫面讀到舊快取。
+
 ### 證據保存
 - 檔案卡片若為圖片直接顯示縮圖；點擊開啟大尺寸預覽 modal。
 - 詳情 modal 使用大尺寸容器：圖片 object-contain 放大、PDF 使用 iframe 預覽，其他檔案顯示圖示並提供另開 Drive。
