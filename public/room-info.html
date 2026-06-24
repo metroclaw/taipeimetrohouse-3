@@ -100,6 +100,29 @@ async function resizeImageFile(file, maxWidth, maxHeight, quality = 0.82){
 async function uploadImageBlob(storagePath, blob){const ref=firebase.storage().ref(storagePath); await ref.put(blob,{contentType:'image/jpeg'}); return await ref.getDownloadURL();}
 function getRoomInfoOwnerUid(){return resolvedProjectOwnerUid || (projectData && projectData.__ownerUid) || getProjectOwnerUid(getParam('projectId')) || getCurrentUserUid();}
 function getSelectedRoom(){return roomsData.find(r => r.id === selectedRoomId) || getFilteredRooms()[0] || roomsData[0] || null;}
+function normalizeRoomStatus(room){return String(room?.status || '').trim();}
+function isRoomOccupied(room){const status=normalizeRoomStatus(room); return status === '已出租' || !!(room?.tenantId || room?.tenant || room?.contractId);}
+function getRoomContractAction(room){
+  const status = normalizeRoomStatus(room);
+  if (status === '空置' || status === '可出租' || (!status && !isRoomOccupied(room))) return 'lease';
+  if (status === '已出租') return 'checkout';
+  return 'disabled';
+}
+function getContractActionUrl(room){
+  const action = getRoomContractAction(room);
+  if (action === 'disabled') return '#';
+  const params = new URLSearchParams({ action, projectId: getParam('projectId'), roomId: room.id });
+  const ownerUid = getRoomInfoOwnerUid();
+  if (ownerUid) params.set('ownerUid', ownerUid);
+  if (room.contractId) params.set('contractId', room.contractId);
+  return `contracts.html?${params.toString()}`;
+}
+function renderContractAction(room){
+  const action = getRoomContractAction(room);
+  if (action === 'lease') return `<a href="${h(getContractActionUrl(room))}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600"><i class="fas fa-file-signature"></i>承租</a>`;
+  if (action === 'checkout') return `<a href="${h(getContractActionUrl(room))}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600"><i class="fas fa-person-walking-arrow-right"></i>退租</a>`;
+  return '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 text-gray-400 text-xs font-medium cursor-not-allowed"><i class="fas fa-ban"></i>不可操作</span>';
+}
 function isRoomRentable(room){return room.status === '可出租' || room.status === '空置' || (!room.tenant && room.status !== '已出租');}
 function getFilteredRooms(){const filter=document.getElementById('room-status-filter')?.value || ''; if(!filter) return roomsData; return roomsData.filter(room => filter === '可出租' ? isRoomRentable(room) : room.status === '已出租' || !!room.tenant);}
 function applyRoomStatusFilter(){const list=getFilteredRooms(); selectedRoomId = list.some(r => r.id === selectedRoomId) ? selectedRoomId : (list[0]?.id || ''); renderRoomDetail();}
@@ -126,9 +149,9 @@ function renderRoomDetail(){
   const internetTv = room.internetTv || room.networkInfo || projectInternet || '';
   const otherInfo = room.otherInfo || room.note || room.description || '';
   container.innerHTML = `<article class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-    <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-2"><div><p class="text-xs text-gray-400">${h(projectData?.name || '')} / ${h(projectData?.address || '')}</p><h2 class="text-xl font-bold text-gray-900 mt-1">房號 ${h(roomNumber || '未命名')}</h2></div><span class="inline-flex w-fit px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">${h(room.status || '狀態未設定')}</span></div>
+    <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-2"><div><p class="text-xs text-gray-400">${h(projectData?.name || '')} / ${h(projectData?.address || '')}</p><h2 class="text-xl font-bold text-gray-900 mt-1">房號 ${h(roomNumber || '未命名')}</h2></div><div class="flex flex-wrap items-center gap-2"><span class="inline-flex w-fit px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">${h(room.status || '狀態未設定')}</span>${renderContractAction(room)}</div></div>
     <div class="p-4 space-y-5">
-      <div><div class="flex items-center justify-between mb-2"><h3 class="text-sm font-semibold text-gray-900">室內圖</h3><span class="text-xs text-gray-400">最多 6 張，可左右滑動；預覽用小圖，點擊以大圖檢視</span></div>${renderRoomPhotos(room)}</div>
+      <div><div class="flex items-center justify-between mb-2"><h3 class="text-sm font-semibold text-gray-900">室內圖</h3><span class="text-xs text-gray-400">最多 6 張，可左右滑動；預覽用小圖，點擊以大圖檢視</span></div><div id="room-photo-preview">${renderRoomPhotos(room)}</div></div>
       <form id="room-detail-form" class="space-y-4" onsubmit="saveSelectedRoomInfo(event)">
         <div class="grid md:grid-cols-4 gap-3">
           <div><label class="field-label">房號</label><input id="edit-room-number" class="field-input" value="${h(roomNumber)}"></div>
@@ -143,13 +166,27 @@ function renderRoomDetail(){
         </div>
         <div><label class="field-label">網路／第四台資訊</label><textarea id="edit-room-internet-tv" class="field-input min-h-[84px]" placeholder="例如：中華電信 / 第四台費用 / WiFi 資訊">${h(internetTv)}</textarea></div>
         <div><label class="field-label">其他資訊 / 設備資訊</label><textarea id="edit-room-other-info" class="field-input min-h-[100px]" placeholder="補充家具、注意事項、維修狀態等">${h(otherInfo)}</textarea></div>
-        <div class="rounded-xl border border-dashed border-gray-200 p-3 bg-slate-50"><label class="field-label">更新室內圖（最多 6 張；儲存時自動產生預覽小圖與放大大圖）</label><input id="edit-room-photos" type="file" accept="image/*" multiple class="w-full text-sm text-gray-500 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:font-medium"><p class="text-xs text-gray-400 mt-2">未選新圖片時會保留原本室內圖；選擇新圖片會以本次 1–6 張取代。</p></div>
+        <div class="rounded-xl border border-dashed border-gray-200 p-3 bg-slate-50"><label class="field-label">更新室內圖（最多 6 張；儲存時自動產生預覽小圖與放大大圖）</label><input id="edit-room-photos" type="file" accept="image/*" multiple onchange="previewSelectedRoomPhotos(this)" class="w-full text-sm text-gray-500 file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary file:font-medium"><p class="text-xs text-gray-400 mt-2">未選新圖片時會保留原本室內圖；選擇新圖片會以本次 1–6 張取代。</p></div>
         <div class="flex flex-col sm:flex-row justify-end gap-3"><button type="button" onclick="applySelectedRoomInfoToOtherRooms()" class="px-4 py-2 border border-primary/30 text-primary rounded-lg text-sm font-medium hover:bg-primary/5"><i class="fas fa-clone mr-1"></i>套用到其他房</button><button type="submit" class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90"><i class="fas fa-save mr-1"></i>儲存此房號資料</button></div>
       </form>
     </div>
   </article>`;
 }
 function selectRoom(roomId){selectedRoomId = roomId; renderRoomDetail();}
+function previewSelectedRoomPhotos(input){
+  const room = getSelectedRoom();
+  if (!room || !input?.files?.length) return;
+  const previews = Array.from(input.files).slice(0,6).map(file => {
+    const url = URL.createObjectURL(file);
+    return { previewUrl: url, fullUrl: url, __localPreview: true };
+  });
+  const existingLocalPreviews = normalizeRoomImageObjects(room).filter(img => img.__localPreview && img.previewUrl);
+  existingLocalPreviews.forEach(img => { try { URL.revokeObjectURL(img.previewUrl); } catch(e) {} });
+  room.__pendingInteriorPhotoPreviews = previews;
+  currentRoomImages = previews;
+  const photoSection = document.getElementById('room-photo-preview');
+  if (photoSection) photoSection.innerHTML = renderRoomPhotos({ interiorPhotos: previews });
+}
 async function uploadRoomInteriorPhotos(uid, projectId, roomId){
   const input = document.getElementById('edit-room-photos');
   if (!input || !input.files || !input.files.length) return null;
@@ -231,7 +268,15 @@ async function saveSelectedRoomInfo(event){
     }
     await db.collection('users').doc(uid).collection('projects').doc(projectId).collection('rooms').doc(room.id).set(data, { merge: true });
     Object.assign(room, data);
-    if (interiorPhotos) room.interiorPhotos = interiorPhotos;
+    if (interiorPhotos) {
+      room.interiorPhotos = interiorPhotos;
+      room.interiorPhotoUrls = interiorPhotos.map(p => p.fullUrl || p.previewUrl).filter(Boolean);
+      room.roomImages = room.interiorPhotoUrls;
+      room.photos = room.interiorPhotoUrls;
+      delete room.__pendingInteriorPhotoPreviews;
+      const input = document.getElementById('edit-room-photos');
+      if (input) input.value = '';
+    }
     hideLoading();
     showToast('客房資料已更新');
     renderRoomDetail();

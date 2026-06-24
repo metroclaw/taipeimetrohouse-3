@@ -114,13 +114,19 @@
 </div>
 <script>
 let contractsData = [], tenantsData = [], roomsData = [], projectsData = [];
+let contractsActionHandled = false;
+let contractsDataOwnerUid = '';
+function getParam(name){return new URLSearchParams(window.location.search).get(name) || '';}
+function getContractsDataOwnerUid(){return contractsDataOwnerUid || getParam('ownerUid') || getCurrentUserUid();}
 async function loadContracts() {
     const uid = getCurrentUserUid(); if (!uid) return;
+    contractsDataOwnerUid = getParam('ownerUid') || uid;
     try {
+        const ownerUid = getContractsDataOwnerUid();
         const [cSnap, tSnap, pSnap] = await Promise.all([
-            db.collection('users').doc(uid).collection('contracts').get(),
-            db.collection('users').doc(uid).collection('tenants').get(),
-            db.collection('users').doc(uid).collection('projects').get()
+            db.collection('users').doc(ownerUid).collection('contracts').get(),
+            db.collection('users').doc(ownerUid).collection('tenants').get(),
+            db.collection('users').doc(ownerUid).collection('projects').get()
         ]);
         contractsData = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         tenantsData = tSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -128,10 +134,11 @@ async function loadContracts() {
         roomsData = [];
         for (const projectDoc of pSnap.docs) {
             const project = { id: projectDoc.id, ...projectDoc.data() };
-            const rSnap = await db.collection('users').doc(uid).collection('projects').doc(project.id).collection('rooms').get();
+            const rSnap = await db.collection('users').doc(getContractsDataOwnerUid()).collection('projects').doc(project.id).collection('rooms').get();
             roomsData = roomsData.concat(rSnap.docs.map(d => ({ id: d.id, projectId: project.id, projectName: project.name || project.address || '', ...d.data() })));
         }
         renderContracts();
+        handleContractActionFromParams();
     } catch (e) { console.error(e); showToast('載入合約失敗', 'error'); }
 }
 function h(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])); }
@@ -192,16 +199,21 @@ function renderContracts() {
     const expiring = contractsData.filter(c => c.end && Math.ceil((new Date(c.end) - today) / 86400000) <= 60 && Math.ceil((new Date(c.end) - today) / 86400000) >= 0);
     document.getElementById('expiring-contracts').innerHTML = expiring.length > 0 ? expiring.map(c => `<div>• ${c.tenantName || '—'} — ${contractRoomLabel(c)}，${c.end} 到期（剩 ${Math.ceil((new Date(c.end) - today) / 86400000)} 天）</div>`).join('') : '無即將到期的合約';
 }
-function openContractModal() {
+function openContractModal(prefill = {}) {
     document.getElementById('contract-modal').classList.remove('hidden');
-    document.getElementById('contract-modal-title').textContent = '新增合約';
+    document.getElementById('contract-modal-title').textContent = prefill.title || '新增合約';
     document.getElementById('contract-form').reset();
     document.getElementById('contract-id').value = '';
     const tSel = document.getElementById('contract-tenant');
     tSel.innerHTML = '<option value="">選擇房客</option>' + tenantsData.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
     const pSel = document.getElementById('contract-project');
     pSel.innerHTML = '<option value="">選擇建案</option>' + projectsData.map(p => `<option value="${p.id}">${p.name || p.address || '未命名建案'}</option>`).join('');
-    populateContractRoomOptions();
+    if (prefill.projectId) pSel.value = prefill.projectId;
+    populateContractRoomOptions(prefill.roomId || '');
+    if (prefill.roomId) {
+        const room = roomsData.find(r => r.id === prefill.roomId && r.projectId === prefill.projectId);
+        if (room) document.getElementById('contract-rent').value = room.rent || room.monthlyRent || '';
+    }
     document.getElementById('contract-existing-photos').innerHTML = '';
     document.getElementById('contract-existing-files').classList.add('hidden');
     document.getElementById('contract-existing-files').innerHTML = '';
@@ -234,7 +246,7 @@ function editContract(id) {
 async function renewContract(id) {
     const c = contractsData.find(x => x.id === id); if (!c) return;
     if (!confirm(`確定要為 ${c.tenantName} 續約？將自動延長一年。`)) return;
-    const uid = getCurrentUserUid();
+    const uid = getContractsDataOwnerUid();
     const endDate = new Date(c.end);
     const newEnd = new Date(endDate.setFullYear(endDate.getFullYear() + 1)).toISOString().split('T')[0];
     try {
@@ -245,9 +257,71 @@ async function renewContract(id) {
         showToast('已續約一年'); loadContracts();
     } catch (e) { console.error(e); showToast('續約失敗', 'error'); }
 }
+function getActiveContractForRoom(projectId, roomId, contractId = '') {
+    if (contractId) {
+        const byId = contractsData.find(c => c.id === contractId);
+        if (byId) return byId;
+    }
+    return contractsData.find(c => c.projectId === projectId && c.roomId === roomId && (c.status || '進行中') === '進行中')
+        || contractsData.find(c => c.projectId === projectId && c.roomId === roomId);
+}
+async function checkoutRoomFromContract(projectId, roomId, contractId = '') {
+    const uid = getContractsDataOwnerUid();
+    const contract = getActiveContractForRoom(projectId, roomId, contractId);
+    const room = roomsData.find(r => r.projectId === projectId && r.id === roomId);
+    if (!room) { showToast('找不到要退租的客房', 'error'); return; }
+    const label = [room.projectName, room.number || room.roomNumber || room.id].filter(Boolean).join(' / ');
+    const tenantName = contract?.tenantName || room.tenantName || room.tenant || '目前房客';
+    if (!confirm(`確定要將 ${label} 辦理退租？\n\n系統會把客房改為空置，並結束目前合約/房客承租狀態。`)) return;
+    try {
+        showLoading();
+        const batch = db.batch();
+        const userRef = db.collection('users').doc(uid);
+        const today = new Date().toISOString().split('T')[0];
+        if (contract) {
+            batch.update(userRef.collection('contracts').doc(contract.id), {
+                status: '已退租', checkoutDate: today, endedAt: Date.now(), updatedAt: Date.now()
+            });
+        }
+        batch.update(userRef.collection('projects').doc(projectId).collection('rooms').doc(roomId), {
+            status: '空置', tenantId: '', tenantName: '', tenant: '', contractId: '', checkoutDate: today, updatedAt: Date.now()
+        });
+        const tenantId = contract?.tenantId || room.tenantId;
+        if (tenantId) {
+            batch.update(userRef.collection('tenants').doc(tenantId), {
+                status: '已退租', roomId: '', roomNumber: '', room: '', projectId: '', projectName: '', contractId: '', checkoutDate: today, updatedAt: Date.now()
+            });
+        }
+        await batch.commit();
+        hideLoading();
+        showToast(`${tenantName} 已完成退租，客房已改為空置`);
+        const cleanUrl = new URL(window.location.href);
+        ['action','projectId','roomId','contractId','ownerUid'].forEach(key => cleanUrl.searchParams.delete(key));
+        window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search);
+        loadContracts();
+    } catch (e) {
+        hideLoading();
+        console.error('退租失敗:', e);
+        showToast('退租失敗，請確認資料權限', 'error');
+    }
+}
+function handleContractActionFromParams() {
+    if (contractsActionHandled) return;
+    const action = getParam('action');
+    const projectId = getParam('projectId');
+    const roomId = getParam('roomId');
+    if (!action || !projectId || !roomId) return;
+    contractsActionHandled = true;
+    if (action === 'lease') {
+        openContractModal({ projectId, roomId, title: '新增承租合約' });
+        showToast('已帶入客房，請選擇房客並儲存合約', 'info');
+    } else if (action === 'checkout') {
+        checkoutRoomFromContract(projectId, roomId, getParam('contractId'));
+    }
+}
 document.getElementById('contract-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const uid = getCurrentUserUid(); if (!uid) return;
+    const uid = getContractsDataOwnerUid(); if (!uid) return;
     const tenantSelect = document.getElementById('contract-tenant');
     const projectSelect = document.getElementById('contract-project');
     const roomSelect = document.getElementById('contract-room');

@@ -191,12 +191,15 @@
 ### 建案管理
 - 篩選列「國家」「城市」使用 select，下拉選項從現有建案 `country/city` 或地址解析結果彙整；城市選單會依目前國家篩選，只顯示該國家的城市。
 - 建案圖片、地圖截圖與外觀圖透過後端代理存放於 `taipeimetrohouse/建案管理/{建案ID}`；若建案完全沒有可用預覽圖，畫面使用 `public/img/project-placeholder.jpg` 作為預設建案圖。
+- 客房資訊頁室內圖上傳後需立即顯示本機預覽；儲存成功後以前端取得的 `previewUrl/fullUrl` 直接更新目前房間狀態並重新渲染，不等待整頁重載，避免使用者以為沒有上傳成功。
+- 客房資訊頁出租狀況 badge 旁需顯示合約動作：`空置/可出租` 顯示「承租」按鈕並連到 `contracts.html?action=lease&projectId=...&roomId=...`；`已出租` 顯示「退租」按鈕並連到 `contracts.html?action=checkout&projectId=...&roomId=...`；`維修中/清潔中/其他狀態` 顯示灰色「不可操作」。
 
 ### 合約管理
 - 新增/編輯合約的客房欄位拆為「建案」與「房號」，先選建案再篩出該建案房號。
 - 水費、電費、瓦斯費 selector 都包含「依照度數」，每項旁邊有基本計費 NT$ 欄位。
 - 新增「網路／第四台費用」與「室內狀況照片」；照片可多選，不限制張數，存於 `taipeimetrohouse/合約管理/{建案}/{房號}/室內狀況照片`。
 - 新增合約 PDF 檔案欄位：`signingPdfFile` 保存簽約流程中的暫時 PDF，`signedContractFile` 保存簽約完成後的正式 PDF；上傳正式檔後，列表與主檔 `contractFile` 優先顯示正式檔，等同覆蓋暫時檔案的對外顯示。
+- 合約管理需支援客房資訊頁深連結：`action=lease` 自動開啟新增承租合約 modal 並帶入建案/房號；`action=checkout` 需確認後將合約狀態改為已退租、客房改為空置並清除 tenant/contract 綁定。
 
 ### 帳號管理
 - 帳號資訊卡採緊密三欄資訊網格，頭像縮小為 64px，減少垂直高度。
